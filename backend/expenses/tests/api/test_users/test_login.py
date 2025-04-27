@@ -15,7 +15,6 @@ class TestLogin(APITestCase):
             self.url, {"email": self.user.email, "password": "password"}
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        # Test can get self
         res = self.client.get(reverse("expenses:users-self"))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res = res.json()
