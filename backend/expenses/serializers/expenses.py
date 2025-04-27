@@ -49,6 +49,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expense
         fields = [
+            "id",
             "expense_date",
             "description",
             "forecast_amount",
@@ -59,4 +60,4 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "trip",
             "is_expense",
         ]
-        read_only_fields = ("id",)
+        read_only_fields = ["id"]
