@@ -21,6 +21,12 @@ class User(models.Model):
     def check_password(self, password):
         return check_password(password, self.password_hash)
 
+    def is_authenticated(self):
+        return True
+
+    def __str__(self):
+        return self.email
+
 
 def get_hashed_password(plain_text_password):
     # Hash a password for the first time

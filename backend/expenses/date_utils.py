@@ -10,3 +10,7 @@ def now() -> dt.datetime:
 
 def today() -> dt.date:
     return now().date()
+
+
+def year() -> int:
+    return today().year

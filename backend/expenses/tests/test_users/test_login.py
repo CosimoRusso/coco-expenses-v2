@@ -1,0 +1,22 @@
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from expenses.tests.factories.user_factories import UserFactory
+from rest_framework.reverse import reverse
+
+
+class TestLogin(APITestCase):
+    def setUp(self):
+        self.user = UserFactory()
+        self.url = reverse("expenses:users-login")
+
+    def test_login(self):
+        res = self.client.post(
+            self.url, {"email": self.user.email, "password": "password"}
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        # Test can get self
+        res = self.client.get(reverse("expenses:users-self"))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res = res.json()
+        self.assertEqual(res["email"], self.user.email)
