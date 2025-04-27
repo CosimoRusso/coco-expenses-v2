@@ -7,6 +7,8 @@ class ExpenseCategory(models.Model):
     )
     code = models.CharField(verbose_name="Expense Category", max_length=128)
     name = models.CharField(verbose_name="Expense Category", max_length=128)
+    # True for expenses, False for income
+    for_expense = models.BooleanField(verbose_name="For expenses", default=True)
 
     class Meta:
         unique_together = ("user", "code")

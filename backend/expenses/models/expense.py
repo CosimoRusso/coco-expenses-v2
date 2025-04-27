@@ -24,6 +24,8 @@ class Expense(models.Model):
     category = models.ForeignKey(
         "ExpenseCategory", on_delete=models.PROTECT, related_name="expenses"
     )
-    trip = models.ForeignKey("Trip", on_delete=models.PROTECT, related_name="expenses")
+    trip = models.ForeignKey(
+        "Trip", on_delete=models.PROTECT, related_name="expenses", null=True
+    )
     # True for expenses, false for income
     is_expense = models.BooleanField(default=True)
