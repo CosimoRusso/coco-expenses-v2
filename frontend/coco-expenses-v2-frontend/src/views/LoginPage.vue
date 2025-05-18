@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import apiFetch from '@/utils/apiFetch.ts'
 
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const router = useRouter()
+const userStore = useUserStore()
 
 async function handleLogin() {
   // Reset error message
@@ -19,12 +22,18 @@ async function handleLogin() {
 
   const body = JSON.stringify({ email: email.value, password: password.value })
 
-  const response = await fetch('/api/expenses/users/login/', {
+  const response = await apiFetch('/expenses/users/login/', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body,
   })
   if (response.ok) {
+    const data = await response.json()
+    // Store the token and update login state
+    userStore.initUser({
+      email: email.value,
+      firstName: data.first_name,
+      lastName: data.last_name,
+    })
     await router.push('/')
   } else if (response.status === 403) {
     const msg = await response.json()

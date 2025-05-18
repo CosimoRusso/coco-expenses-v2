@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import HomeView from '@/views/HomeView.vue'
+import Navbar from '@/components/Navbar.vue'
 </script>
 
 <template>
-  <HomeView />
+  <header>
+    <Navbar />
+  </header>
+  <main>
+    <router-view />
+  </main>
 </template>
 
-<style scoped></style>
+<style scoped>
+main {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+</style>

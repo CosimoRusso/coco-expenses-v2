@@ -38,7 +38,13 @@ class UserViewSet(viewsets.ModelViewSet):
             token = Token.objects.create(
                 user=user, expiration_date=date_utils.now() + TOKEN_DURATION
             )
-            response = Response({"status": "ok"})
+            response = Response(
+                {
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "email": email,
+                }
+            )
             response.set_cookie(
                 key="token", value=token.token, expires=token.expiration_date
             )
