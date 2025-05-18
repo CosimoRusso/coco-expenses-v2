@@ -1,4 +1,3 @@
-from django.http import Http404
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -32,14 +31,14 @@ class UserViewSet(viewsets.ModelViewSet):
         password = serializer.validated_data["password"]
         user = User.objects.filter(email=email).first()
         if user is None:
-            raise Http404("User not found")
+            raise PermissionDenied("User not found")
         if not user.email_confirmed_at or user.email_confirmed_at > date_utils.now():
             raise PermissionDenied("Email not confirmed")
         if user.check_password(password):
             token = Token.objects.create(
                 user=user, expiration_date=date_utils.now() + TOKEN_DURATION
             )
-            response = Response()
+            response = Response({"status": "ok"})
             response.set_cookie(
                 key="token", value=token.token, expires=token.expiration_date
             )
