@@ -9,6 +9,29 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - coco-network
+
+  django:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: coco-expenses-django
+    env_file: "backend/.env"
+    environment:
+      - DB_HOST=postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+    networks:
+      - coco-network
 
 volumes:
   postgres_data:
+
+networks:
+  coco-network:
+    driver: bridge

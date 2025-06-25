@@ -1,7 +1,3 @@
 from django.contrib import admin
 
-from expenses.models import User
-
-
-# Register your models here.
-admin.site.register(User)
+# User admin is registered in the admin package
