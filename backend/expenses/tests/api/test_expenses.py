@@ -13,7 +13,7 @@ from expenses.tests.factories.expense_factories import ExpenseFactory
 from expenses.tests.factories.user_factories import UserFactory
 
 
-class TestCategory(ApiTestCase):
+class TestExpense(ApiTestCase):
     def setUp(self):
         self.category = ExpenseCategoryFactory()
         self.list_url = reverse("expenses:expenses-list")

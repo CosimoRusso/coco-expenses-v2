@@ -3,6 +3,9 @@ bcrypt==4.3.0
 Django==5.2.1
 django-dotenv==1.4.2
 djangorestframework==3.16.0
+factory_boy==3.3.3
+Faker==37.4.0
 psycopg==3.2.9
 psycopg-binary==3.2.9
 sqlparse==0.5.3
+tzdata==2025.2
