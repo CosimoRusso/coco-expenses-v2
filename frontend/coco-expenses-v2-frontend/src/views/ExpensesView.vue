@@ -6,13 +6,4 @@ import ExpensesList from '@/components/ExpensesList.vue'
   <ExpensesList />
 </template>
 
-<style scoped>
-.expenses {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-h1 {
-  margin-bottom: 1.5rem;
-}
-</style>
+<style scoped></style>

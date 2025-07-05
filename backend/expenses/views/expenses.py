@@ -1,6 +1,7 @@
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 
+from expenses.date_utils import is_italian_date, from_italian_date
 from expenses.models import Expense
 from expenses.serializers.expenses import ExpenseSerializer
 
@@ -55,6 +56,35 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                     is_expense = (
                         row.get("typology", "expense").strip().lower() != "income"
                     )
+                    # Process date fields
+                    for date_field in [
+                        "expense_date",
+                        "amortization_start_date",
+                        "amortization_end_date",
+                    ]:
+                        if row.get(date_field):
+                            row[date_field] = (
+                                from_italian_date(row[date_field])
+                                if is_italian_date(row[date_field])
+                                else row[date_field]
+                            )
+                    # Process money fields
+                    for money_field in [
+                        "forecast_amount",
+                        "actual_amount",
+                    ]:
+                        if row.get(money_field):
+                            row[money_field] = (
+                                float(
+                                    row[money_field]
+                                    .replace(".", "")
+                                    .replace(",", ".")
+                                    .replace("€", "")
+                                    .strip()
+                                )
+                                if isinstance(row[money_field], str)
+                                else row[money_field]
+                            )
                     # Crea Expense
                     Expense.objects.create(
                         user=user,

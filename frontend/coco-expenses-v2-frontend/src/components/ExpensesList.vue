@@ -245,6 +245,9 @@ onMounted(() => {
         </button>
       </form>
     </div>
+    <div class="expense-import-csv">
+      <p>or <a href="/import-expenses-from-csv">import from csv</a></p>
+    </div>
 
     <!-- Expenses Table -->
     <div class="expenses-table">
@@ -411,5 +414,8 @@ tr:hover {
     display: block;
     overflow-x: auto;
   }
+}
+.expense-import-csv {
+  text-align: center;
 }
 </style>

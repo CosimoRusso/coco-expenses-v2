@@ -38,6 +38,11 @@ const router = createRouter({
       name: 'profile',
       component: () => import('../views/ProfileView.vue'),
     },
+    {
+      path: '/import-expenses-from-csv',
+      name: 'import-expenses-from-csv',
+      component: () => import('../views/ImportExpensesFromCsv.vue'),
+    },
   ],
 })
 
