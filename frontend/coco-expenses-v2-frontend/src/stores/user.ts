@@ -16,7 +16,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function checkAuthStatus() {
-    const response = await apiFetch('expenses/users/self')
+    const response = await apiFetch('expenses/users/self/')
     if (response.ok) {
       const userData = await response.json()
       initUser(userData)

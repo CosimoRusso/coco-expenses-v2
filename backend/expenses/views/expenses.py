@@ -12,7 +12,11 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Expense.objects.select_related("category", "trip").filter(user=user)
+        return (
+            Expense.objects.select_related("category", "trip")
+            .filter(user=user)
+            .order_by("-expense_date")
+        )
 
     @action(detail=False, methods=["post"])
     def load_from_csv(self, request):

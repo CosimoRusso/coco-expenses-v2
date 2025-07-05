@@ -10,7 +10,7 @@ interface Expense {
   actual_amount: number
   amortization_start_date: string
   amortization_end_date: string
-  category: number
+  category: number | null
   trip: number | null
   is_expense: boolean
 }
@@ -27,18 +27,8 @@ interface Trip {
 
 // Data
 const expenses = ref<Expense[]>([])
-const categories = ref<Category[]>([
-  { id: 1, name: 'Food' },
-  { id: 2, name: 'Transportation' },
-  { id: 3, name: 'Housing' },
-  { id: 4, name: 'Entertainment' },
-  { id: 5, name: 'Other' },
-])
-const trips = ref<Trip[]>([
-  { id: 1, name: 'Business Trip 2023' },
-  { id: 2, name: 'Vacation 2023' },
-  { id: 3, name: 'Conference 2023' },
-])
+const categories = ref<Category[]>([])
+const trips = ref<Trip[]>([])
 
 // New expense form
 const newExpense = ref<Expense>({
@@ -48,22 +38,43 @@ const newExpense = ref<Expense>({
   actual_amount: 0,
   amortization_start_date: '',
   amortization_end_date: '',
-  category: 0,
+  category: null,
   trip: null,
   is_expense: true,
 })
 
 // Form error handling
 const formError = ref('')
+const tableErrors = ref<string[]>([])
 const isSubmitting = ref(false)
 
 // Fetch expenses
 const fetchExpenses = async () => {
   try {
-    const response = await axios.get('/api/expenses/')
+    const response = await axios.get('/api/expenses/expenses/')
     expenses.value = response.data
   } catch (error) {
     console.error('Error fetching expenses:', error)
+    tableErrors.value.push('Failed to load categories.')
+  }
+}
+
+async function fetchCategories() {
+  try {
+    const response = await axios.get('/api/expenses/expense-categories/')
+    categories.value = response.data
+  } catch (error) {
+    console.error('Error fetching categories:', error)
+    tableErrors.value.push('Failed to load categories.')
+  }
+}
+async function fetchTrips() {
+  try {
+    const response = await axios.get('/api/expenses/trips/')
+    trips.value = response.data
+  } catch (error) {
+    console.error('Error fetching trips:', error)
+    tableErrors.value.push('Failed to load trips.')
   }
 }
 
@@ -105,7 +116,7 @@ const addExpense = async () => {
       actual_amount: 0,
       amortization_start_date: '',
       amortization_end_date: '',
-      category: 0,
+      category: null,
       trip: null,
       is_expense: true,
     }
@@ -124,11 +135,6 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString()
 }
 
-// Format amount for display
-const formatAmount = (amount: number) => {
-  return amount.toFixed(2)
-}
-
 // Get category name by ID
 const getCategoryName = (categoryId: number) => {
   const category = categories.value.find((c) => c.id === categoryId)
@@ -137,14 +143,20 @@ const getCategoryName = (categoryId: number) => {
 
 // Get trip name by ID
 const getTripName = (tripId: number | null) => {
-  if (!tripId) return 'None'
+  if (!tripId) return ''
   const trip = trips.value.find((t) => t.id === tripId)
   return trip ? trip.name : 'Unknown'
 }
 
+async function fetchCategoriesTripsAndExpenses() {
+  await fetchCategories()
+  await fetchTrips()
+  await fetchExpenses()
+}
+
 // Load data on component mount
 onMounted(() => {
-  fetchExpenses()
+  fetchCategoriesTripsAndExpenses().then(() => {})
 })
 </script>
 
@@ -251,7 +263,11 @@ onMounted(() => {
 
     <!-- Expenses Table -->
     <div class="expenses-table">
-      <h2>Expenses</h2>
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <h2>Expenses</h2>
+        <button @click="fetchCategoriesTripsAndExpenses" style="margin-left: auto">Reload</button>
+      </div>
+      <div v-for="msg of tableErrors" :key="msg" class="error-message">{{ msg }}</div>
       <table>
         <thead>
           <tr>
@@ -272,8 +288,8 @@ onMounted(() => {
           <tr v-for="expense in expenses" :key="expense.id">
             <td>{{ formatDate(expense.expense_date) }}</td>
             <td>{{ expense.description }}</td>
-            <td>{{ formatAmount(expense.forecast_amount) }}</td>
-            <td>{{ formatAmount(expense.actual_amount) }}</td>
+            <td>{{ expense.forecast_amount }}</td>
+            <td>{{ expense.actual_amount }}</td>
             <td>{{ formatDate(expense.amortization_start_date) }}</td>
             <td>{{ formatDate(expense.amortization_end_date) }}</td>
             <td>{{ getCategoryName(expense.category) }}</td>
