@@ -141,6 +141,24 @@ const addExpense = async () => {
   }
 }
 
+// Delete expense
+const deleteExpense = async (expenseId: number) => {
+  if (!expenseId) return
+  try {
+    await axios.delete(`/api/expenses/expenses/${expenseId}/`)
+    expenses.value = expenses.value.filter((e) => e.id !== expenseId)
+  } catch (error) {
+    console.error('Error deleting expense:', error)
+    tableErrors.value.push("Errore durante l'eliminazione della spesa.")
+  }
+}
+
+function confirmDelete(expense: Expense) {
+  if (confirm('Sei sicuro di voler eliminare questa spesa?')) {
+    deleteExpense(expense.id!)
+  }
+}
+
 // Format date for display
 const formatDate = (dateString: string) => {
   if (!dateString) return ''
@@ -293,11 +311,12 @@ onMounted(() => {
             <th>Amortization End</th>
             <th>Category</th>
             <th>Trip</th>
+            <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="expenses.length === 0">
-            <td colspan="8" class="no-data">No expenses found</td>
+            <td colspan="9" class="no-data">No expenses found</td>
           </tr>
           <tr v-for="expense in expenses" :key="expense.id">
             <td>{{ formatDate(expense.expense_date) }}</td>
@@ -308,6 +327,29 @@ onMounted(() => {
             <td>{{ formatDate(expense.amortization_end_date) }}</td>
             <td>{{ getCategoryName(expense.category) }}</td>
             <td>{{ getTripName(expense.trip) }}</td>
+            <td>
+              <button
+                @click="confirmDelete(expense)"
+                title="Elimina"
+                style="background: none; border: none; cursor: pointer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="red"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
