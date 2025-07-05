@@ -136,7 +136,8 @@ const formatDate = (dateString: string) => {
 }
 
 // Get category name by ID
-const getCategoryName = (categoryId: number) => {
+const getCategoryName = (categoryId: number | null) => {
+  if (!categoryId) return ''
   const category = categories.value.find((c) => c.id === categoryId)
   return category ? category.name : 'Unknown'
 }

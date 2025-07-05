@@ -42,12 +42,16 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             for i, row in enumerate(reader, 1):
                 try:
+                    # Tipologia: True per expense, False per income
+                    is_expense = (
+                        row.get("typology", "expense").strip().lower() != "income"
+                    )
                     # Categoria: cerca per code, crea se non esiste
                     cat_code = row["category"].strip()
                     category, _ = ExpenseCategory.objects.get_or_create(
                         user=user,
                         code=cat_code,
-                        defaults={"name": cat_code, "for_expense": True},
+                        defaults={"name": cat_code, "for_expense": is_expense},
                     )
                     # Trip: cerca per code, crea se non esiste
                     trip_code = row["trip"].strip()
@@ -56,10 +60,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                         trip, _ = Trip.objects.get_or_create(
                             user=user, code=trip_code, defaults={"name": trip_code}
                         )
-                    # Tipologia: True per expense, False per income
-                    is_expense = (
-                        row.get("typology", "expense").strip().lower() != "income"
-                    )
+
                     # Process date fields
                     for date_field in [
                         "expense_date",
