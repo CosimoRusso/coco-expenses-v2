@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import DeleteIcon from '../../icons/DeleteIcon.vue'
 
 interface Expense {
   id?: number
@@ -333,21 +334,7 @@ onMounted(() => {
                 title="Elimina"
                 style="background: none; border: none; cursor: pointer"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="red"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <DeleteIcon />
               </button>
             </td>
           </tr>
