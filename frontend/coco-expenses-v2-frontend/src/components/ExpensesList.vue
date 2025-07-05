@@ -18,12 +18,18 @@ interface Expense {
 interface Category {
   id: number
   name: string
+  code: string
+  for_expense: boolean
 }
 
 interface Trip {
   id: number
   name: string
+  code: string
 }
+
+// Constants
+const todayStr = new Date().toISOString().substring(0, 10)
 
 // Data
 const expenses = ref<Expense[]>([])
@@ -32,12 +38,12 @@ const trips = ref<Trip[]>([])
 
 // New expense form
 const newExpense = ref<Expense>({
-  expense_date: '',
+  expense_date: todayStr,
   description: '',
   forecast_amount: 0,
   actual_amount: 0,
-  amortization_start_date: '',
-  amortization_end_date: '',
+  amortization_start_date: todayStr,
+  amortization_end_date: todayStr,
   category: null,
   trip: null,
   is_expense: true,
@@ -102,20 +108,27 @@ const addExpense = async () => {
       return
     }
 
+    const _selectedCategory = categories.value.find((c) => c.id === newExpense.value.category)
+    if (!_selectedCategory) {
+      formError.value = 'Invalid category selected'
+      return
+    }
+    newExpense.value.is_expense = _selectedCategory.for_expense
+
     // Submit form
-    const response = await axios.post('/api/expenses/', newExpense.value)
+    const response = await axios.post('/api/expenses/expenses/', newExpense.value)
 
     // Add new expense to list
     expenses.value.push(response.data)
 
     // Reset form
     newExpense.value = {
-      expense_date: '',
+      expense_date: todayStr,
       description: '',
       forecast_amount: 0,
       actual_amount: 0,
-      amortization_start_date: '',
-      amortization_end_date: '',
+      amortization_start_date: todayStr,
+      amortization_end_date: todayStr,
       category: null,
       trip: null,
       is_expense: true,
