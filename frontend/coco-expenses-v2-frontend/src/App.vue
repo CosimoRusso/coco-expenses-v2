@@ -17,4 +17,9 @@ main {
   max-width: 1200px;
   margin: 0 auto;
 }
+@media (max-width: 767px) {
+  main {
+    padding: 0;
+  }
+}
 </style>
