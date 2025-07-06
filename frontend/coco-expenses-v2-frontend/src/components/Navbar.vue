@@ -1,9 +1,31 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 
 const userStore = useUserStore()
 const router = useRouter()
+
+interface NavElement {
+  text: string
+  link: string
+}
+
+const navElements: NavElement[] = [
+  { text: 'Expenses', link: '/expenses' },
+  { text: 'Categories', link: '/categories' },
+  { text: 'Statistics', link: '/statistics' },
+  ...(userStore.isLoggedIn
+    ? [
+        { text: 'Profile', link: '/profile' },
+        { text: 'Logout', link: '/logout' },
+      ]
+    : [{ text: 'Login', link: '/login' }]),
+]
+
+const useMobileNavbar = computed(() => {
+  return window.innerWidth < 768
+})
 
 function handleLogout() {
   userStore.logout()
@@ -16,15 +38,18 @@ function handleLogout() {
     <div class="navbar-brand">
       <router-link to="/" class="logo">CocoExpenses</router-link>
     </div>
-    <div class="navbar-menu">
-      <router-link to="/expenses" class="navbar-item">Expenses</router-link>
-      <router-link to="/statistics" class="navbar-item">Statistics</router-link>
-      <template v-if="userStore.isLoggedIn">
-        <router-link to="/profile" class="navbar-item">Profile</router-link>
-        <button @click="handleLogout" class="navbar-item logout-button">Logout</button>
-      </template>
-      <router-link v-else to="/login" class="navbar-item">Login</router-link>
-    </div>
+    <template v-if="useMobileNavbar"></template>
+    <template v-else>
+      <div class="navbar-menu">
+        <router-link
+          :key="navElement.text"
+          v-for="navElement in navElements"
+          :to="navElement.link"
+          class="navbar-item"
+          >{{ navElement.text }}</router-link
+        >
+      </div>
+    </template>
   </nav>
 </template>
 
