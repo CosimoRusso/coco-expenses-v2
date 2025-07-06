@@ -34,3 +34,16 @@ def is_italian_date(date_str: str) -> bool:
         return True
     except (ValueError, IndexError):
         return False
+
+
+def all_dates_in_range(start_date: dt.date, end_date: dt.date) -> list[dt.date]:
+    """
+    Generate a list of all dates between start_date and end_date, inclusive.
+    """
+    if start_date > end_date:
+        raise ValueError("start_date must be less than or equal to end_date")
+
+    return [
+        start_date + dt.timedelta(days=i)
+        for i in range((end_date - start_date).days + 1)
+    ]
