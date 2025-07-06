@@ -10,5 +10,8 @@ class ExpenseCategory(models.Model):
     # True for expenses, False for income
     for_expense = models.BooleanField(verbose_name="For expenses", default=True)
 
+    def __str__(self):
+        return f"{self.name} ({self.code}))"
+
     class Meta:
         unique_together = ("user", "code")

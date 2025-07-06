@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:latest
-    container_name: coco-expenses-db
+    container_name: ce-db
     env_file: "database/.env"
     ports:
       - "5432:5432"
@@ -16,7 +16,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: coco-expenses-django
+    container_name: ce-be
     env_file: "backend/.env"
     environment:
       - DB_HOST=postgres

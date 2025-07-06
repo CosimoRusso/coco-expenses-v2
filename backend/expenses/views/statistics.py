@@ -1,16 +1,20 @@
 from django.db.models import QuerySet
 from rest_framework.decorators import action
-from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
 from expenses.date_utils import all_dates_in_range
 from expenses.models import Expense, ExpenseCategory
-from expenses.serializers.statistics import CategoryStatisticsSerializer
+from expenses.serializers.statistics import (
+    StartEndDateSerializer,
+    CategoryStatisticsSerializer,
+)
 from expenses.statistics_utils import get_expenses_date_range
 
 
-class StatisticViewSet(ListAPIView):
-    serializer_class = CategoryStatisticsSerializer
+class StatisticViewSet(ViewSet):
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -23,8 +27,10 @@ class StatisticViewSet(ListAPIView):
             "category", "trip"
         )
         categories = ExpenseCategory.objects.filter(user=request.user)
-        start_date = request.query_params.get("start_date")
-        end_date = request.query_params.get("end_date")
+        input_serializer = StartEndDateSerializer(data=request.query_params)
+        input_serializer.is_valid(raise_exception=True)
+        start_date = input_serializer.validated_data["start_date"]
+        end_date = input_serializer.validated_data["end_date"]
         expenses = get_expenses_date_range(
             queryset,
             start_date=start_date,
@@ -46,11 +52,16 @@ class StatisticViewSet(ListAPIView):
                             ] += expense.forecast_amount
 
         result = [
-            {"category": category, "actual_amount": 0, "forecast_amount": 0}
+            {
+                "category": category,
+                "actual_amount": data["actual_amount"],
+                "forecast_amount": data["forecast_amount"],
+            }
             for category, data in result.items()
         ]
 
-        serializer = self.get_serializer(data=result)
-        serializer.is_valid(raise_exception=True)
-
-        return Response(serializer.data)
+        serializer = CategoryStatisticsSerializer(result, many=True)
+        response = list(
+            sorted(serializer.data, key=lambda item: item["category"]["name"])
+        )
+        return Response(response)

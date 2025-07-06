@@ -26,12 +26,8 @@ def get_expenses_by_day(expenses: Iterable[Expense]) -> dict[dt.date, list[Expen
                 ammortized_row = Expense(
                     expense_date=expense.expense_date,
                     description=expense.description,
-                    actual_amount=Decimal(expense.actual_amount / num_days).quantize(
-                        ZERO
-                    ),
-                    forecast_amount=Decimal(
-                        expense.forecast_amount / num_days
-                    ).quantize(ZERO),
+                    actual_amount=amortize_value(expense.actual_amount, num_days),
+                    forecast_amount=amortize_value(expense.forecast_amount, num_days),
                     amortization_start_date=current_day,
                     amortization_end_date=current_day,
                     category=expense.category,
@@ -40,6 +36,13 @@ def get_expenses_by_day(expenses: Iterable[Expense]) -> dict[dt.date, list[Expen
                 )
                 expenses_by_day[current_day].append(ammortized_row)
     return expenses_by_day
+
+
+def amortize_value(value: Decimal | None, num_days: int) -> Decimal:
+    """Distributes a value evenly across a number of days."""
+    if not value:
+        return ZERO
+    return (value / num_days).quantize(ZERO)
 
 
 def get_expenses_date_range(
