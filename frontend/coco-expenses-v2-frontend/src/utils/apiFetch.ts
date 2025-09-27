@@ -10,6 +10,7 @@ export const apiFetch = async (url: string, options: RequestInit = {}): Promise<
   // Merge the provided headers with our Content-Type header
   const headers = {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
     ...(options.headers || {}),
   }
 
