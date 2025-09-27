@@ -1,33 +1,54 @@
 version: '3.8'
 
 services:
-  postgres:
+  db:
     image: postgres:latest
     container_name: ce-db
     env_file: "database/.env"
     ports:
-      - "5432:5432"
+      - "5430:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - coco-network
 
-  django:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ce-be
     env_file: "backend/.env"
     environment:
-      - DB_HOST=postgres
-    ports:
-      - "8000:8000"
+      - DB_HOST=db
     volumes:
       - ./backend:/app
     depends_on:
-      - postgres
+      - db
     networks:
       - coco-network
+
+  frontend:
+    build:
+      context: ./frontend/coco-expenses-v2-frontend
+      dockerfile: Dockerfile
+    container_name: ce-fe
+    networks:
+      - coco-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: ce-nginx
+    ports:
+      - "3000:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - coco-network
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
 
 volumes:
   postgres_data:
