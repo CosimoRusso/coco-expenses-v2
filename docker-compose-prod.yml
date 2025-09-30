@@ -43,6 +43,7 @@ services:
     volumes:
       - django_static_files:/usr/share/nginx/html/static
       - certbot_www:/var/www/certbot/:ro
+      - certbot_conf:/etc/nginx/ssl/:ro
 
   certbot:
     image: certbot/certbot:latest
