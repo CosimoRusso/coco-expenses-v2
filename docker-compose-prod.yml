@@ -35,16 +35,29 @@ services:
     container_name: ce-nginx
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
     networks:
       - coco-network
     volumes:
       - django_static_files:/usr/share/nginx/html/static
+      - certbot_www:/var/www/certbot/:ro
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: ce-certbot
+    volumes:
+      - certbot_www:/var/www/certbot/:rw
+      - certbot_conf:/etc/letsencrypt/:rw
+    networks:
+      - coco-network
 
 volumes:
   postgres_data:
   django_static_files:
+  certbot_www:
+  certbot_conf:
 
 networks:
   coco-network:
