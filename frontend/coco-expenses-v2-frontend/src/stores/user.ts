@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import apiFetch from '@/utils/apiFetch.ts'
 
 export const useUserStore = defineStore('user', () => {
@@ -34,6 +34,8 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn.value = false
   }
 
+  const fullName = computed(() => `${firstName.value} ${lastName.value}`)
+
   // Initialize auth status
   checkAuthStatus().catch(() => {})
 
@@ -42,5 +44,7 @@ export const useUserStore = defineStore('user', () => {
     logout,
     checkAuthStatus,
     initUser,
+    email,
+    fullName,
   }
 })

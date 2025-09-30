@@ -1,0 +1,1 @@
+docker build --target prod -f frontend/Dockerfile --output type=local,dest=nginx/frontend_prod ./frontend

@@ -12,7 +12,7 @@ interface NavElement {
   action?: () => void
 }
 
-const navElements: NavElement[] = computed(() => {
+const navElements = computed<NavElement[]>(() => {
   return [
     { text: 'Expenses', link: '/expenses' },
     { text: 'Categories', link: '/categories' },
@@ -62,7 +62,7 @@ function handleLogout() {
           <router-link
             :key="navElement.text"
             v-for="navElement in navElements"
-            :to="navElement.link"
+            :to="navElement.link as string"
             class="navbar-item"
             >{{ navElement.text }}</router-link
           >
@@ -74,7 +74,7 @@ function handleLogout() {
         <router-link
           :key="navElement.text"
           v-for="navElement in navElements"
-          :to="navElement.link"
+          :to="navElement.link as string"
           class="navbar-item"
           >{{ navElement.text }}</router-link
         >

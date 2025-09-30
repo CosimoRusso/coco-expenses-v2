@@ -14,26 +14,16 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: dev
+      target: prod
     container_name: ce-be
     env_file: "backend/.env"
     environment:
       - DB_HOST=db
     volumes:
       - ./backend:/app
+      - django_static_files:/app/staticfiles
     depends_on:
       - db
-    networks:
-      - coco-network
-
-  frontend:
-    build:
-      context: ./frontend/coco-expenses-v2-frontend
-      dockerfile: Dockerfile
-      target: dev
-    container_name: ce-fe
-    volumes:
-      - ./frontend/coco-expenses-v2-frontend/src:/app/src
     networks:
       - coco-network
 
@@ -41,19 +31,20 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+      target: prod
     container_name: ce-nginx
     ports:
       - "3000:80"
     depends_on:
-      - frontend
       - backend
     networks:
       - coco-network
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - django_static_files:/usr/share/nginx/html/static
 
 volumes:
   postgres_data:
+  django_static_files:
 
 networks:
   coco-network:

@@ -72,14 +72,14 @@ async function fetchStatistics() {
       type="date"
       id="startDate"
       name="startDate"
-      @change="(e) => (startDate = dateFromIsoString(e.target?.value))"
+      @change="(e) => (startDate = dateFromIsoString((e.target as HTMLInputElement).value))"
       :value="startDateStr"
     />
     <input
       type="date"
       id="endDate"
       name="endDate"
-      @change="(e) => (endDate = dateFromIsoString(e.target?.value))"
+      @change="(e) => (endDate = dateFromIsoString((e.target as HTMLInputElement).value))"
       :value="endDateStr"
     />
     <button @click="fetchStatistics">Filter</button>

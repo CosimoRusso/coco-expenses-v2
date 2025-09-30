@@ -9,7 +9,7 @@ const userStore = useUserStore()
     <h1>User Profile</h1>
     <div v-if="userStore.isLoggedIn" class="profile-content">
       <p>Welcome to your profile page!</p>
-      <p v-if="userStore.userEmail">Email: {{ userStore.userEmail }}</p>
+      <p v-if="userStore.email">Email: {{ userStore.email }}</p>
       <p>Profile settings and user information will be added in future updates.</p>
     </div>
     <div v-else class="login-required">

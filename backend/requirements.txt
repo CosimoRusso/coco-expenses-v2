@@ -5,7 +5,10 @@ django-dotenv==1.4.2
 djangorestframework==3.16.0
 factory_boy==3.3.3
 Faker==37.4.0
+gunicorn==23.0.0
+packaging==25.0
 psycopg==3.2.9
 psycopg-binary==3.2.9
 sqlparse==0.5.3
+typing_extensions==4.15.0
 tzdata==2025.2

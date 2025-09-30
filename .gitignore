@@ -2,3 +2,5 @@ backend/venv
 backend/__pycache__
 *.env
 *__pycache__*
+backend/staticfiles
+nginx/frontend_prod
