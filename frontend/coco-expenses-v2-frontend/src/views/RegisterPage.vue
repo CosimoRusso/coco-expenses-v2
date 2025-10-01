@@ -52,7 +52,7 @@ async function handleRegister() {
       confirmPassword.value = ''
       firstName.value = ''
       lastName.value = ''
-      
+
     } else {
       const errorData = await response.json()
       if (response.status === 400) {
@@ -77,73 +77,44 @@ async function handleRegister() {
 
 <template>
   <div class="register-container">
-    <div class="register-form">
+    <div v-if="registrationSuccess" class="success-message">
+      Registration successful! You can now <router-link to="/login">login</router-link>.
+    </div>
+    <div v-else class="register-form">
       <h1>Register</h1>
-
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
-      </div>
-
-      <div v-if="registrationSuccess" class="success-message">
-        Registration successful! You can now <router-link to="/login">login</router-link>.
-      </div>
-
       <div class="form-group">
         <label for="firstName">First Name</label>
-        <input
-          id="firstName"
-          v-model="firstName"
-          type="text"
-          placeholder="Enter your first name"
-          autocomplete="given-name"
-        />
+        <input id="firstName" v-model="firstName" type="text" placeholder="Enter your first name"
+          autocomplete="given-name" />
       </div>
 
       <div class="form-group">
         <label for="lastName">Last Name</label>
-        <input
-          id="lastName"
-          v-model="lastName"
-          type="text"
-          placeholder="Enter your last name"
-          autocomplete="family-name"
-        />
+        <input id="lastName" v-model="lastName" type="text" placeholder="Enter your last name"
+          autocomplete="family-name" />
       </div>
 
       <div class="form-group">
         <label for="email">Email</label>
-        <input
-          id="email"
-          v-model="email"
-          type="email"
-          placeholder="Enter your email"
-          autocomplete="email"
-        />
+        <input id="email" v-model="email" type="email" placeholder="Enter your email" autocomplete="email" />
       </div>
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="password"
-          type="password"
-          placeholder="Enter your password"
-          autocomplete="new-password"
-        />
+        <input id="password" v-model="password" type="password" placeholder="Enter your password"
+          autocomplete="new-password" />
       </div>
 
       <div class="form-group">
         <label for="confirmPassword">Confirm Password</label>
-        <input
-          id="confirmPassword"
-          v-model="confirmPassword"
-          type="password"
-          placeholder="Confirm your password"
-          autocomplete="new-password"
-        />
+        <input id="confirmPassword" v-model="confirmPassword" type="password" placeholder="Confirm your password"
+          autocomplete="new-password" />
       </div>
 
       <button @click="handleRegister" class="register-button">Register</button>
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
 
       <div class="login-link">
         <p>Already have an account? <router-link to="/login">Login here</router-link></p>
