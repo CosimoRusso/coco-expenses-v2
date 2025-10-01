@@ -7,12 +7,13 @@ from rest_framework.reverse import reverse
 
 
 class TestRegister(APITestCase):
-    def setUp(self):
-        self.url = reverse("expenses:users-register")
+    @classmethod
+    def setUpTestData(cls):
+        cls.url = reverse("expenses:users-register")
 
     def test_register(self):
         res = self.client.post(
-            self.url, {"email": "test@test.com", "password": "password", "password_confirmation": "password", "first_name": "John", "last_name": "Doe"}
+            self.url, {"email": "test@test.com", "password": "password", "first_name": "John", "last_name": "Doe"}
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res = res.json()
@@ -24,14 +25,14 @@ class TestRegister(APITestCase):
     def test_register_with_existing_email(self):
         UserFactory(email="test@test.com")
         res = self.client.post(
-            self.url, {"email": "test@test.com", "password": "password", "password_confirmation": "password", "first_name": "John", "last_name": "Doe"}
+            self.url, {"email": "test@test.com", "password": "password", "first_name": "John", "last_name": "Doe"}
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.json()["email"], ["Email already exists"])
 
     def test_register_with_short_password(self):
         res = self.client.post(
-            self.url, {"email": "test@test.com", "password": "pass", "password_confirmation": "pass", "first_name": "John", "last_name": "Doe"}
+            self.url, {"email": "test@test.com", "password": "pass", "first_name": "John", "last_name": "Doe"}
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.json()["password"], ["Password must be at least 6 characters long"])
@@ -48,14 +49,7 @@ class TestRegister(APITestCase):
 
     def test_register_with_invalid_email(self):
         res = self.client.post(
-            self.url, {"email": "test@test", "password": "password", "password_confirmation": "password", "first_name": "John", "last_name": "Doe"}
+            self.url, {"email": "test@test", "password": "password", "first_name": "John", "last_name": "Doe"}
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.json()["email"], ["Enter a valid email address."])
-
-    def test_register_with_password_confirmation_mismatch(self):
-        res = self.client.post(
-            self.url, {"email": "test@test.com", "password": "password", "password_confirmation": "password1", "first_name": "John", "last_name": "Doe"}
-        )
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.json()["password"], ["Password confirmation does not match"])

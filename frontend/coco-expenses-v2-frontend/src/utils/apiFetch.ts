@@ -5,7 +5,7 @@
  */
 export const apiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   // Ensure the URL starts with '/api/'
-  const apiUrl = url.startsWith('/api/') ? url : `/api/${url}`
+  const apiUrl = url.startsWith('/') ? url : `/${url}`
 
   // Merge the provided headers with our Content-Type header
   const headers = {

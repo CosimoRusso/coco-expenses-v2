@@ -39,7 +39,7 @@ async function handleRegister() {
   })
 
   try {
-    const response = await apiFetch('/expenses/users/', {
+    const response = await apiFetch('expenses/users/register/', {
       method: 'POST',
       body,
     })
