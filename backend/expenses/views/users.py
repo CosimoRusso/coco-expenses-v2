@@ -8,7 +8,7 @@ from expenses import date_utils
 from expenses.constants import TOKEN_DURATION
 from expenses.models import User
 from expenses.models.token import Token
-from expenses.serializers.users import LoginSerializer, UserSerializer
+from expenses.serializers.users import LoginSerializer, RegisterSerializer, UserSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -16,7 +16,7 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
     def get_permissions(self):
-        if self.action == "login":
+        if self.action in ["login", "register"]:
             return [AllowAny()]
         elif self.action in ["logout", "self"]:
             return [IsAuthenticated()]
@@ -51,6 +51,13 @@ class UserViewSet(viewsets.ModelViewSet):
             return response
         else:
             raise PermissionDenied("Password incorrect")
+
+    @action(detail=False, methods=["post"])
+    def register(self, request, *args, **kwargs):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def self(self, request, *args, **kwargs):
