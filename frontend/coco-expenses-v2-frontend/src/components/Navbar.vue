@@ -22,7 +22,7 @@ const navElements = computed<NavElement[]>(() => {
           { text: 'Profile', link: '/profile' },
           { text: 'Logout', action: handleLogout },
         ]
-      : [{ text: 'Login', link: '/login' }]),
+      : [{ text: 'Login', link: '/login' }, { text: 'Register', link: '/register' }]),
   ]
 })
 

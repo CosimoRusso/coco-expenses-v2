@@ -28,7 +28,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend/coco-expenses-v2-frontend
+      context: ./frontend
       dockerfile: Dockerfile
       target: dev
     container_name: ce-fe
