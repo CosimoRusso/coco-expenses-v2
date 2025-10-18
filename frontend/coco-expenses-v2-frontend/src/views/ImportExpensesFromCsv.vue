@@ -1,17 +1,18 @@
 <template>
   <div class="import-expenses">
     <h1>Importa Spese da CSV</h1>
+    <p>Il file CSV deve contenere le seguenti colonne</p>
+    <p>
+      expense_date, description, forecast_amount, actual_amount,
+      amortization_start_date,amortization_end_date,category,trip,typology
+    <p>Esempi di righe valide:</p>
+    <p>2025-01-01,Spesa di esempio,100,100,2025-01-01,2025-01-01,Categoria di esempio,Viaggio di esempio,expense</p>
+    <p>2025-01-01,Entrata di esempio,100,100,2025-01-01,2025-01-01,Categoria 2,Viaggio 2,income</p>
+    </p>
     <form @submit.prevent="submitCsv" enctype="multipart/form-data">
       <div>
         <label for="csvFile">Seleziona file CSV:</label>
-        <input
-          type="file"
-          id="csvFile"
-          ref="csvFile"
-          @change="onFileChange"
-          accept=".csv"
-          required
-        />
+        <input type="file" id="csvFile" ref="csvFile" @change="onFileChange" accept=".csv" required />
       </div>
       <button type="submit" :disabled="loading">Carica</button>
     </form>
@@ -32,7 +33,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import axios from 'axios'
+import apiFetch from '@/utils/apiFetch'
 
 const csvFile = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
@@ -55,12 +56,15 @@ async function submitCsv() {
   const formData = new FormData()
   formData.append('file', csvFile.value.files[0])
   try {
-    const res = await axios.post('/api/expenses/expenses/load_from_csv/', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    result.value = res.data
+    const res = await apiFetch('/expenses/expenses/load_from_csv/', {
+      method: 'POST',
+      body: formData,
+    }, true)
+    if (res.ok) {
+      result.value = await res.json()
+    } else {
+      error.value = 'Errore durante l\'importazione.'
+    }
   } catch (e: any) {
     error.value = e.response?.data?.error || "Errore durante l'importazione."
   } finally {
@@ -78,6 +82,7 @@ async function submitCsv() {
   border-radius: 8px;
   background: #fafafa;
 }
+
 .error {
   color: red;
   margin-top: 1rem;

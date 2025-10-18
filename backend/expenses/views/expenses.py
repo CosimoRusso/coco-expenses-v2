@@ -4,6 +4,12 @@ from rest_framework.decorators import action
 from expenses.date_utils import is_italian_date, from_italian_date
 from expenses.models import Expense
 from expenses.serializers.expenses import ExpenseSerializer
+import csv
+from django.db import transaction
+from expenses.models import ExpenseCategory, Trip
+from rest_framework.response import Response
+from rest_framework import status
+from io import TextIOWrapper
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
@@ -20,13 +26,6 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def load_from_csv(self, request):
-        import csv
-        from django.db import transaction
-        from expenses.models import ExpenseCategory, Trip
-        from rest_framework.response import Response
-        from rest_framework import status
-        from io import TextIOWrapper
-
         user = request.user
         file = request.FILES.get("file")
         if not file:

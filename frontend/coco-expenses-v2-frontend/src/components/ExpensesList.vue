@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
+import apiFetch from '@/utils/apiFetch'
 
 interface Expense {
   id?: number
@@ -58,8 +58,12 @@ const isSubmitting = ref(false)
 // Fetch expenses
 const fetchExpenses = async () => {
   try {
-    const response = await axios.get('/api/expenses/expenses/')
-    expenses.value = response.data
+    const response = await apiFetch('/expenses/expenses/')
+    if (response.ok) {
+      expenses.value = await response.json()
+    } else {
+      throw new Error('Failed to load expenses.')
+    }
   } catch (error) {
     console.error('Error fetching expenses:', error)
     tableErrors.value.push('Failed to load categories.')
@@ -68,8 +72,12 @@ const fetchExpenses = async () => {
 
 async function fetchCategories() {
   try {
-    const response = await axios.get('/api/expenses/expense-categories/')
-    categories.value = response.data
+    const response = await apiFetch('/expenses/expense-categories/')
+    if (response.ok) {
+      categories.value = await response.json()
+    } else {
+      throw new Error('Failed to load categories.')
+    }
   } catch (error) {
     console.error('Error fetching categories:', error)
     tableErrors.value.push('Failed to load categories.')
@@ -77,14 +85,17 @@ async function fetchCategories() {
 }
 async function fetchTrips() {
   try {
-    const response = await axios.get('/api/expenses/trips/')
-    trips.value = response.data
+    const response = await apiFetch('/expenses/trips/')
+    if (response.ok) {
+      trips.value = await response.json()
+    } else {
+      throw new Error('Failed to load trips.')
+    }
   } catch (error) {
     console.error('Error fetching trips:', error)
-    tableErrors.value.push('Failed to load trips.')
+    tableErrors.value.push("Errore durante il caricamento dei viaggi.")
   }
 }
-
 // Add new expense
 const addExpense = async () => {
   isSubmitting.value = true
@@ -117,10 +128,15 @@ const addExpense = async () => {
     newExpense.value.is_expense = _selectedCategory.for_expense
 
     // Submit form
-    const response = await axios.post('/api/expenses/expenses/', newExpense.value)
-
-    // Add new expense to list
-    expenses.value.push(response.data)
+    const response = await apiFetch('/expenses/expenses/', {
+      method: 'POST',
+      body: JSON.stringify(newExpense.value),
+    })
+    if (response.ok) {
+      expenses.value.push(await response.json())
+    } else {
+      throw new Error('Failed to add expense.')
+    }
 
     // Reset form
     newExpense.value = {
@@ -146,8 +162,14 @@ const addExpense = async () => {
 const deleteExpense = async (expenseId: number) => {
   if (!expenseId) return
   try {
-    await axios.delete(`/api/expenses/expenses/${expenseId}/`)
-    expenses.value = expenses.value.filter((e) => e.id !== expenseId)
+    const response = await apiFetch(`/expenses/expenses/${expenseId}/`, {
+      method: 'DELETE',
+    })
+    if (response.ok) {
+      expenses.value = expenses.value.filter((e) => e.id !== expenseId)
+    } else {
+      throw new Error('Failed to delete expense.')
+    }
   } catch (error) {
     console.error('Error deleting expense:', error)
     tableErrors.value.push("Errore durante l'eliminazione della spesa.")
@@ -189,7 +211,7 @@ async function fetchCategoriesTripsAndExpenses() {
 
 // Load data on component mount
 onMounted(() => {
-  fetchCategoriesTripsAndExpenses().then(() => {})
+  fetchCategoriesTripsAndExpenses().then(() => { })
 })
 </script>
 
@@ -216,46 +238,24 @@ onMounted(() => {
         <div class="form-row">
           <div class="form-group">
             <label for="forecast_amount">Forecast Amount</label>
-            <input
-              type="number"
-              id="forecast_amount"
-              v-model="newExpense.forecast_amount"
-              step="0.01"
-              required
-            />
+            <input type="number" id="forecast_amount" v-model="newExpense.forecast_amount" step="0.01" required />
           </div>
 
           <div class="form-group">
             <label for="actual_amount">Actual Amount</label>
-            <input
-              type="number"
-              id="actual_amount"
-              v-model="newExpense.actual_amount"
-              step="0.01"
-              required
-            />
+            <input type="number" id="actual_amount" v-model="newExpense.actual_amount" step="0.01" required />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label for="amortization_start_date">Amortization Start Date</label>
-            <input
-              type="date"
-              id="amortization_start_date"
-              v-model="newExpense.amortization_start_date"
-              required
-            />
+            <input type="date" id="amortization_start_date" v-model="newExpense.amortization_start_date" required />
           </div>
 
           <div class="form-group">
             <label for="amortization_end_date">Amortization End Date</label>
-            <input
-              type="date"
-              id="amortization_end_date"
-              v-model="newExpense.amortization_end_date"
-              required
-            />
+            <input type="date" id="amortization_end_date" v-model="newExpense.amortization_end_date" required />
           </div>
         </div>
 
@@ -291,7 +291,7 @@ onMounted(() => {
       </form>
     </div>
     <div class="expense-import-csv">
-      <p>or <a href="/import-expenses-from-csv">import from csv</a></p>
+      <p>or <router-link to="/import-expenses-from-csv">import from csv</router-link></p>
     </div>
 
     <!-- Expenses Table -->
@@ -329,11 +329,8 @@ onMounted(() => {
             <td>{{ getCategoryName(expense.category) }}</td>
             <td>{{ getTripName(expense.trip) }}</td>
             <td>
-              <button
-                @click="confirmDelete(expense)"
-                title="Elimina"
-                style="background: none; border: none; cursor: pointer"
-              >
+              <button @click="confirmDelete(expense)" title="Elimina"
+                style="background: none; border: none; cursor: pointer">
                 <DeleteIcon />
               </button>
             </td>
