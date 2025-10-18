@@ -26,7 +26,10 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  function logout() {
+  async function logout() {
+    await apiFetch('expenses/users/logout/', {
+      method: 'POST',
+    })
     localStorage.removeItem('token')
     email.value = ''
     firstName.value = ''
@@ -37,7 +40,7 @@ export const useUserStore = defineStore('user', () => {
   const fullName = computed(() => `${firstName.value} ${lastName.value}`)
 
   // Initialize auth status
-  checkAuthStatus().catch(() => {})
+  checkAuthStatus().catch(() => { })
 
   return {
     isLoggedIn,

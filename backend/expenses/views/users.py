@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-
+from rest_framework import status
 from expenses import date_utils
 from expenses.constants import TOKEN_DURATION
 from expenses.models import User
@@ -65,6 +65,14 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+    @action(detail=False, methods=["post"])
+    def logout(self, request, *args, **kwargs):
+        user = request.user
+        Token.objects.filter(user=user, token=request.COOKIES.get("token")).delete()
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        response.delete_cookie("token")
+        return response
 
     @action(detail=False, methods=["get"])
     def self(self, request, *args, **kwargs):
