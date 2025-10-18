@@ -55,9 +55,11 @@ async function handleRegister() {
 
     } else {
       const errorData = await response.json()
-      if (response.status === 400) {
+      if (response.status >= 400 && response.status < 500) {
         // Handle validation errors
-        if (errorData.email) {
+        if (errorData.detail) {
+          errorMessage.value = errorData.detail
+        } else if (errorData.email) {
           errorMessage.value = 'Email: ' + errorData.email[0]
         } else if (errorData.password) {
           errorMessage.value = 'Password: ' + errorData.password[0]

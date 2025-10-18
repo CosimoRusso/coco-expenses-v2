@@ -30,9 +30,11 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = ENV == "local"
 
-ALLOWED_HOSTS = ['backend', 'localhost']
+ALLOWED_HOSTS = ["backend", "localhost"]
 
 CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
+
+ALLOW_REGISTRATION = os.getenv("ALLOW_REGISTRATION") == "True"
 
 
 # Application definition

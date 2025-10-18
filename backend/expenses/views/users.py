@@ -8,7 +8,12 @@ from expenses import date_utils
 from expenses.constants import TOKEN_DURATION
 from expenses.models import User
 from expenses.models.token import Token
-from expenses.serializers.users import LoginSerializer, RegisterSerializer, UserSerializer
+from expenses.serializers.users import (
+    LoginSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
+from django.conf import settings
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -54,6 +59,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def register(self, request, *args, **kwargs):
+        if not settings.ALLOW_REGISTRATION:
+            raise PermissionDenied("Registration is disabled")
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
