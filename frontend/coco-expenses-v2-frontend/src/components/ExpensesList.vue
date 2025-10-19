@@ -312,6 +312,7 @@ onMounted(() => {
             <th>Amortization End</th>
             <th>Category</th>
             <th>Trip</th>
+            <th>Is Expense</th>
             <th>Azioni</th>
           </tr>
         </thead>
@@ -328,6 +329,7 @@ onMounted(() => {
             <td>{{ formatDate(expense.amortization_end_date) }}</td>
             <td>{{ getCategoryName(expense.category) }}</td>
             <td>{{ getTripName(expense.trip) }}</td>
+            <td>{{ expense.is_expense ? 'Yes' : 'No' }}</td>
             <td>
               <button @click="confirmDelete(expense)" title="Elimina"
                 style="background: none; border: none; cursor: pointer">
