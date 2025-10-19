@@ -16,6 +16,7 @@ const navElements = computed<NavElement[]>(() => {
   return [
     { text: 'Expenses', link: '/expenses' },
     { text: 'Categories', link: '/categories' },
+    { text: 'Trips', link: '/trips' },
     { text: 'Statistics', link: '/statistics' },
     ...(userStore.isLoggedIn
       ? [
@@ -61,9 +62,9 @@ function handleLogout() {
         <div v-if="isMobileMenuOpen" class="navbar-menu">
           <template v-for="navElement in navElements" :key="navElement.text">
             <router-link v-if="navElement.link" :to="navElement.link" class="navbar-item">{{ navElement.text
-              }}</router-link>
+            }}</router-link>
             <a v-else-if="navElement.action" @click="navElement.action" href="#" class="navbar-item">{{ navElement.text
-              }}</a>
+            }}</a>
           </template>
         </div>
       </div>
@@ -72,9 +73,9 @@ function handleLogout() {
       <div class="navbar-menu">
         <template v-for="navElement in navElements" :key="navElement.text">
           <router-link v-if="navElement.link" :to="navElement.link" class="navbar-item">{{ navElement.text
-            }}</router-link>
+          }}</router-link>
           <a v-else-if="navElement.action" @click="navElement.action" href="#" class="navbar-item">{{ navElement.text
-            }}</a>
+          }}</a>
         </template>
       </div>
     </template>
