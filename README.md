@@ -10,12 +10,12 @@ My very personal expenses management app, tailored to my needs.
 Next planned features, in order of development
 
 - Automatic db backup
-- export expenses in csv
+- Fix email confirmation flow
+- Fix CSS with a strategy (tailwind?)
 - Show Graphs
-- Session cookie should renew on every access
+- export expenses in csv
 - filter and search expenses
 - local development without docker
-- Use tailwind for consistent and decent style
 - Deploy script should run on my PC and deploy through ssh on the remote machine
 - Add a button to mark a forecast expense as paid
 
