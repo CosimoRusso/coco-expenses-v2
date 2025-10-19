@@ -61,6 +61,20 @@ To stop the services, run:
 docker-compose down
 ```
 
-## Development
+## Backup database
 
-The Django application code is mounted as a volume, so changes to the code will be reflected in the container without rebuilding.
+The database is backed up automatically every day at 00:00.
+The backup is stored in Google Drive.
+The backup is named `backup_<date>.sql`.
+Currently, backups are not deleted.
+
+To backup the database, run:
+```bash
+bash backup_database.sh
+```
+
+To restore the database from a backup, run:
+
+```bash
+bash restore_database.sh
+```
