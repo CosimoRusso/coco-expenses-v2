@@ -21,3 +21,6 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed("Token not found")
 
         return user, None
+
+    def authenticate_header(self, request):
+        return 'XXXBasic realm="API"'
