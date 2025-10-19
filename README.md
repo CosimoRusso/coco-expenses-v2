@@ -9,7 +9,6 @@ My very personal expenses management app, tailored to my needs.
 ## Development Roadmap
 Next planned features, in order of development
 
-- Remove nginx login alert
 - Automatic db backup
 - export expenses in csv
 - Show Graphs
