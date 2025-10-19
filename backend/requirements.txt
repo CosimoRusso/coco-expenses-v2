@@ -2,6 +2,7 @@ asgiref==3.8.1
 bcrypt==4.3.0
 Django==5.2.1
 django-dotenv==1.4.2
+django-filter==25.2
 djangorestframework==3.16.0
 factory_boy==3.3.3
 Faker==37.4.0

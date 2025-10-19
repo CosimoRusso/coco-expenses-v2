@@ -22,7 +22,7 @@ const fetchCategoriesError = ref<string>('')
 
 async function fetchCategories() {
     fetchCategoriesError.value = ''
-    const response = await apiFetch('/expenses/expense-categories/')
+    const response = await apiFetch('/expenses/expense-categories/?ordering=code')
     if (response.ok) {
         categories.value = await response.json()
     } else {

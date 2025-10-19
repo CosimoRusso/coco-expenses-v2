@@ -10,11 +10,19 @@ from expenses.models import ExpenseCategory, Trip
 from rest_framework.response import Response
 from rest_framework import status
 from io import TextIOWrapper
+from rest_framework.filters import OrderingFilter
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ExpenseSerializer
+    filter_backends = [OrderingFilter]
+    ordering_fields = [
+        "expense_date",
+        "amortization_start_date",
+        "amortization_end_date",
+    ]
+    ordering = ["-expense_date"]
 
     def get_queryset(self):
         user = self.request.user
