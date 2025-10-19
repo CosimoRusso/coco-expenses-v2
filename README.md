@@ -18,6 +18,7 @@ Next planned features, in order of development
 - local development without docker
 - Use tailwind for consistent and decent style
 - Deploy script should run on my PC and deploy through ssh on the remote machine
+- Add a button to mark a forecast expense as paid
 
 ## Project Setup
 
