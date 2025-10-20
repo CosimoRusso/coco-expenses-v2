@@ -1,4 +1,4 @@
-from backend.expenses import date_utils
+from expenses import date_utils
 from expenses.models.user import get_hashed_password
 from rest_framework import serializers
 
