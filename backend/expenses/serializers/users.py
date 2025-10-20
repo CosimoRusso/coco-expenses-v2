@@ -1,3 +1,4 @@
+from backend.expenses import date_utils
 from expenses.models.user import get_hashed_password
 from rest_framework import serializers
 
@@ -18,7 +19,9 @@ class LoginSerializer(serializers.Serializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(allow_null=False, allow_blank=False, required=True)
-    password = serializers.CharField(allow_null=False, allow_blank=False, required=True, write_only=True)
+    password = serializers.CharField(
+        allow_null=False, allow_blank=False, required=True, write_only=True
+    )
 
     class Meta:
         model = User
@@ -31,10 +34,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_password(self, value):
         if len(value) < 6:
-            raise serializers.ValidationError("Password must be at least 6 characters long")
+            raise serializers.ValidationError(
+                "Password must be at least 6 characters long"
+            )
         return value
 
     def create(self, validated_data):
         password_hash = get_hashed_password(validated_data.pop("password"))
-        user = User.objects.create(**validated_data, password_hash=password_hash)
+        user = User.objects.create(
+            **validated_data,
+            password_hash=password_hash,
+            email_confirmed_at=date_utils.now(),
+        )
         return user
