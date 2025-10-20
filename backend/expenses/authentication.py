@@ -18,7 +18,7 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
             user = token.user
             token.extend_expiration_date()
         except Token.DoesNotExist:
-            raise exceptions.AuthenticationFailed("Token not found")
+            return None
 
         return user, None
 
