@@ -9,7 +9,6 @@ My very personal expenses management app, tailored to my needs.
 ## Development Roadmap
 Next planned features, in order of development
 
-- Automatic db backup
 - Fix email confirmation flow
 - Fix CSS with a strategy (tailwind?)
 - Show Graphs
@@ -63,7 +62,7 @@ docker-compose down
 
 ## Backup database
 
-The database is backed up automatically every day at 00:00.
+The database is backed up automatically every day at 03:00.
 The backup is stored in Google Drive.
 The backup is named `backup_<date>.sql`.
 Currently, backups are not deleted.
