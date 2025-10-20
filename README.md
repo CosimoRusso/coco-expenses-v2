@@ -9,7 +9,6 @@ My very personal expenses management app, tailored to my needs.
 ## Development Roadmap
 Next planned features, in order of development
 
-- Fix email confirmation flow
 - Fix CSS with a strategy (tailwind?)
 - Show Graphs
 - export expenses in csv
