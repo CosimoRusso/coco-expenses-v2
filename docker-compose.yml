@@ -41,6 +41,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+      target: dev
     container_name: ce-nginx
     ports:
       - "3000:80"
