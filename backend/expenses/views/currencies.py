@@ -3,6 +3,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 from rest_framework import status
 from expenses.serializers.currencies import CurrencySerializer
+from expenses.models import Currency
 
 
 class CurrencyViewSet(viewsets.ModelViewSet):
@@ -10,6 +11,7 @@ class CurrencyViewSet(viewsets.ModelViewSet):
     serializer_class = CurrencySerializer
     filter_backends = [OrderingFilter]
     ordering_fields = ["code"]
+    queryset = Currency.objects.all()
 
     def create(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

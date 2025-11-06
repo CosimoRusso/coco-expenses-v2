@@ -14,6 +14,7 @@ interface Expense {
   category: number | null
   trip: number | null
   is_expense: boolean
+  currency: number | null
 }
 
 interface Category {
@@ -29,6 +30,13 @@ interface Trip {
   code: string
 }
 
+interface Currency {
+  id: number
+  code: string
+  symbol: string
+  display_name: string
+}
+
 // Constants
 const todayStr = new Date().toISOString().substring(0, 10)
 
@@ -36,7 +44,7 @@ const todayStr = new Date().toISOString().substring(0, 10)
 const expenses = ref<Expense[]>([])
 const categories = ref<Category[]>([])
 const trips = ref<Trip[]>([])
-
+const currencies = ref<Currency[]>([])
 // New expense form
 const newExpense = ref<Expense>({
   expense_date: todayStr,
@@ -48,6 +56,7 @@ const newExpense = ref<Expense>({
   category: null,
   trip: null,
   is_expense: true,
+  currency: null,
 })
 
 // Form error handling
@@ -56,7 +65,7 @@ const tableErrors = ref<string[]>([])
 const isSubmitting = ref(false)
 
 // Fetch expenses
-const fetchExpenses = async () => {
+async function fetchExpenses(){
   try {
     const response = await apiFetch('/expenses/expenses/')
     if (response.ok) {
@@ -67,6 +76,20 @@ const fetchExpenses = async () => {
   } catch (error) {
     console.error('Error fetching expenses:', error)
     tableErrors.value.push('Failed to load categories.')
+  }
+}
+
+async function fetchCurrencies() {
+  try {
+    const response = await apiFetch('/expenses/currencies/')
+    if (response.ok) {
+      currencies.value = await response.json()
+    } else {
+      throw new Error('Failed to load currencies.')
+    }
+  } catch (error) {
+    console.error('Error fetching currencies:', error)
+    tableErrors.value.push('Failed to load currencies.')
   }
 }
 
@@ -149,6 +172,7 @@ const addExpense = async () => {
       category: null,
       trip: null,
       is_expense: true,
+      currency: null,
     }
   } catch (error: any) {
     console.error('Error adding expense:', error)
@@ -203,15 +227,22 @@ const getTripName = (tripId: number | null) => {
   return trip ? trip.name : 'Unknown'
 }
 
-async function fetchCategoriesTripsAndExpenses() {
+async function fetchMetadata() {
   await fetchCategories()
   await fetchTrips()
   await fetchExpenses()
+  await fetchCurrencies()
+}
+
+function getCurrencyName(currencyId: number | null) {
+  if (!currencyId) return ''
+  const currency = currencies.value.find((c) => c.id === currencyId)
+  return currency.code
 }
 
 // Load data on component mount
 onMounted(() => {
-  fetchCategoriesTripsAndExpenses().then(() => { })
+  fetchMetadata().then(() => { })
 })
 </script>
 
@@ -244,6 +275,16 @@ onMounted(() => {
           <div class="form-group">
             <label for="actual_amount">Actual Amount</label>
             <input type="number" id="actual_amount" v-model="newExpense.actual_amount" step="0.01" required />
+          </div>
+
+          <div class="form-group">
+            <label for="currency">Currency</label>
+            <select id="currency" v-model="newExpense.currency" required>
+              <option value="0" disabled>Select a currency</option>
+              <option v-for="currency in currencies" :key="currency.id" :value="currency.id">
+                {{ currency.display_name }}
+              </option>
+            </select>
           </div>
         </div>
 
@@ -298,7 +339,7 @@ onMounted(() => {
     <div class="expenses-table">
       <div style="display: flex; align-items: center; justify-content: space-between">
         <h2>Expenses</h2>
-        <button @click="fetchCategoriesTripsAndExpenses" style="margin-left: auto">Reload</button>
+        <button @click="fetchMetadata" style="margin-left: auto">Reload</button>
       </div>
       <div v-for="msg of tableErrors" :key="msg" class="error-message">{{ msg }}</div>
       <table>
@@ -308,12 +349,13 @@ onMounted(() => {
             <th>Description</th>
             <th>Forecast Amount</th>
             <th>Actual Amount</th>
+            <th>Currency</th>
             <th>Amortization Start</th>
             <th>Amortization End</th>
             <th>Category</th>
             <th>Trip</th>
             <th>Is Expense</th>
-            <th>Azioni</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -325,6 +367,7 @@ onMounted(() => {
             <td>{{ expense.description }}</td>
             <td>{{ expense.forecast_amount }}</td>
             <td>{{ expense.actual_amount }}</td>
+            <td>{{ getCurrencyName(expense.currency) }}</td>
             <td>{{ formatDate(expense.amortization_start_date) }}</td>
             <td>{{ formatDate(expense.amortization_end_date) }}</td>
             <td>{{ getCategoryName(expense.category) }}</td>
