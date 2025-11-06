@@ -7,8 +7,7 @@ interface Expense {
   id?: number
   expense_date: string
   description: string
-  forecast_amount: number
-  actual_amount: number
+  amount: number
   amortization_start_date: string
   amortization_end_date: string
   category: number | null
@@ -49,8 +48,7 @@ const currencies = ref<Currency[]>([])
 const newExpense = ref<Expense>({
   expense_date: todayStr,
   description: '',
-  forecast_amount: 0,
-  actual_amount: 0,
+  amount: 0,
   amortization_start_date: todayStr,
   amortization_end_date: todayStr,
   category: null,
@@ -165,8 +163,7 @@ const addExpense = async () => {
     newExpense.value = {
       expense_date: todayStr,
       description: '',
-      forecast_amount: 0,
-      actual_amount: 0,
+      amount: 0,
       amortization_start_date: todayStr,
       amortization_end_date: todayStr,
       category: null,
@@ -262,13 +259,8 @@ onMounted(() => {
 
         <div class="form-row">
           <div class="form-group">
-            <label for="forecast_amount">Forecast Amount</label>
-            <input type="number" id="forecast_amount" v-model="newExpense.forecast_amount" step="0.01" required />
-          </div>
-
-          <div class="form-group">
-            <label for="actual_amount">Actual Amount</label>
-            <input type="number" id="actual_amount" v-model="newExpense.actual_amount" step="0.01" required />
+            <label for="amount">Amount</label>
+            <input type="number" id="amount" v-model="newExpense.amount" step="0.01" required />
           </div>
 
           <div class="form-group">
@@ -341,8 +333,7 @@ onMounted(() => {
           <tr>
             <th>Creation Date</th>
             <th>Description</th>
-            <th>Forecast Amount</th>
-            <th>Actual Amount</th>
+            <th>Amount</th>
             <th>Currency</th>
             <th>Amortization Start</th>
             <th>Amortization End</th>
@@ -359,8 +350,7 @@ onMounted(() => {
           <tr v-for="expense in expenses" :key="expense.id">
             <td>{{ expense.expense_date }}</td>
             <td>{{ expense.description }}</td>
-            <td>{{ expense.forecast_amount }}</td>
-            <td>{{ expense.actual_amount }}</td>
+            <td>{{ expense.amount }}</td>
             <td>{{ getCurrencyName(expense.currency) }}</td>
             <td>{{ expense.amortization_start_date }}</td>
             <td>{{ expense.amortization_end_date }}</td>

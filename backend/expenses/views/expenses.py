@@ -80,30 +80,24 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                                 if is_italian_date(row[date_field])
                                 else row[date_field]
                             )
-                    # Process money fields
-                    for money_field in [
-                        "forecast_amount",
-                        "actual_amount",
-                    ]:
-                        if row.get(money_field):
-                            row[money_field] = (
-                                float(
-                                    row[money_field]
-                                    .replace(".", "")
-                                    .replace(",", ".")
-                                    .replace("€", "")
-                                    .strip()
-                                )
-                                if isinstance(row[money_field], str)
-                                else row[money_field]
+                    if row.get("amount"):
+                        row["amount"] = (
+                            float(
+                                row["amount"]
+                                .replace(".", "")
+                                .replace(",", ".")
+                                .replace("€", "")
+                                .strip()
                             )
+                            if isinstance(row["amount"], str)
+                            else row[money_field]
+                        )
                     # Crea Expense
                     Expense.objects.create(
                         user=user,
                         expense_date=row["expense_date"],
                         description=row["description"],
-                        forecast_amount=row["forecast_amount"],
-                        actual_amount=row["actual_amount"],
+                        amount=row["amount"],
                         amortization_start_date=row["amortization_start_date"],
                         amortization_end_date=row["amortization_end_date"],
                         category=category,
