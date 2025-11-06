@@ -5,6 +5,7 @@ from expenses.views.expenses import ExpenseViewSet
 from expenses.views.statistics import StatisticViewSet
 from expenses.views.trips import TripViewSet
 from expenses.views.users import UserViewSet
+from expenses.views.currencies import CurrencyViewSet
 
 app_name = "expenses"
 
