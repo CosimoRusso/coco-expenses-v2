@@ -228,7 +228,7 @@ async function fetchMetadata() {
 function getCurrencyName(currencyId: number | null) {
   if (!currencyId) return ''
   const currency = currencies.value.find((c) => c.id === currencyId)
-  return currency.code
+  return currency?.code ?? ''
 }
 
 // Load data on component mount
