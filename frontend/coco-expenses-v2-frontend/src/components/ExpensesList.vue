@@ -206,12 +206,6 @@ function confirmDelete(expense: Expense) {
   }
 }
 
-// Format date for display
-const formatDate = (dateString: string) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString()
-}
 
 // Get category name by ID
 const getCategoryName = (categoryId: number | null) => {
@@ -345,7 +339,7 @@ onMounted(() => {
       <table>
         <thead>
           <tr>
-            <th>Date</th>
+            <th>Creation Date</th>
             <th>Description</th>
             <th>Forecast Amount</th>
             <th>Actual Amount</th>
@@ -363,13 +357,13 @@ onMounted(() => {
             <td colspan="9" class="no-data">No expenses found</td>
           </tr>
           <tr v-for="expense in expenses" :key="expense.id">
-            <td>{{ formatDate(expense.expense_date) }}</td>
+            <td>{{ expense.expense_date }}</td>
             <td>{{ expense.description }}</td>
             <td>{{ expense.forecast_amount }}</td>
             <td>{{ expense.actual_amount }}</td>
             <td>{{ getCurrencyName(expense.currency) }}</td>
-            <td>{{ formatDate(expense.amortization_start_date) }}</td>
-            <td>{{ formatDate(expense.amortization_end_date) }}</td>
+            <td>{{ expense.amortization_start_date }}</td>
+            <td>{{ expense.amortization_end_date }}</td>
             <td>{{ getCategoryName(expense.category) }}</td>
             <td>{{ getTripName(expense.trip) }}</td>
             <td>{{ expense.is_expense ? 'Yes' : 'No' }}</td>
