@@ -29,6 +29,9 @@ class Expense(models.Model):
     )
     # True for expenses, false for income
     is_expense = models.BooleanField(default=True)
+    currency = models.ForeignKey(
+        "Currency", on_delete=models.PROTECT, related_name="expenses", null=True
+    )
 
     def __str__(self):
         return (

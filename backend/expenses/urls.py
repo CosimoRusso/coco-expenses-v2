@@ -16,5 +16,6 @@ router.register(
 router.register("trips", TripViewSet, basename="trips")
 router.register("users", UserViewSet, basename="users")
 router.register("statistics", StatisticViewSet, basename="statistics")
+router.register("currencies", CurrencyViewSet, basename="currencies")
 
 urlpatterns = router.urls

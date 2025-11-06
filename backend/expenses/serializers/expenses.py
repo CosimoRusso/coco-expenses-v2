@@ -59,5 +59,6 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "category",
             "trip",
             "is_expense",
+            "currency",
         ]
         read_only_fields = ["id"]
