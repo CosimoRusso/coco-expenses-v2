@@ -154,7 +154,7 @@ const addExpense = async () => {
       body: JSON.stringify(newExpense.value),
     })
     if (response.ok) {
-      expenses.value.push(await response.json())
+      expenses.value.unshift(await response.json())
     } else {
       throw new Error('Failed to add expense.')
     }
