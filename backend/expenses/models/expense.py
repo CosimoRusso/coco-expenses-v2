@@ -32,6 +32,6 @@ class Expense(models.Model):
 
     def __str__(self):
         return (
-            f"{self.description} - {self.forecast_amount} "
+            f"{self.description} - {self.amount} "
             f"({self.amortization_start_date.isoformat()} -> {self.amortization_end_date.isoformat()})"
         )
