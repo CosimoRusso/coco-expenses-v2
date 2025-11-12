@@ -3,37 +3,21 @@ import { ref, onMounted } from 'vue'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
 import apiFetch from '@/utils/apiFetch'
 
-interface Expense {
-  id?: number
-  expense_date: string
-  description: string
-  amount: number
-  amortization_start_date: string
-  amortization_end_date: string
-  category: number | null
-  trip: number | null
-  is_expense: boolean
-  currency: number | null
-}
-
-interface Category {
-  id: number
-  name: string
-  code: string
-  for_expense: boolean
-}
-
+import type { Expense } from '@/interfaces/Expense'
+import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
 import type { Trip } from '@/interfaces/Trip'
+import type { UserSettings } from '@/interfaces/UserSettings'
 
 // Constants
 const todayStr = new Date().toISOString().substring(0, 10)
 
 // Data
 const expenses = ref<Expense[]>([])
-const categories = ref<Category[]>([])
+const categories = ref<ExpenseCategory[]>([])
 const trips = ref<Trip[]>([])
 const currencies = ref<Currency[]>([])
+const userSettings = ref<UserSettings | null>(null)
 // New expense form
 const newExpense = ref<Expense>({
   expense_date: todayStr,
@@ -94,6 +78,21 @@ async function fetchCategories() {
     tableErrors.value.push('Failed to load categories.')
   }
 }
+
+async function fetchUserSettings() {
+  try{
+    const response = await apiFetch('/expenses/user-settings/self/')
+    if (response.ok) {
+      userSettings.value = await response.json()
+    } else {
+      throw new Error('Failed to load user settings.')
+    }
+  } catch (error) {
+    console.error('Error fetching user settings:', error)
+    tableErrors.value.push('Failed to load user settings.')
+    }
+}
+
 async function fetchTrips() {
   try {
     const response = await apiFetch('/expenses/trips/')
@@ -161,6 +160,7 @@ const addExpense = async () => {
       is_expense: true,
       currency: null,
     }
+    assignDefaultCurrencyAndTrip()
   } catch (error: any) {
     console.error('Error adding expense:', error)
     formError.value = error.response?.data?.detail || 'An error occurred while adding the expense'
@@ -209,10 +209,13 @@ const getTripName = (tripId: number | null) => {
 }
 
 async function fetchMetadata() {
-  await fetchCategories()
-  await fetchTrips()
-  await fetchExpenses()
-  await fetchCurrencies()
+  await Promise.all([
+    fetchCategories(),
+    fetchTrips(),
+    fetchExpenses(),
+    fetchCurrencies(),
+    fetchUserSettings(),
+  ])
 }
 
 function getCurrencyName(currencyId: number | null) {
@@ -221,9 +224,19 @@ function getCurrencyName(currencyId: number | null) {
   return currency?.code ?? ''
 }
 
+function assignDefaultCurrencyAndTrip() {
+  if (userSettings.value?.preferred_currency) {
+    newExpense.value.currency = userSettings.value.preferred_currency
+  }
+  if (userSettings.value?.active_trip) {
+    newExpense.value.trip = userSettings.value.active_trip
+  }
+}
+
 // Load data on component mount
-onMounted(() => {
-  fetchMetadata().then(() => { })
+onMounted(async () => {
+  await fetchMetadata()
+  assignDefaultCurrencyAndTrip()
 })
 </script>
 

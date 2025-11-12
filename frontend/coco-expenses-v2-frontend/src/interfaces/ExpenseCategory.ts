@@ -3,5 +3,5 @@ export interface ExpenseCategory {
   user_id: number
   code: string
   name: string
-  forExpenses: boolean
+  for_expense: boolean
 }
