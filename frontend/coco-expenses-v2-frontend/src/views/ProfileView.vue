@@ -1,7 +1,73 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
+import { ref, onMounted } from 'vue'
+import apiFetch from '@/utils/apiFetch'
+import type { Currency } from '@/interfaces/Currency'
+import type { Trip } from '@/interfaces/Trip'
 
 const userStore = useUserStore()
+
+const userSettingsId = ref<number | null>(null)
+const preferredCurrency = ref<number | null>(null)
+const activeTrip = ref<number | null>(null)
+const currencies = ref<Currency[]>([])
+const trips = ref<Trip[]>([])
+const saveSettingsStatus = ref<string>('')
+
+async function getUserSettings() {
+  const response = await apiFetch('/expenses/user-settings/self/')
+  if (response.ok) {
+    const data = await response.json()
+    userSettingsId.value = data.id
+    preferredCurrency.value = data.preferred_currency
+    activeTrip.value = data.active_trip
+  }
+}
+
+async function getCurrencies() {
+  const response = await apiFetch('/expenses/currencies/')
+  if (response.ok) {
+    const data = await response.json()
+    currencies.value = data
+  }
+}
+
+async function getTrips() {
+  const response = await apiFetch('/expenses/trips/')
+  if (response.ok) {
+    const data = await response.json()
+    trips.value = data
+  }
+}
+
+async function fetchData() {
+  await Promise.all([
+    getUserSettings(),
+    getCurrencies(),
+    getTrips(),
+  ])
+}
+
+async function saveSettings() {
+  const response = await apiFetch(`/expenses/user-settings/${userSettingsId.value}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      preferred_currency: preferredCurrency.value,
+      active_trip: activeTrip.value,
+    }),
+  })
+  if (response.ok) {
+    saveSettingsStatus.value = 'Settings saved successfully'
+  } else {
+    saveSettingsStatus.value = 'Failed to save settings'
+    const errorData = await response.json()
+    console.log(errorData)
+  }
+}
+
+onMounted(() => {
+  fetchData().then(() => { })
+})
 </script>
 
 <template>
@@ -10,7 +76,23 @@ const userStore = useUserStore()
     <div v-if="userStore.isLoggedIn" class="profile-content">
       <p>Welcome to your profile page!</p>
       <p v-if="userStore.email">Email: {{ userStore.email }}</p>
-      <p>Profile settings and user information will be added in future updates.</p>
+      <p>Here are your profile settings:</p>
+      <form @submit.prevent="saveSettings">
+        <div>
+          <label for="preferredCurrency">Preferred Currency</label>
+          <select id="preferredCurrency" v-model="preferredCurrency">
+            <option v-for="currency in currencies" :key="currency.id" :value="currency.id">{{ currency.display_name }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="activeTrip">Active Trip</label>
+          <select id="activeTrip" v-model="activeTrip">
+            <option v-for="trip in trips" :key="trip.id" :value="trip.id">{{ trip.name }}</option>
+          </select>
+        </div>
+        <button type="submit">Save</button>
+        <p v-if="saveSettingsStatus">{{ saveSettingsStatus }}</p>
+      </form>
     </div>
     <div v-else class="login-required">
       <p>Please log in to view your profile.</p>

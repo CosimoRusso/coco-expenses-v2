@@ -23,18 +23,8 @@ interface Category {
   for_expense: boolean
 }
 
-interface Trip {
-  id: number
-  name: string
-  code: string
-}
-
-interface Currency {
-  id: number
-  code: string
-  symbol: string
-  display_name: string
-}
+import type { Currency } from '@/interfaces/Currency'
+import type { Trip } from '@/interfaces/Trip'
 
 // Constants
 const todayStr = new Date().toISOString().substring(0, 10)
