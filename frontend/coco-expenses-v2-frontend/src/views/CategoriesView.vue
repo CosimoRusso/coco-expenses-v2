@@ -71,7 +71,7 @@ onMounted(() => {
         </div>
         <div>
             <label for="for_expense">For Expense</label>
-            <input type="checkbox" id="for_expense" v-model="newCategory.for_expense" required />
+            <input type="checkbox" id="for_expense" v-model="newCategory.for_expense" />
         </div>
         <button type="submit">Add Category</button>
     </form>
