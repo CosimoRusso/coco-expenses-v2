@@ -18,6 +18,8 @@ const categories = ref<ExpenseCategory[]>([])
 const trips = ref<Trip[]>([])
 const currencies = ref<Currency[]>([])
 const userSettings = ref<UserSettings | null>(null)
+
+const initialPageLoading = ref(true)
 // New expense form
 const newExpense = ref<Expense>({
   expense_date: todayStr,
@@ -235,13 +237,18 @@ function assignDefaultCurrencyAndTrip() {
 
 // Load data on component mount
 onMounted(async () => {
-  await fetchMetadata()
-  assignDefaultCurrencyAndTrip()
+  initialPageLoading.value = true
+  try {
+    await fetchMetadata()
+    assignDefaultCurrencyAndTrip()
+  } finally {
+    initialPageLoading.value = false
+  }
 })
 </script>
 
 <template>
-  <div class="expenses-container">
+  <div class="expenses-container" v-if="!initialPageLoading">
     <h1>Expenses List</h1>
 
     <!-- Add Expense Form -->
@@ -370,6 +377,9 @@ onMounted(async () => {
         </tbody>
       </table>
     </div>
+  </div>
+  <div class="expenses-container" v-else>
+    <p>Loading...</p>
   </div>
 </template>
 
