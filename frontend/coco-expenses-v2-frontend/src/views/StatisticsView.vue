@@ -5,8 +5,7 @@ import { dateFromIsoString, dateToISOString } from '@/utils/dateUtils.ts'
 
 interface CategoryStatistics {
   category: { id: number; code: string; name: string; for_expense: boolean }
-  actual_amount: string
-  forecast_amount: string
+  amount: string
 }
 
 const startDate = ref<Date | null>(null)
@@ -44,7 +43,7 @@ async function fetchCategoryStatistics() {
   try {
     errorMessage.value = null
     const response = await apiFetch(
-      `/api/expenses/statistics/expense_categories/?start_date=${startDateStr.value}&end_date=${endDateStr.value}`,
+      `/expenses/statistics/expense_categories/?start_date=${startDateStr.value}&end_date=${endDateStr.value}`,
     )
     if (!response.ok) {
       errorMessage.value = 'Network response was not ok'
@@ -92,15 +91,13 @@ async function fetchStatistics() {
         <thead>
           <tr>
             <th>Category</th>
-            <th>Actual Amount</th>
-            <th>Forecast Amount</th>
+            <th>Amount</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="stat in categoryStatistics" :key="stat.category.id">
             <td>{{ stat.category.name }}</td>
-            <td>{{ stat.actual_amount }}</td>
-            <td>{{ stat.forecast_amount }}</td>
+            <td>{{ stat.amount }}</td>
           </tr>
         </tbody>
       </table>

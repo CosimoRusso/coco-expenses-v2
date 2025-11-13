@@ -26,8 +26,7 @@ def get_expenses_by_day(expenses: Iterable[Expense]) -> dict[dt.date, list[Expen
                 ammortized_row = Expense(
                     expense_date=expense.expense_date,
                     description=expense.description,
-                    actual_amount=amortize_value(expense.actual_amount, num_days),
-                    forecast_amount=amortize_value(expense.forecast_amount, num_days),
+                    amount=amortize_value(expense.amount, num_days),
                     amortization_start_date=current_day,
                     amortization_end_date=current_day,
                     category=expense.category,

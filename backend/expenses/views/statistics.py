@@ -37,7 +37,7 @@ class StatisticViewSet(ViewSet):
             end_date=end_date,
         )
         result = {
-            category: {"actual_amount": 0, "forecast_amount": 0}
+            category: {"amount": 0}
             for category in categories
         }
 
@@ -46,16 +46,12 @@ class StatisticViewSet(ViewSet):
                 if day in expenses:
                     for expense in expenses[day]:
                         if expense.category == category:
-                            result[category]["actual_amount"] += expense.actual_amount
-                            result[category][
-                                "forecast_amount"
-                            ] += expense.forecast_amount
+                            result[category]["amount"] += expense.amount
 
         result = [
             {
                 "category": category,
-                "actual_amount": data["actual_amount"],
-                "forecast_amount": data["forecast_amount"],
+                "amount": data["amount"],
             }
             for category, data in result.items()
         ]
