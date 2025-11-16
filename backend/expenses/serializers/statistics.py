@@ -16,3 +16,8 @@ class StartEndDateSerializer(serializers.Serializer):
 class CategoryStatisticsSerializer(serializers.Serializer):
     category = ExpenseCategorySerializer()
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+
+class AmortizationTimelineSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    date = serializers.DateField()

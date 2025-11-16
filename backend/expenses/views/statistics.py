@@ -9,6 +9,7 @@ from expenses.models import Expense, ExpenseCategory
 from expenses.serializers.statistics import (
     StartEndDateSerializer,
     CategoryStatisticsSerializer,
+    AmortizationTimelineSerializer,
 )
 from expenses.statistics_utils import get_expenses_date_range
 
@@ -58,6 +59,43 @@ class StatisticViewSet(ViewSet):
 
         serializer = CategoryStatisticsSerializer(result, many=True)
         response = list(
-            sorted(serializer.data, key=lambda item: item["category"]["name"])
+            sorted(serializer.data, key=lambda item: float(item["amount"]), reverse=True)
         )
         return Response(response)
+
+    @action(detail=False, methods=["GET"])
+    def amortization_timeline(self, request, *args, **kwargs):
+        user = self.request.user
+        queryset: QuerySet[Expense] = Expense.objects.filter(user=user).select_related(
+            "category", "trip"
+        )
+        input_serializer = StartEndDateSerializer(data=request.query_params)
+        input_serializer.is_valid(raise_exception=True)
+        start_date = input_serializer.validated_data["start_date"]
+        end_date = input_serializer.validated_data["end_date"]
+        expenses = get_expenses_date_range(
+            queryset,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        
+        # Sum amounts for each day
+        timeline_data = {}
+        for day in all_dates_in_range(start_date, end_date):
+            timeline_data[day] = 0
+            if day in expenses:
+                for expense in expenses[day]:
+                    if expense.amount:
+                        timeline_data[day] += expense.amount
+        
+        # Convert to list format
+        result = [
+            {
+                "date": day,
+                "amount": timeline_data[day],
+            }
+            for day in sorted(timeline_data.keys())
+        ]
+        
+        serializer = AmortizationTimelineSerializer(result, many=True)
+        return Response(serializer.data)
