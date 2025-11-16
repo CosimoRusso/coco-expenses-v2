@@ -6,3 +6,4 @@ backend/staticfiles
 nginx/frontend_prod
 *tmp.*
 .idea
+venv/

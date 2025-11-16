@@ -1,4 +1,4 @@
-FROM python:3.11.4-slim-buster AS base
+FROM python:3.14-slim-trixie AS base
 
 WORKDIR /app
 
