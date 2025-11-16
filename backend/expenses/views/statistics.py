@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db.models import QuerySet
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -11,7 +13,7 @@ from expenses.serializers.statistics import (
     CategoryStatisticsSerializer,
     AmortizationTimelineSerializer,
 )
-from expenses.statistics_utils import get_expenses_date_range
+from expenses.statistics_utils import get_expenses_date_range, get_non_expenses_date_range
 
 
 class StatisticViewSet(ViewSet):
@@ -27,7 +29,7 @@ class StatisticViewSet(ViewSet):
         queryset: QuerySet[Expense] = Expense.objects.filter(user=user).select_related(
             "category", "trip"
         )
-        categories = ExpenseCategory.objects.filter(user=request.user)
+        categories = ExpenseCategory.objects.filter(user=request.user, for_expense=True)
         input_serializer = StartEndDateSerializer(data=request.query_params)
         input_serializer.is_valid(raise_exception=True)
         start_date = input_serializer.validated_data["start_date"]
@@ -73,26 +75,52 @@ class StatisticViewSet(ViewSet):
         input_serializer.is_valid(raise_exception=True)
         start_date = input_serializer.validated_data["start_date"]
         end_date = input_serializer.validated_data["end_date"]
+        
         expenses = get_expenses_date_range(
             queryset,
             start_date=start_date,
             end_date=end_date,
         )
+        non_expenses = get_non_expenses_date_range(
+            queryset,
+            start_date=start_date,
+            end_date=end_date,
+        )
         
-        # Sum amounts for each day
         timeline_data = {}
-        for day in all_dates_in_range(start_date, end_date):
-            timeline_data[day] = 0
+        cumulative_non_expense = Decimal("0.00")
+        
+        for day in sorted(all_dates_in_range(start_date, end_date)):
+            # Daily expense amount (not cumulative)
+            expense_amount = Decimal("0.00")
             if day in expenses:
                 for expense in expenses[day]:
                     if expense.amount:
-                        timeline_data[day] += expense.amount
+                        expense_amount += expense.amount
+            
+            daily_non_expense = Decimal("0.00")
+            if day in non_expenses:
+                for non_expense in non_expenses[day]:
+                    if non_expense.amount:
+                        daily_non_expense += non_expense.amount
+            
+            cumulative_non_expense += daily_non_expense
+            
+            difference = cumulative_non_expense - expense_amount
+            
+            timeline_data[day] = {
+                "expense_amount": expense_amount,
+                "non_expense_amount": cumulative_non_expense,
+                "difference": difference,
+            }
         
         # Convert to list format
         result = [
             {
                 "date": day,
-                "amount": timeline_data[day],
+                "expense_amount": timeline_data[day]["expense_amount"],
+                "non_expense_amount": timeline_data[day]["non_expense_amount"],
+                "difference": timeline_data[day]["difference"],
             }
             for day in sorted(timeline_data.keys())
         ]

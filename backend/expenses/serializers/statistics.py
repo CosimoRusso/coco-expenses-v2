@@ -19,5 +19,7 @@ class CategoryStatisticsSerializer(serializers.Serializer):
 
 
 class AmortizationTimelineSerializer(serializers.Serializer):
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    expense_amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    non_expense_amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    difference = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
     date = serializers.DateField()

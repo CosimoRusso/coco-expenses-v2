@@ -49,7 +49,18 @@ def get_expenses_date_range(
 ) -> dict[dt.date, list[Expense]]:
     expenses_by_day = get_expenses_by_day(expenses)
     return {
-        day: expenses_by_day[day]
+        day: [expense for expense in expenses_by_day[day] if expense.is_expense]
+        for day in expenses_by_day
+        if start_date <= day <= end_date
+    }
+
+
+def get_non_expenses_date_range(
+    expenses: Iterable[Expense], start_date: dt.date, end_date: dt.date
+) -> dict[dt.date, list[Expense]]:
+    expenses_by_day = get_expenses_by_day(expenses)
+    return {
+        day: [expense for expense in expenses_by_day[day] if not expense.is_expense]
         for day in expenses_by_day
         if start_date <= day <= end_date
     }

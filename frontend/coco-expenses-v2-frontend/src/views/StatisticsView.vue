@@ -33,7 +33,9 @@ interface CategoryStatistics {
 
 interface AmortizationTimelineItem {
   date: string
-  amount: string
+  expense_amount: string
+  non_expense_amount: string
+  difference: string
 }
 
 const startDateStr = ref<string>('')
@@ -150,16 +152,31 @@ const amortizationChartData = computed(() => {
     labels: amortizationTimeline.value.map((item) => item.date),
     datasets: [
       {
-        label: 'Daily Amount',
+        label: 'Expenses',
         backgroundColor: 'rgba(54, 162, 235, 0.2)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 2,
-        fill: true,
+        fill: false,
         tension: 0.4,
-        data: amortizationTimeline.value.map((item) => 
-          {
-            return [item.date, parseFloat(item.amount) || 0]
-        }),
+        data: amortizationTimeline.value.map((item) => parseFloat(item.expense_amount) || 0),
+      },
+      {
+        label: 'Income',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        data: amortizationTimeline.value.map((item) => parseFloat(item.non_expense_amount) || 0),
+      },
+      {
+        label: 'Difference',
+        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+        borderColor: 'rgba(255, 159, 64, 1)',
+        borderWidth: 2,
+        fill: false,
+        tension: 0.4,
+        data: amortizationTimeline.value.map((item) => parseFloat(item.difference) || 0),
       },
     ],
   }
