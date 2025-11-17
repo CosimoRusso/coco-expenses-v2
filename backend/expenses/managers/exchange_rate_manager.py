@@ -11,6 +11,7 @@ __all__ = [
     "convert_to_dollars",
     "convert_from_dollars",
     "convert_currency_to_currency",
+    "Money",
     "ExchangeRateError",
     "bulk_convert_to_dollars",
     "bulk_convert_from_dollars",
@@ -58,6 +59,9 @@ def convert_currency_to_currency(
 def bulk_convert_to_currency(
     money: list[Money], destination_currency: Currency
 ) -> list[Money]:
+    if destination_currency.code == "USD":
+        return bulk_convert_to_dollars(money)
+
     entries_in_usd = [entry for entry in money if entry.currency.code == "USD"]
     entries_already_in_currency = [
         entry for entry in money if entry.currency.code == destination_currency.code
@@ -70,31 +74,31 @@ def bulk_convert_to_currency(
     ]
 
     other_entries_in_usd = bulk_convert_to_dollars(other_entries)
-    other_entries_in_destination_currency = bulk_convert_from_dollars(
-        other_entries_in_usd, destination_currency
+    all_entries_in_usd = entries_in_usd + other_entries_in_usd
+    all_entries_in_destination_currency = bulk_convert_from_dollars(
+        all_entries_in_usd, destination_currency
     )
-    all_entries = (
-        entries_in_usd
-        + entries_already_in_currency
-        + other_entries_in_destination_currency
-    )
-    return all_entries
+    return entries_already_in_currency + all_entries_in_destination_currency
 
 
 def bulk_convert_to_dollars(money: list[Money]) -> list[Money]:
     today = dt.date.today()
-    converted, not_converted = bulk_convert_to_dollars_from_db(money)
+    entries_in_usd = [entry for entry in money if entry.currency.code == "USD"]
+    other_entries = [entry for entry in money if entry.currency.code != "USD"]
+
+    converted, not_converted = bulk_convert_to_dollars_from_db(other_entries)
 
     if len(not_converted) > 0:
         all_unconverted_days = set(min(entry.day, today) for entry in not_converted)
         bulk_get_exchange_rates_from_api_and_save_to_database(all_unconverted_days)
 
         converted_1, not_converted = bulk_convert_to_dollars_from_db(not_converted)
+        converted += converted_1
 
     if len(not_converted) > 0:
         raise ExchangeRateError("Failed to convert some money to dollars")
 
-    return converted_1 + converted
+    return converted + entries_in_usd
 
 
 def bulk_convert_from_dollars(
@@ -112,11 +116,12 @@ def bulk_convert_from_dollars(
         converted_1, not_converted = bulk_convert_from_dollars_from_db(
             not_converted, destination_currency
         )
+        converted += converted_1
 
     if len(not_converted) > 0:
         raise ExchangeRateError("Failed to convert some money from dollars")
 
-    return converted_1 + converted
+    return converted
 
 
 def bulk_convert_to_dollars_from_db(
