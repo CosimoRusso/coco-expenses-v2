@@ -27,7 +27,6 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=100,
-                actual_amount=100,
                 category=cls.category_1,
                 amortization_start_date=date_utils.today(),
                 amortization_end_date=date_utils.today() + timedelta(days=3),
@@ -36,7 +35,6 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=None,
                 amount=100,
-                actual_amount=None,
                 category=cls.category_1,
                 amortization_start_date=date_utils.today(),
                 amortization_end_date=date_utils.today() + timedelta(days=4),
@@ -48,7 +46,6 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=100,
-                actual_amount=100,
                 category=cls.category_2,
                 amortization_start_date=date_utils.today() - timedelta(days=5),
                 amortization_end_date=date_utils.today() + timedelta(days=4),
@@ -57,7 +54,6 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today() + dt.timedelta(days=10),
                 amount=10,
-                actual_amount=10,
                 category=cls.category_2,
                 amortization_start_date=date_utils.today() - timedelta(days=10),
                 amortization_end_date=date_utils.today() - timedelta(days=10),
@@ -109,6 +105,7 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
                 category=cls.non_expense,
                 amortization_start_date=date_utils.today(),
                 amortization_end_date=date_utils.today() + timedelta(days=30),
+                is_expense=False,
             ),
         ]
 
@@ -125,7 +122,7 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
 
     def url(self, start_date: dt.date, end_date: dt.date):
         return (
-            f"{reverse('expenses:statistics-expense-categories')}"
+            f"{reverse('expenses:statistics-amortization-timeline')}"
             f"?start_date={start_date.isoformat()}&end_date={end_date.isoformat()}"
         )
 
@@ -140,13 +137,10 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
         today = date_utils.today()
         end_month = date_utils.today() + timedelta(days=30)
         response = self.client.get(self.url(start_date=today, end_date=end_month))
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 31)
 
-        for day in range(31):
-            self.assertEqual(response.data[day]["date"], today + timedelta(days=day))
-            self.assertEqual(response.data[day]["amount"], "100.00")
-
-
+        self.assertEqual(response.data[0]["date"], today.isoformat())
+        self.assertEqual(response.data[0]["expense_amount"], "0.97")
+        self.assertEqual(response.data[0]["non_expense_amount"], "3.23")
+        self.assertEqual(response.data[0]["difference"], "2.26")
 
