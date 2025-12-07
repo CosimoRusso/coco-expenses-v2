@@ -3,7 +3,7 @@
     <h1>Importa Spese da CSV</h1>
     <p>Il file CSV deve contenere le seguenti colonne</p>
     <p>
-      expense_date, description, forecast_amount, actual_amount,
+      expense_date, description, amount,
       amortization_start_date,amortization_end_date,category,trip,typology
     <p>Esempi di righe valide:</p>
     <p>2025-01-01,Spesa di esempio,100,100,2025-01-01,2025-01-01,Categoria di esempio,Viaggio di esempio,expense</p>

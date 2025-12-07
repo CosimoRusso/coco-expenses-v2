@@ -18,8 +18,7 @@ class StatisticsUtilsTestCase(SimpleTestCase):
             Expense(
                 amortization_start_date=amortization_start_date,
                 amortization_end_date=amortization_end_date,
-                forecast_amount=Decimal("100.00"),
-                actual_amount=Decimal("100.00"),
+                amount=Decimal("100.00"),
                 category=category,
                 description="test expense",
             )
@@ -31,7 +30,6 @@ class StatisticsUtilsTestCase(SimpleTestCase):
             self.assertIn(day, expenses_by_day)
             self.assertEqual(len(expenses_by_day[day]), 1)
             expense = expenses_by_day[day][0]
-            self.assertEqual(expense.forecast_amount, Decimal("20.00"))
-            self.assertEqual(expense.actual_amount, Decimal("20.00"))
+            self.assertEqual(expense.amount, Decimal("20.00"))
             self.assertEqual(expense.amortization_start_date, day)
             self.assertEqual(expense.amortization_end_date, day)

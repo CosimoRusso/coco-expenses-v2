@@ -28,8 +28,7 @@ class TestExpense(ApiTestCase):
         body = {
             "expense_date": self.today,
             "description": "test description",
-            "forecast_amount": Decimal("100"),
-            "actual_amount": Decimal("100"),
+            "amount": Decimal("100"),
             "amortization_start_date": self.today,
             "amortization_end_date": self.today,
             "category": self.category.id,
@@ -53,8 +52,7 @@ class TestExpense(ApiTestCase):
         body = {
             "expense_date": self.today,
             "description": "test description",
-            "forecast_amount": Decimal("100"),
-            "actual_amount": Decimal("100"),
+            "amount": Decimal("200"),
             "amortization_start_date": self.today,
             "amortization_end_date": self.today,
             "category": self.category.id,
