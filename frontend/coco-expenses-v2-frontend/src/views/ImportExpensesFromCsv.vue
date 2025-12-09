@@ -5,14 +5,25 @@
     <p>
       expense_date, description, amount,
       amortization_start_date,amortization_end_date,category,trip,typology
-    <p>Esempi di righe valide:</p>
-    <p>2025-01-01,Spesa di esempio,100,100,2025-01-01,2025-01-01,Categoria di esempio,Viaggio di esempio,expense</p>
-    <p>2025-01-01,Entrata di esempio,100,100,2025-01-01,2025-01-01,Categoria 2,Viaggio 2,income</p>
     </p>
+
+    <p>Esempi di righe valide:</p>
+    <p>
+      2025-01-01,Spesa di esempio,100,100,2025-01-01,2025-01-01,Categoria di esempio,Viaggio di
+      esempio,expense
+    </p>
+    <p>2025-01-01,Entrata di esempio,100,100,2025-01-01,2025-01-01,Categoria 2,Viaggio 2,income</p>
     <form @submit.prevent="submitCsv" enctype="multipart/form-data">
       <div>
         <label for="csvFile">Seleziona file CSV:</label>
-        <input type="file" id="csvFile" ref="csvFile" @change="onFileChange" accept=".csv" required />
+        <input
+          type="file"
+          id="csvFile"
+          ref="csvFile"
+          @change="onFileChange"
+          accept=".csv"
+          required
+        />
       </div>
       <button type="submit" :disabled="loading">Carica</button>
     </form>
@@ -56,14 +67,18 @@ async function submitCsv() {
   const formData = new FormData()
   formData.append('file', csvFile.value.files[0])
   try {
-    const res = await apiFetch('/expenses/expenses/load_from_csv/', {
-      method: 'POST',
-      body: formData,
-    }, true)
+    const res = await apiFetch(
+      '/expenses/expenses/load_from_csv/',
+      {
+        method: 'POST',
+        body: formData,
+      },
+      true,
+    )
     if (res.ok) {
       result.value = await res.json()
     } else {
-      error.value = 'Errore durante l\'importazione.'
+      error.value = "Errore durante l'importazione."
     }
   } catch (e: any) {
     error.value = e.response?.data?.error || "Errore durante l'importazione."

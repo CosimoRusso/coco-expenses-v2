@@ -10,35 +10,17 @@ services:
     networks:
       - coco-network
 
-  backend:
+  devcontainer:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: dev
-    container_name: ce-be
-    env_file: "backend/.env"
-    environment:
-      - DB_HOST=db
-    volumes:
-      - ./backend:/app
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: ce-devcontainer
     depends_on:
       - db
     networks:
       - coco-network
     # Overrides default command so things don't shut down after the process ends.
     command: /bin/sh -c "while sleep 1000; do :; done"
-
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: dev
-    container_name: ce-fe
-    volumes:
-      - ./frontend/coco-expenses-v2-frontend/src:/app/src
-    networks:
-      - coco-network
 
   nginx:
     build:
@@ -49,12 +31,11 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - frontend
-      - backend
+      - devcontainer
     networks:
       - coco-network
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/nginx-devcontainer.conf:/etc/nginx/nginx.conf
 
 volumes:
   postgres_data:

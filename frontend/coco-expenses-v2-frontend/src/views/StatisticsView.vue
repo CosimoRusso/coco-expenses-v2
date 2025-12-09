@@ -23,7 +23,7 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 )
 
 interface CategoryStatistics {
@@ -219,18 +219,8 @@ const amortizationChartOptions = {
   </div>
   <div class="filter">
     <label for="dateRange">Date Range:</label>
-    <input
-      type="date"
-      id="startDate"
-      name="startDate"
-      v-model="startDateStr"
-    />
-    <input
-      type="date"
-      id="endDate"
-      name="endDate"
-      v-model="endDateStr"
-    />
+    <input type="date" id="startDate" name="startDate" v-model="startDateStr" />
+    <input type="date" id="endDate" name="endDate" v-model="endDateStr" />
     <button @click="fetchStatistics">Filter</button>
   </div>
   <p class="error-message">{{ errorMessage }}</p>
@@ -262,7 +252,11 @@ const amortizationChartOptions = {
   <div>
     <h2>Amortization Timeline</h2>
     <div class="chart-container-full">
-      <Line v-if="amortizationTimeline.length > 0" :data="amortizationChartData" :options="amortizationChartOptions" />
+      <Line
+        v-if="amortizationTimeline.length > 0"
+        :data="amortizationChartData"
+        :options="amortizationChartOptions"
+      />
       <p v-else class="no-data-message">No data available for the selected date range</p>
     </div>
   </div>

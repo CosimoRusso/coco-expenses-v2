@@ -1,4 +1,4 @@
-export interface UserSettings{
+export interface UserSettings {
   id: number
   user_id: number
   active_trip: number | null

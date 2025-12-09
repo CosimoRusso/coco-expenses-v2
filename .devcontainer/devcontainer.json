@@ -1,0 +1,20 @@
+{
+  "name": "Coco Expenses V2",
+  "dockerComposeFile": "../docker-compose.devcontainer.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/coco-expenses",
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+        "extensions":["ms-python.python", "ms-python.debugpy", "charliermarsh.ruff", "vue.volar"]
+    }
+  },
+  "mounts": [
+    "source=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock,type=bind,consistency=cached",
+    "source=/Users/cosimorusso/.ssh,target=/root/.ssh,type=bind,consistency=cached"
+  ],
+  "containerEnv": {
+      "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"
+  }
+}
+
