@@ -41,11 +41,7 @@ async function getTrips() {
 }
 
 async function fetchData() {
-  await Promise.all([
-    getUserSettings(),
-    getCurrencies(),
-    getTrips(),
-  ])
+  await Promise.all([getUserSettings(), getCurrencies(), getTrips()])
 }
 
 async function saveSettings() {
@@ -66,7 +62,7 @@ async function saveSettings() {
 }
 
 onMounted(() => {
-  fetchData().then(() => { })
+  fetchData().then(() => {})
 })
 </script>
 
@@ -81,7 +77,9 @@ onMounted(() => {
         <div>
           <label for="preferredCurrency">Preferred Currency</label>
           <select id="preferredCurrency" v-model="preferredCurrency">
-            <option v-for="currency in currencies" :key="currency.id" :value="currency.id">{{ currency.display_name }}</option>
+            <option v-for="currency in currencies" :key="currency.id" :value="currency.id">
+              {{ currency.display_name }}
+            </option>
           </select>
         </div>
         <div>

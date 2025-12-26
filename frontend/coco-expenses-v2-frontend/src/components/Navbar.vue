@@ -20,10 +20,13 @@ const navElements = computed<NavElement[]>(() => {
     { text: 'Statistics', link: '/statistics' },
     ...(userStore.isLoggedIn
       ? [
-        { text: 'Profile', link: '/profile' },
-        { text: 'Logout', action: handleLogout },
-      ]
-      : [{ text: 'Login', link: '/login' }, { text: 'Register', link: '/register' }]),
+          { text: 'Profile', link: '/profile' },
+          { text: 'Logout', action: handleLogout },
+        ]
+      : [
+          { text: 'Login', link: '/login' },
+          { text: 'Register', link: '/register' },
+        ]),
   ]
 })
 
@@ -61,10 +64,16 @@ function handleLogout() {
         </button>
         <div v-if="isMobileMenuOpen" class="navbar-menu">
           <template v-for="navElement in navElements" :key="navElement.text">
-            <router-link v-if="navElement.link" :to="navElement.link" class="navbar-item">{{ navElement.text
+            <router-link v-if="navElement.link" :to="navElement.link" class="navbar-item">{{
+              navElement.text
             }}</router-link>
-            <a v-else-if="navElement.action" @click="navElement.action" href="#" class="navbar-item">{{ navElement.text
-            }}</a>
+            <a
+              v-else-if="navElement.action"
+              @click="navElement.action"
+              href="#"
+              class="navbar-item"
+              >{{ navElement.text }}</a
+            >
           </template>
         </div>
       </div>
@@ -72,10 +81,16 @@ function handleLogout() {
     <template v-else>
       <div class="navbar-menu">
         <template v-for="navElement in navElements" :key="navElement.text">
-          <router-link v-if="navElement.link" :to="navElement.link" class="navbar-item">{{ navElement.text
+          <router-link v-if="navElement.link" :to="navElement.link" class="navbar-item">{{
+            navElement.text
           }}</router-link>
-          <a v-else-if="navElement.action" @click="navElement.action" href="#" class="navbar-item">{{ navElement.text
-          }}</a>
+          <a
+            v-else-if="navElement.action"
+            @click="navElement.action"
+            href="#"
+            class="navbar-item"
+            >{{ navElement.text }}</a
+          >
         </template>
       </div>
     </template>

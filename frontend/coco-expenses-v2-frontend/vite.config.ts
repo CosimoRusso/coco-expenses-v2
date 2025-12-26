@@ -19,6 +19,6 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['frontend', 'localhost'],
+    allowedHosts: ['frontend', 'localhost', 'devcontainer'],
   },
 })

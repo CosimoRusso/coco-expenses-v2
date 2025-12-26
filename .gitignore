@@ -8,3 +8,4 @@ nginx/frontend_prod
 .idea
 venv/
 *.DS_Store*
+frontend/coco-expenses-v2-frontend/node_modules/*

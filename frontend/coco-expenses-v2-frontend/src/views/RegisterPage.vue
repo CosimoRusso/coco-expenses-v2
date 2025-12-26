@@ -8,12 +8,12 @@ const confirmPassword = ref('')
 const firstName = ref('')
 const lastName = ref('')
 const errorMessage = ref('')
-const registrationSuccess = ref(false);
+const registrationSuccess = ref(false)
 
 async function handleRegister() {
   // Reset messages
   errorMessage.value = ''
-  registrationSuccess.value = false;
+  registrationSuccess.value = false
 
   // Basic validation
   if (!email.value || !password.value || !firstName.value || !lastName.value) {
@@ -45,14 +45,13 @@ async function handleRegister() {
     })
 
     if (response.ok) {
-      registrationSuccess.value = true;
+      registrationSuccess.value = true
       // Clear form
       email.value = ''
       password.value = ''
       confirmPassword.value = ''
       firstName.value = ''
       lastName.value = ''
-
     } else {
       const errorData = await response.json()
       if (response.status >= 400 && response.status < 500) {
@@ -86,31 +85,57 @@ async function handleRegister() {
       <h1>Register</h1>
       <div class="form-group">
         <label for="firstName">First Name</label>
-        <input id="firstName" v-model="firstName" type="text" placeholder="Enter your first name"
-          autocomplete="given-name" />
+        <input
+          id="firstName"
+          v-model="firstName"
+          type="text"
+          placeholder="Enter your first name"
+          autocomplete="given-name"
+        />
       </div>
 
       <div class="form-group">
         <label for="lastName">Last Name</label>
-        <input id="lastName" v-model="lastName" type="text" placeholder="Enter your last name"
-          autocomplete="family-name" />
+        <input
+          id="lastName"
+          v-model="lastName"
+          type="text"
+          placeholder="Enter your last name"
+          autocomplete="family-name"
+        />
       </div>
 
       <div class="form-group">
         <label for="email">Email</label>
-        <input id="email" v-model="email" type="email" placeholder="Enter your email" autocomplete="email" />
+        <input
+          id="email"
+          v-model="email"
+          type="email"
+          placeholder="Enter your email"
+          autocomplete="email"
+        />
       </div>
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input id="password" v-model="password" type="password" placeholder="Enter your password"
-          autocomplete="new-password" />
+        <input
+          id="password"
+          v-model="password"
+          type="password"
+          placeholder="Enter your password"
+          autocomplete="new-password"
+        />
       </div>
 
       <div class="form-group">
         <label for="confirmPassword">Confirm Password</label>
-        <input id="confirmPassword" v-model="confirmPassword" type="password" placeholder="Confirm your password"
-          autocomplete="new-password" />
+        <input
+          id="confirmPassword"
+          v-model="confirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          autocomplete="new-password"
+        />
       </div>
 
       <button @click="handleRegister" class="register-button">Register</button>

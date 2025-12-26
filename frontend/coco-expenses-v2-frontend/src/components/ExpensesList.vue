@@ -39,7 +39,7 @@ const tableErrors = ref<string[]>([])
 const isSubmitting = ref(false)
 
 // Fetch expenses
-async function fetchExpenses(){
+async function fetchExpenses() {
   try {
     const response = await apiFetch('/expenses/expenses/')
     if (response.ok) {
@@ -82,7 +82,7 @@ async function fetchCategories() {
 }
 
 async function fetchUserSettings() {
-  try{
+  try {
     const response = await apiFetch('/expenses/user-settings/self/')
     if (response.ok) {
       userSettings.value = await response.json()
@@ -92,7 +92,7 @@ async function fetchUserSettings() {
   } catch (error) {
     console.error('Error fetching user settings:', error)
     tableErrors.value.push('Failed to load user settings.')
-    }
+  }
 }
 
 async function fetchTrips() {
@@ -105,7 +105,7 @@ async function fetchTrips() {
     }
   } catch (error) {
     console.error('Error fetching trips:', error)
-    tableErrors.value.push("Errore durante il caricamento dei viaggi.")
+    tableErrors.value.push('Errore durante il caricamento dei viaggi.')
   }
 }
 // Add new expense
@@ -194,7 +194,6 @@ function confirmDelete(expense: Expense) {
     deleteExpense(expense.id!)
   }
 }
-
 
 // Get category name by ID
 const getCategoryName = (categoryId: number | null) => {
@@ -287,12 +286,22 @@ onMounted(async () => {
         <div class="form-row">
           <div class="form-group">
             <label for="amortization_start_date">Amortization Start Date</label>
-            <input type="date" id="amortization_start_date" v-model="newExpense.amortization_start_date" required />
+            <input
+              type="date"
+              id="amortization_start_date"
+              v-model="newExpense.amortization_start_date"
+              required
+            />
           </div>
 
           <div class="form-group">
             <label for="amortization_end_date">Amortization End Date</label>
-            <input type="date" id="amortization_end_date" v-model="newExpense.amortization_end_date" required />
+            <input
+              type="date"
+              id="amortization_end_date"
+              v-model="newExpense.amortization_end_date"
+              required
+            />
           </div>
         </div>
 
@@ -368,8 +377,11 @@ onMounted(async () => {
             <td>{{ getTripName(expense.trip) }}</td>
             <td>{{ expense.is_expense ? 'Yes' : 'No' }}</td>
             <td>
-              <button @click="confirmDelete(expense)" title="Elimina"
-                style="background: none; border: none; cursor: pointer">
+              <button
+                @click="confirmDelete(expense)"
+                title="Elimina"
+                style="background: none; border: none; cursor: pointer"
+              >
                 <DeleteIcon />
               </button>
             </td>

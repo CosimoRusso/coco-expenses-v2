@@ -40,7 +40,7 @@ export const useUserStore = defineStore('user', () => {
   const fullName = computed(() => `${firstName.value} ${lastName.value}`)
 
   // Initialize auth status
-  checkAuthStatus().catch(() => { })
+  checkAuthStatus().catch(() => {})
 
   return {
     isLoggedIn,
