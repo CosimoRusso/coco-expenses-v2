@@ -7,7 +7,7 @@ class DollarExchangeRate(models.Model):
     rate = models.DecimalField(max_digits=14, decimal_places=4)
 
     def __str__(self):
-        return f"{self.date} - {self.rate}"
+        return f"{self.date} - {self.rate} - {self.currency}"
 
     class Meta:
         constraints = [

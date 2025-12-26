@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
+
+from django.db.models import Subquery
 from expenses.models import Currency, DollarExchangeRate
 import datetime as dt
 from django.conf import settings
@@ -250,7 +252,7 @@ def bulk_get_exchange_rate_from_api(days: list[dt.date]) -> list[RateResponse]:
 
 
 def save_exchange_rates_to_database(rates: list[RateResponse]):
-    available_currencies = Currency.objects.all()
+    available_currencies = Currency.objects.exclude(code="USD").order_by('code')
     rates_to_save = []
     for currency in available_currencies:
         rate = next(
@@ -266,6 +268,12 @@ def save_exchange_rates_to_database(rates: list[RateResponse]):
 def get_exchange_rates_from_api_and_save_to_database(day: dt.date):
     rates = get_exchange_rate_from_api(day)
     save_exchange_rates_to_database(rates)
+
+def get_exchange_rates_from_api_and_save_to_database_if_not_exists(day: dt.date):
+    rates = get_exchange_rate_from_api(day)
+    currencies_to_save = Currency.objects.exclude(code="USD").exclude(id__in=Subquery(DollarExchangeRate.objects.filter(date=day).values('currency_id')))
+    rates_to_save = list(filter(lambda rate: rate.currency_code in [c.code for c in currencies_to_save], rates))
+    save_exchange_rates_to_database(rates_to_save)
 
 
 def bulk_get_exchange_rates_from_api_and_save_to_database(days: list[dt.date]):

@@ -2,7 +2,7 @@ import datetime as dt
 from django.core.management import BaseCommand
 
 from expenses.managers.exchange_rate_manager import (
-    get_exchange_rates_from_api_and_save_to_database,
+    get_exchange_rates_from_api_and_save_to_database_if_not_exists,
     ExchangeRateError,
 )
 from expenses import date_utils
@@ -17,7 +17,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Fetching exchange rates for {yesterday.isoformat()}...")
         
         try:
-            get_exchange_rates_from_api_and_save_to_database(yesterday)
+            get_exchange_rates_from_api_and_save_to_database_if_not_exists(yesterday)
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Successfully scraped and saved exchange rates for {yesterday.isoformat()}"
