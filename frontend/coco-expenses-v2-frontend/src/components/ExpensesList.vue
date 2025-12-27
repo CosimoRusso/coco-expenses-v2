@@ -38,10 +38,19 @@ const formError = ref('')
 const tableErrors = ref<string[]>([])
 const isSubmitting = ref(false)
 
+// Filter state
+const filterCategory = ref<number | null>(null)
+const filterTrip = ref<number | null>(null)
+const filterIsExpense = ref<boolean | null>(null)
+
 // Fetch expenses
 async function fetchExpenses() {
   try {
-    const response = await apiFetch('/expenses/expenses/')
+    let url = '/expenses/expenses/'
+    if (filterIsExpense.value !== null) {
+      url += `?is_expense=${filterIsExpense.value}`
+    }
+    const response = await apiFetch(url)
     if (response.ok) {
       expenses.value = await response.json()
     } else {
@@ -340,6 +349,38 @@ onMounted(async () => {
       <p>or <router-link to="/import-expenses-from-csv">import from csv</router-link></p>
     </div>
 
+    <!-- Filter Bar -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <label for="filter-category">Category</label>
+        <select id="filter-category" v-model="filterCategory">
+          <option :value="null">All Categories</option>
+          <option v-for="category in categories" :key="category.id" :value="category.id">
+            {{ category.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-trip">Trip</label>
+        <select id="filter-trip" v-model="filterTrip">
+          <option :value="null">All Trips</option>
+          <option v-for="trip in trips" :key="trip.id" :value="trip.id">
+            {{ trip.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="filter-is-expense">Type</label>
+        <select id="filter-is-expense" v-model="filterIsExpense" @change="fetchExpenses">
+          <option :value="null">All</option>
+          <option :value="true">Expenses</option>
+          <option :value="false">Income</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Expenses Table -->
     <div class="expenses-table">
       <div style="display: flex; align-items: center; justify-content: space-between">
@@ -405,5 +446,57 @@ onMounted(async () => {
 
 .expense-import-csv {
   text-align: center;
+}
+
+.filters-bar {
+  display: flex;
+  gap: 20px;
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.filter-group select:hover {
+  border-color: #999;
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+@media (max-width: 768px) {
+  .filters-bar {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    min-width: 100%;
+  }
 }
 </style>
