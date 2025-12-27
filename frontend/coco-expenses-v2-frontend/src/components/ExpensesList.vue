@@ -47,9 +47,22 @@ const filterIsExpense = ref<boolean | null>(null)
 async function fetchExpenses() {
   try {
     let url = '/expenses/expenses/'
+    const params: string[] = []
+    
     if (filterIsExpense.value !== null) {
-      url += `?is_expense=${filterIsExpense.value}`
+      params.push(`is_expense=${filterIsExpense.value}`)
     }
+    if (filterCategory.value !== null) {
+      params.push(`category=${filterCategory.value}`)
+    }
+    if (filterTrip.value !== null) {
+      params.push(`trip=${filterTrip.value}`)
+    }
+    
+    if (params.length > 0) {
+      url += `?${params.join('&')}`
+    }
+    
     const response = await apiFetch(url)
     if (response.ok) {
       expenses.value = await response.json()
@@ -353,7 +366,7 @@ onMounted(async () => {
     <div class="filters-bar">
       <div class="filter-group">
         <label for="filter-category">Category</label>
-        <select id="filter-category" v-model="filterCategory">
+        <select id="filter-category" v-model="filterCategory" @change="fetchExpenses">
           <option :value="null">All Categories</option>
           <option v-for="category in categories" :key="category.id" :value="category.id">
             {{ category.name }}
@@ -363,7 +376,7 @@ onMounted(async () => {
 
       <div class="filter-group">
         <label for="filter-trip">Trip</label>
-        <select id="filter-trip" v-model="filterTrip">
+        <select id="filter-trip" v-model="filterTrip" @change="fetchExpenses">
           <option :value="null">All Trips</option>
           <option v-for="trip in trips" :key="trip.id" :value="trip.id">
             {{ trip.name }}

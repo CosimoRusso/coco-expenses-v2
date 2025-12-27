@@ -17,10 +17,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 class ExpenseFilterSet(django_filters.FilterSet):
     is_expense = django_filters.BooleanFilter()
+    category = django_filters.NumberFilter()
+    trip = django_filters.NumberFilter()
 
     class Meta:
         model = Expense
-        fields = ["is_expense"]
+        fields = ["is_expense", "category", "trip"]
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
