@@ -70,3 +70,26 @@ class ExchangeRateManagerTestCase(TestCase):
         )
         mock_get_exchange_rate_from_api.assert_not_called()
         self.assertEqual(result, [Money(amount=100, currency=self.usd, day=self.today)])
+
+    def test_bulk_convert_to_currency(self):
+        self.maxDiff = None
+        input = [
+            Money(amount=100, currency=self.usd, day=self.today),
+            Money(amount=10, currency=self.eur, day=self.today),
+            Money(amount=10, currency=self.gbp, day=self.today),
+            Money(amount=10, currency=self.usd, day=self.today),
+            Money(amount=100, currency=self.eur, day=self.today),
+        ]
+        DollarExchangeRateFactory(currency=self.eur, date=self.today, rate=Decimal(0.5))
+        DollarExchangeRateFactory(currency=self.gbp, date=self.today, rate=Decimal(0.25))
+
+        expected = [
+            Money(amount=50, currency=self.eur, day=self.today),
+            Money(amount=10, currency=self.eur, day=self.today),
+            Money(amount=20, currency=self.eur, day=self.today),
+            Money(amount=5, currency=self.eur, day=self.today),
+            Money(amount=100, currency=self.eur, day=self.today),
+        ]
+        result = exchange_rate_manager.bulk_convert_to_currency(input, self.eur)
+
+        self.assertEqual(result, expected)

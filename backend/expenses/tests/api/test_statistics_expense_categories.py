@@ -98,7 +98,7 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
         )
 
         cls.non_expense = [
-            ExpenseFactory( 
+            ExpenseFactory(
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=100,
@@ -110,7 +110,7 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
         ]
 
         cls.rent = [
-            ExpenseFactory(  
+            ExpenseFactory(
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=30,
@@ -143,4 +143,3 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
         self.assertEqual(response.data[0]["expense_amount"], "0.97")
         self.assertEqual(response.data[0]["non_expense_amount"], "3.23")
         self.assertEqual(response.data[0]["difference"], "2.26")
-

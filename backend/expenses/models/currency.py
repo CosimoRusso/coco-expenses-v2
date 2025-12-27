@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Currency(models.Model):
     code = models.CharField(max_length=10)
     symbol = models.CharField(max_length=10)
@@ -10,8 +11,5 @@ class Currency(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(
-                fields=["code"],
-                name="unique_currency_code"
-            ),
+            models.UniqueConstraint(fields=["code"], name="unique_currency_code"),
         ]

@@ -13,9 +13,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         yesterday = date_utils.today() - dt.timedelta(days=1)
-        
+
         self.stdout.write(f"Fetching exchange rates for {yesterday.isoformat()}...")
-        
+
         try:
             get_exchange_rates_from_api_and_save_to_database_if_not_exists(yesterday)
             self.stdout.write(
@@ -24,13 +24,10 @@ class Command(BaseCommand):
                 )
             )
         except ExchangeRateError as e:
-            self.stderr.write(
-                self.style.ERROR(f"Exchange rate error: {e}")
-            )
+            self.stderr.write(self.style.ERROR(f"Exchange rate error: {e}"))
             raise
         except Exception as e:
             self.stderr.write(
                 self.style.ERROR(f"Unexpected error while scraping currencies: {e}")
             )
             raise
-

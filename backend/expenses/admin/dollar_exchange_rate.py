@@ -7,4 +7,3 @@ class DollarExchangeRateAdmin(admin.ModelAdmin):
     list_filter = ("currency", "date")
     date_hierarchy = "date"
     ordering = ("-date", "currency")
-

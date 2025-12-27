@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class UserSettings(models.Model):
     user = models.OneToOneField(
         "User",

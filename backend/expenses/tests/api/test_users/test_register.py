@@ -13,7 +13,13 @@ class TestRegister(APITestCase):
 
     def test_register(self):
         res = self.client.post(
-            self.url, {"email": "test@test.com", "password": "password", "first_name": "John", "last_name": "Doe"}
+            self.url,
+            {
+                "email": "test@test.com",
+                "password": "password",
+                "first_name": "John",
+                "last_name": "Doe",
+            },
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res = res.json()
@@ -25,22 +31,34 @@ class TestRegister(APITestCase):
     def test_register_with_existing_email(self):
         UserFactory(email="test@test.com")
         res = self.client.post(
-            self.url, {"email": "test@test.com", "password": "password", "first_name": "John", "last_name": "Doe"}
+            self.url,
+            {
+                "email": "test@test.com",
+                "password": "password",
+                "first_name": "John",
+                "last_name": "Doe",
+            },
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.json()["email"], ["Email already exists"])
 
     def test_register_with_short_password(self):
         res = self.client.post(
-            self.url, {"email": "test@test.com", "password": "pass", "first_name": "John", "last_name": "Doe"}
+            self.url,
+            {
+                "email": "test@test.com",
+                "password": "pass",
+                "first_name": "John",
+                "last_name": "Doe",
+            },
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.json()["password"], ["Password must be at least 6 characters long"])
+        self.assertEqual(
+            res.json()["password"], ["Password must be at least 6 characters long"]
+        )
 
     def test_register_with_missing_fields(self):
-        res = self.client.post(
-            self.url, {}
-        )
+        res = self.client.post(self.url, {})
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.json()["email"], ["This field is required."])
         self.assertEqual(res.json()["password"], ["This field is required."])
@@ -49,7 +67,13 @@ class TestRegister(APITestCase):
 
     def test_register_with_invalid_email(self):
         res = self.client.post(
-            self.url, {"email": "test@test", "password": "password", "first_name": "John", "last_name": "Doe"}
+            self.url,
+            {
+                "email": "test@test",
+                "password": "password",
+                "first_name": "John",
+                "last_name": "Doe",
+            },
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.json()["email"], ["Enter a valid email address."])

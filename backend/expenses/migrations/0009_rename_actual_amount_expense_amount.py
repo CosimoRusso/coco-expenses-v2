@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0008_remove_expense_forecast_amount'),
+        ("expenses", "0008_remove_expense_forecast_amount"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='expense',
-            old_name='actual_amount',
-            new_name='amount',
+            model_name="expense",
+            old_name="actual_amount",
+            new_name="amount",
         ),
     ]

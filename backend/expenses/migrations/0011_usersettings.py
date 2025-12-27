@@ -5,19 +5,47 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0010_alter_currency_display_name'),
+        ("expenses", "0010_alter_currency_display_name"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='UserSettings',
+            name="UserSettings",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('active_trip', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='expenses.trip')),
-                ('preferred_currency', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='expenses.currency')),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, to='expenses.user')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "active_trip",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="expenses.trip",
+                    ),
+                ),
+                (
+                    "preferred_currency",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="expenses.currency",
+                    ),
+                ),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.PROTECT, to="expenses.user"
+                    ),
+                ),
             ],
         ),
     ]

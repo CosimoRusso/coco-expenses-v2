@@ -8,6 +8,7 @@ from expenses.models.currency import Currency
 import datetime as dt
 from expenses.models.dollar_exchange_rate import DollarExchangeRate
 
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("currency_code", type=str)
@@ -27,17 +28,25 @@ class Command(BaseCommand):
             raise ValueError(f"Currency with code {currency_code} not found")
 
         file_path = f"{settings.BASE_DIR}/expenses/fixtures/historical_timeseries/{currency_code.lower()}.csv"
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             reader = csv.reader(file)
-            next(reader) # skip header
+            next(reader)  # skip header
 
             rates = list(reader)
-            rates = [(dt.datetime.strptime(row[0], '%Y-%m-%d'), Decimal(row[1])) for row in rates]
+            rates = [
+                (dt.datetime.strptime(row[0], "%Y-%m-%d"), Decimal(row[1]))
+                for row in rates
+            ]
 
             min_date = reduce(lambda x, y: x if x[0] < y[0] else y, rates)[0]
             max_date = reduce(lambda x, y: x if x[0] > y[0] else y, rates)[0]
 
-            DollarExchangeRate.objects.filter(currency=currency, date__gte=min_date, date__lte=max_date).delete()
+            DollarExchangeRate.objects.filter(
+                currency=currency, date__gte=min_date, date__lte=max_date
+            ).delete()
 
-            rates = [DollarExchangeRate(currency=currency, date=date, rate=rate) for date, rate in rates]
+            rates = [
+                DollarExchangeRate(currency=currency, date=date, rate=rate)
+                for date, rate in rates
+            ]
             DollarExchangeRate.objects.bulk_create(rates)

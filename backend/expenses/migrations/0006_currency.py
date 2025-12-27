@@ -4,22 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0005_alter_expense_actual_amount'),
+        ("expenses", "0005_alter_expense_actual_amount"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Currency',
+            name="Currency",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('code', models.CharField(max_length=10)),
-                ('symbol', models.CharField(max_length=10)),
-                ('display_name', models.CharField(max_length=10)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("code", models.CharField(max_length=10)),
+                ("symbol", models.CharField(max_length=10)),
+                ("display_name", models.CharField(max_length=10)),
             ],
             options={
-                'constraints': [models.UniqueConstraint(fields=('code',), name='unique_currency_code')],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("code",), name="unique_currency_code"
+                    )
+                ],
             },
         ),
     ]

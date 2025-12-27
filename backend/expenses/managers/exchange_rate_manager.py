@@ -41,6 +41,14 @@ class Money:
     day: dt.date
 
 
+class MoneyWithIndex(Money):
+    index: int
+
+    def __init__(self, amount: Decimal, currency: Currency, day: dt.date, index: int):
+        super().__init__(amount, currency, day)
+        self.index = index
+
+
 def convert_to_dollars(amount: Decimal, currency: Currency, day: dt.date) -> Decimal:
     return _convert_dollars(amount, currency, day, "to_dollars")
 
@@ -58,11 +66,40 @@ def convert_currency_to_currency(
     return convert_from_dollars(dollars_amount, to_currency, day)
 
 
+def enumerate_money(money: list[Money]) -> list[MoneyWithIndex]:
+    return [
+        MoneyWithIndex(
+            amount=entry.amount, currency=entry.currency, day=entry.day, index=i
+        )
+        for i, entry in enumerate(money)
+    ]
+
+
+def unenumerate_money(money: list[MoneyWithIndex]) -> list[Money]:
+    return [
+        Money(amount=entry.amount, currency=entry.currency, day=entry.day)
+        for entry in money
+    ]
+
+
+def sort_and_unenumerate_money(money: list[MoneyWithIndex]) -> list[Money]:
+    money.sort(key=lambda x: x.index)
+    return unenumerate_money(money)
+
+
 def bulk_convert_to_currency(
     money: list[Money], destination_currency: Currency
 ) -> list[Money]:
+    enumerated_money = enumerate_money(money)
+    result = _bulk_convert_to_currency(enumerated_money, destination_currency)
+    return sort_and_unenumerate_money(result)
+
+
+def _bulk_convert_to_currency(
+    money: list[MoneyWithIndex], destination_currency: Currency
+) -> list[MoneyWithIndex]:
     if destination_currency.code == "USD":
-        return bulk_convert_to_dollars(money)
+        return _bulk_convert_to_dollars(money)
 
     entries_in_usd = [entry for entry in money if entry.currency.code == "USD"]
     entries_already_in_currency = [
@@ -75,15 +112,21 @@ def bulk_convert_to_currency(
         and entry.currency.code != "USD"
     ]
 
-    other_entries_in_usd = bulk_convert_to_dollars(other_entries)
+    other_entries_in_usd = _bulk_convert_to_dollars(other_entries)
     all_entries_in_usd = entries_in_usd + other_entries_in_usd
-    all_entries_in_destination_currency = bulk_convert_from_dollars(
+    all_entries_in_destination_currency = _bulk_convert_from_dollars(
         all_entries_in_usd, destination_currency
     )
     return entries_already_in_currency + all_entries_in_destination_currency
 
 
 def bulk_convert_to_dollars(money: list[Money]) -> list[Money]:
+    enumerated_money = enumerate_money(money)
+    result = _bulk_convert_to_dollars(enumerated_money)
+    return sort_and_unenumerate_money(result)
+
+
+def _bulk_convert_to_dollars(money: list[MoneyWithIndex]) -> list[MoneyWithIndex]:
     today = dt.date.today()
     entries_in_usd = [entry for entry in money if entry.currency.code == "USD"]
     other_entries = [entry for entry in money if entry.currency.code != "USD"]
@@ -106,6 +149,14 @@ def bulk_convert_to_dollars(money: list[Money]) -> list[Money]:
 def bulk_convert_from_dollars(
     money: list[Money], destination_currency: Currency
 ) -> list[Money]:
+    enumerated_money = enumerate_money(money)
+    result = _bulk_convert_from_dollars(enumerated_money, destination_currency)
+    return sort_and_unenumerate_money(result)
+
+
+def _bulk_convert_from_dollars(
+    money: list[MoneyWithIndex], destination_currency: Currency
+) -> list[MoneyWithIndex]:
     today = dt.date.today()
     converted, not_converted = bulk_convert_from_dollars_from_db(
         money, destination_currency
@@ -127,8 +178,8 @@ def bulk_convert_from_dollars(
 
 
 def bulk_convert_to_dollars_from_db(
-    money: list[Money],
-) -> tuple[list[Money], list[Money]]:
+    money: list[MoneyWithIndex],
+) -> tuple[list[MoneyWithIndex], list[MoneyWithIndex]]:
     entries_in_usd = [entry for entry in money if entry.currency.code == "USD"]
     other_entries = [entry for entry in money if entry.currency.code != "USD"]
     today = dt.date.today()
@@ -149,10 +200,11 @@ def bulk_convert_to_dollars_from_db(
         )
         if exchange_rate:
             converted.append(
-                Money(
+                MoneyWithIndex(
                     amount=entry.amount / exchange_rate.rate,
                     currency=currency,
                     day=entry.day,
+                    index=entry.index,
                 )
             )
         else:
@@ -162,8 +214,8 @@ def bulk_convert_to_dollars_from_db(
 
 
 def bulk_convert_from_dollars_from_db(
-    money: list[Money], target_currency: Currency
-) -> tuple[list[Money], list[Money]]:
+    money: list[MoneyWithIndex], target_currency: Currency
+) -> tuple[list[MoneyWithIndex], list[MoneyWithIndex]]:
     today = dt.date.today()
     all_days = set(money.day if money.day <= today else today for money in money)
     rates = DollarExchangeRate.objects.filter(
@@ -180,10 +232,11 @@ def bulk_convert_from_dollars_from_db(
         )
         if exchange_rate:
             converted.append(
-                Money(
+                MoneyWithIndex(
                     amount=entry.amount * exchange_rate.rate,
                     currency=target_currency,
                     day=entry.day,
+                    index=entry.index,
                 )
             )
         else:
@@ -252,7 +305,7 @@ def bulk_get_exchange_rate_from_api(days: list[dt.date]) -> list[RateResponse]:
 
 
 def save_exchange_rates_to_database(rates: list[RateResponse]):
-    available_currencies = Currency.objects.exclude(code="USD").order_by('code')
+    available_currencies = Currency.objects.exclude(code="USD").order_by("code")
     rates_to_save = []
     for currency in available_currencies:
         rate = next(
@@ -269,10 +322,20 @@ def get_exchange_rates_from_api_and_save_to_database(day: dt.date):
     rates = get_exchange_rate_from_api(day)
     save_exchange_rates_to_database(rates)
 
+
 def get_exchange_rates_from_api_and_save_to_database_if_not_exists(day: dt.date):
     rates = get_exchange_rate_from_api(day)
-    currencies_to_save = Currency.objects.exclude(code="USD").exclude(id__in=Subquery(DollarExchangeRate.objects.filter(date=day).values('currency_id')))
-    rates_to_save = list(filter(lambda rate: rate.currency_code in [c.code for c in currencies_to_save], rates))
+    currencies_to_save = Currency.objects.exclude(code="USD").exclude(
+        id__in=Subquery(
+            DollarExchangeRate.objects.filter(date=day).values("currency_id")
+        )
+    )
+    rates_to_save = list(
+        filter(
+            lambda rate: rate.currency_code in [c.code for c in currencies_to_save],
+            rates,
+        )
+    )
     save_exchange_rates_to_database(rates_to_save)
 
 

@@ -1,6 +1,7 @@
 from django.db import models
 from .currency import Currency
 
+
 class DollarExchangeRate(models.Model):
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
     date = models.DateField()
@@ -11,5 +12,8 @@ class DollarExchangeRate(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["date", "currency"], name="unique_dollar_exchange_rate_date_currency")
+            models.UniqueConstraint(
+                fields=["date", "currency"],
+                name="unique_dollar_exchange_rate_date_currency",
+            )
         ]

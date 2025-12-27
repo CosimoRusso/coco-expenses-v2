@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0009_rename_actual_amount_expense_amount'),
+        ("expenses", "0009_rename_actual_amount_expense_amount"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='currency',
-            name='display_name',
+            model_name="currency",
+            name="display_name",
             field=models.CharField(max_length=255),
         ),
     ]

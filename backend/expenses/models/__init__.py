@@ -6,4 +6,12 @@ from expenses.models.currency import Currency
 from expenses.models.user_settings import UserSettings
 from expenses.models.dollar_exchange_rate import DollarExchangeRate
 
-__all__ = ["User", "Expense", "ExpenseCategory", "Trip", "Currency", "UserSettings", "DollarExchangeRate"]
+__all__ = [
+    "User",
+    "Expense",
+    "ExpenseCategory",
+    "Trip",
+    "Currency",
+    "UserSettings",
+    "DollarExchangeRate",
+]

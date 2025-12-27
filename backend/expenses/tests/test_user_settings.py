@@ -7,6 +7,7 @@ from expenses.tests.factories.trip_factories import TripFactory
 from expenses.tests.factories.user_settings_factories import UserSettingsFactory
 from expenses.models.currency import Currency
 
+
 class TestUserSettings(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
@@ -22,19 +23,13 @@ class TestUserSettings(ApiTestCase):
         return reverse("expenses:user-settings-detail", args=[id])
 
     def test_create_user_settings(self):
-        body = {
-            "preferred_currency": 1,
-            "active_trip": 1
-        }
+        body = {"preferred_currency": 1, "active_trip": 1}
         res = self.client.post(self.list_url, body, format="json")
         self.assertEqual(res.status_code, http_status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_update_user_settings(self):
         user_settings = UserSettingsFactory(user=self.user)
-        body = {
-            "preferred_currency": self.currency.id,
-            "active_trip": self.trip.id
-        }
+        body = {"preferred_currency": self.currency.id, "active_trip": self.trip.id}
         res = self.client.patch(self.details_url(user_settings.id), body, format="json")
         self.assertEqual(res.status_code, http_status.HTTP_200_OK)
         user_settings.refresh_from_db()
@@ -45,7 +40,9 @@ class TestUserSettings(ApiTestCase):
         user_settings = UserSettingsFactory(user=self.user)
         res = self.client.get(self.details_url(user_settings.id))
         self.assertEqual(res.status_code, http_status.HTTP_200_OK)
-        self.assertEqual(res.data["preferred_currency"], user_settings.preferred_currency_id)
+        self.assertEqual(
+            res.data["preferred_currency"], user_settings.preferred_currency_id
+        )
         self.assertEqual(res.data["active_trip"], user_settings.active_trip_id)
 
     def cannot_get_user_settings_for_other_user(self):

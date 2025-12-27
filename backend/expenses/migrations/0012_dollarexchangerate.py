@@ -5,22 +5,40 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0011_usersettings'),
+        ("expenses", "0011_usersettings"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DollarExchangeRate',
+            name="DollarExchangeRate",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date', models.DateField()),
-                ('rate', models.DecimalField(decimal_places=4, max_digits=14)),
-                ('currency', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='expenses.currency')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date", models.DateField()),
+                ("rate", models.DecimalField(decimal_places=4, max_digits=14)),
+                (
+                    "currency",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="expenses.currency",
+                    ),
+                ),
             ],
             options={
-                'constraints': [models.UniqueConstraint(fields=('date', 'currency'), name='unique_dollar_exchange_rate_date_currency')],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("date", "currency"),
+                        name="unique_dollar_exchange_rate_date_currency",
+                    )
+                ],
             },
         ),
     ]
