@@ -11,12 +11,23 @@ from rest_framework.response import Response
 from rest_framework import status
 from io import TextIOWrapper
 from rest_framework.filters import OrderingFilter
+import django_filters
+from django_filters.rest_framework import DjangoFilterBackend
+
+
+class ExpenseFilterSet(django_filters.FilterSet):
+    is_expense = django_filters.BooleanFilter()
+
+    class Meta:
+        model = Expense
+        fields = ["is_expense"]
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ExpenseSerializer
-    filter_backends = [OrderingFilter]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = ExpenseFilterSet
     ordering_fields = [
         "expense_date",
         "amortization_start_date",
@@ -90,7 +101,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                                 .strip()
                             )
                             if isinstance(row["amount"], str)
-                            else row[money_field]
+                            else row["amount"]
                         )
                     # Crea Expense
                     Expense.objects.create(
