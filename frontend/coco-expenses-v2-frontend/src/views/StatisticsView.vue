@@ -14,6 +14,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
+import type { Currency } from '@/interfaces/Currency'
 
 ChartJS.register(
   CategoryScale,
@@ -28,6 +29,7 @@ ChartJS.register(
 
 interface CategoryStatistics {
   category: { id: number; code: string; name: string; for_expense: boolean }
+  currency: Currency
   amount: string
 }
 
@@ -43,6 +45,7 @@ const endDateStr = ref<string>('')
 const errorMessage = ref<string | null>(null)
 const categoryStatistics = ref<CategoryStatistics[]>([])
 const amortizationTimeline = ref<AmortizationTimelineItem[]>([])
+const currency = ref<Currency | null>(null)
 
 onMounted(() => {
   // Initialize date inputs to today's date
@@ -71,6 +74,7 @@ async function fetchCategoryStatistics() {
       errorMessage.value = 'Network response was not ok'
     }
     categoryStatistics.value = await response.json()
+    currency.value = categoryStatistics.value[0].currency
   } catch (error) {
     errorMessage.value = 'Error fetching category statistics'
     console.error('Error fetching category statistics:', error)
@@ -214,8 +218,8 @@ const amortizationChartOptions = {
 
 <template>
   <div class="statistics">
-    <h1>Statistics</h1>
-    <p>This is the statistics page</p>
+    <h1>Statistics{{ currency?.display_name }}</h1>
+    <p>The statistics are displayed in the currency: {{ currency?.display_name }}</p>
   </div>
   <div class="filter">
     <label for="dateRange">Date Range:</label>

@@ -7,13 +7,13 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
 from expenses.date_utils import all_dates_in_range
-from expenses.models import Expense, ExpenseCategory
+from expenses.models import Currency, Expense, ExpenseCategory, UserSettings
 from expenses.serializers.statistics import (
-    StartEndDateSerializer,
+    StatisticsInputSerializer,
     CategoryStatisticsSerializer,
     AmortizationTimelineSerializer,
 )
-from expenses.statistics_utils import get_expenses_date_range, get_non_expenses_date_range
+from expenses.statistics_utils import get_expenses_date_range_in_currency, get_non_expenses_date_range
 
 
 class StatisticViewSet(ViewSet):
@@ -30,15 +30,18 @@ class StatisticViewSet(ViewSet):
             "category", "trip"
         )
         categories = ExpenseCategory.objects.filter(user=request.user, for_expense=True)
-        input_serializer = StartEndDateSerializer(data=request.query_params)
+        input_serializer = StatisticsInputSerializer(data=request.query_params)
         input_serializer.is_valid(raise_exception=True)
         start_date = input_serializer.validated_data["start_date"]
         end_date = input_serializer.validated_data["end_date"]
-        expenses = get_expenses_date_range(
+        currency: Currency = input_serializer.validated_data.get("currency") or UserSettings.objects.get(user=user).preferred_currency or Currency.objects.get(code="USD")
+        all_expenses_in_currency = get_expenses_date_range_in_currency(
             queryset,
+            currency=currency,
             start_date=start_date,
             end_date=end_date,
         )
+        expenses = {day: [e for e in all_expenses_in_currency[day] if e.is_expense] for day in all_expenses_in_currency}
         result = {
             category: {"amount": 0}
             for category in categories
@@ -54,6 +57,7 @@ class StatisticViewSet(ViewSet):
         result = [
             {
                 "category": category,
+                "currency": currency,
                 "amount": data["amount"],
             }
             for category, data in result.items()
@@ -71,22 +75,19 @@ class StatisticViewSet(ViewSet):
         queryset: QuerySet[Expense] = Expense.objects.filter(user=user).select_related(
             "category", "trip"
         )
-        input_serializer = StartEndDateSerializer(data=request.query_params)
+        input_serializer = StatisticsInputSerializer(data=request.query_params)
         input_serializer.is_valid(raise_exception=True)
         start_date = input_serializer.validated_data["start_date"]
         end_date = input_serializer.validated_data["end_date"]
-        
-        expenses = get_expenses_date_range(
+        currency: Currency = input_serializer.validated_data.get("currency") or UserSettings.objects.get(user=user).preferred_currency or Currency.objects.get(code="USD")
+        all_expenses_in_currency = get_expenses_date_range_in_currency(
             queryset,
+            currency=currency,
             start_date=start_date,
             end_date=end_date,
         )
-        non_expenses = get_non_expenses_date_range(
-            queryset,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        
+        expenses = {day: [e for e in all_expenses_in_currency[day] if e.is_expense] for day in all_expenses_in_currency}
+        non_expenses = {day: [e for e in all_expenses_in_currency[day] if not e.is_expense] for day in all_expenses_in_currency}
         timeline_data = {}
         cumulative_non_expense = Decimal("0.00")
         
