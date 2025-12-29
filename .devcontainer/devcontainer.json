@@ -6,7 +6,7 @@
   "shutdownAction": "stopCompose",
   "customizations": {
     "vscode": {
-        "extensions":["ms-python.python", "ms-python.debugpy", "charliermarsh.ruff", "vue.volar"]
+        "extensions":["ms-python.python", "ms-python.debugpy", "charliermarsh.ruff", "vue.volar", "prettier.prettier-vscode"]
     }
   },
   "mounts": [

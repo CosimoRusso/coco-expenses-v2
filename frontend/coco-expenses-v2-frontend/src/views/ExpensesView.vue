@@ -1,9 +1,173 @@
 <script setup lang="ts">
 import ExpensesList from '@/components/ExpensesList.vue'
+import ExpenseForm from '@/components/ExpenseForm.vue'
+import { ref, onMounted } from 'vue'
+import apiFetch from '@/utils/apiFetch'
+import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
+import type { Currency } from '@/interfaces/Currency'
+import type { Trip } from '@/interfaces/Trip'
+import type { UserSettings } from '@/interfaces/UserSettings'
+import type { Expense } from '@/interfaces/Expense'
+
+const initialPageLoading = ref(true)
+const expenses = ref<Expense[]>([])
+const categories = ref<ExpenseCategory[]>([])
+const trips = ref<Trip[]>([])
+const currencies = ref<Currency[]>([])
+const userSettings = ref<UserSettings | null>(null)
+const tableErrors = ref<string[]>([])
+
+// Filter state
+const filterCategory = ref<number | null>(null)
+const filterTrip = ref<number | null>(null)
+const filterIsExpense = ref<boolean | null>(null)
+
+onMounted(async () => {
+  initialPageLoading.value = true
+  try {
+    await fetchMetadata()
+  } finally {
+    initialPageLoading.value = false
+  }
+})
+
+async function fetchMetadata() {
+  await Promise.all([
+    fetchCategories(),
+    fetchTrips(),
+    fetchExpenses(),
+    fetchCurrencies(),
+    fetchUserSettings(),
+  ])
+}
+
+// Fetch expenses
+async function fetchExpenses() {
+  try {
+    let url = '/expenses/expenses/'
+    const params: string[] = []
+
+    if (filterIsExpense.value !== null) {
+      params.push(`is_expense=${filterIsExpense.value}`)
+    }
+    if (filterCategory.value !== null) {
+      params.push(`category=${filterCategory.value}`)
+    }
+    if (filterTrip.value !== null) {
+      params.push(`trip=${filterTrip.value}`)
+    }
+
+    if (params.length > 0) {
+      url += `?${params.join('&')}`
+    }
+
+    const response = await apiFetch(url)
+    if (response.ok) {
+      expenses.value = await response.json()
+    } else {
+      throw new Error('Failed to load expenses.')
+    }
+  } catch (error) {
+    console.error('Error fetching expenses:', error)
+    tableErrors.value.push('Failed to load categories.')
+  }
+}
+
+async function fetchCurrencies() {
+  try {
+    const response = await apiFetch('/expenses/currencies/')
+    if (response.ok) {
+      currencies.value = await response.json()
+    } else {
+      throw new Error('Failed to load currencies.')
+    }
+  } catch (error) {
+    console.error('Error fetching currencies:', error)
+    tableErrors.value.push('Failed to load currencies.')
+  }
+}
+
+async function fetchCategories() {
+  try {
+    const response = await apiFetch('/expenses/expense-categories/')
+    if (response.ok) {
+      categories.value = await response.json()
+    } else {
+      throw new Error('Failed to load categories.')
+    }
+  } catch (error) {
+    console.error('Error fetching categories:', error)
+    tableErrors.value.push('Failed to load categories.')
+  }
+}
+
+async function fetchUserSettings() {
+  try {
+    const response = await apiFetch('/expenses/user-settings/self/')
+    if (response.ok) {
+      userSettings.value = await response.json()
+    } else {
+      throw new Error('Failed to load user settings.')
+    }
+  } catch (error) {
+    console.error('Error fetching user settings:', error)
+    tableErrors.value.push('Failed to load user settings.')
+  }
+}
+
+async function fetchTrips() {
+  try {
+    const response = await apiFetch('/expenses/trips/')
+    if (response.ok) {
+      trips.value = await response.json()
+    } else {
+      throw new Error('Failed to load trips.')
+    }
+  } catch (error) {
+    console.error('Error fetching trips:', error)
+    tableErrors.value.push('Errore durante il caricamento dei viaggi.')
+  }
+}
+
+function onExpenseAdded(expense: Expense) {
+  expenses.value.unshift(expense)
+}
+
+function onExpenseDeleted(expenseId: number) {
+  expenses.value = expenses.value.filter((e) => e.id !== expenseId)
+}
 </script>
 
 <template>
-  <ExpensesList />
+  <div v-if="!initialPageLoading">
+    <ExpenseForm
+      :initialPageLoading="initialPageLoading"
+      :categories="categories"
+      :trips="trips"
+      :currencies="currencies"
+      :userSettings="userSettings"
+      @expense-added="onExpenseAdded"
+    />
+    <ExpensesList
+      :initialPageLoading="initialPageLoading"
+      :categories="categories"
+      :trips="trips"
+      :currencies="currencies"
+      :userSettings="userSettings"
+      :expenses="expenses"
+      @expense-deleted="onExpenseDeleted"
+      @reload-expenses="fetchExpenses"
+      v-model:filter-category="filterCategory"
+      v-model:filter-trip="filterTrip"
+      v-model:filter-is-expense="filterIsExpense"
+    />
+  </div>
+  <div v-else-if="tableErrors.length > 0">
+    <p>{{ tableErrors.join('\n') }}</p>
+  </div>
+  <div v-else>
+    <p>Loading...</p>
+  </div>
 </template>
 
 <style scoped></style>
