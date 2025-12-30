@@ -1,17 +1,1 @@
-{
-    "python.testing.unittestArgs": [
-        "--keepdb",
-    ],
-    "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true,
-    "python.envFile": "${workspaceFolder}/backend/.env",
-    "[javascript]": {
-        "editor.defaultFormatter": "prettier.prettier-vscode"
-    },
-    "[typescript]": {
-        "editor.defaultFormatter": "prettier.prettier-vscode"
-    },
-    "[vue]": {
-        "editor.defaultFormatter": "prettier.prettier-vscode"
-    }
-}
+{}
