@@ -1,20 +1,25 @@
+import datetime as dt
 from datetime import timedelta
-
-from rest_framework import status
-from rest_framework.reverse import reverse
 
 from expenses import date_utils
 from expenses.tests.api.api_test_case import ApiTestCase
 from expenses.tests.factories.category_factories import CategoryFactory
+from expenses.tests.factories.currency_factories import CurrencyFactory
 from expenses.tests.factories.expense_factories import ExpenseFactory
 from expenses.tests.factories.user_factories import UserFactory
-import datetime as dt
+from expenses.tests.factories.user_settings_factories import UserSettingsFactory
+from rest_framework import status
+from rest_framework.reverse import reverse
 
 
 class StatisticsExpenseCategoriesTestCase(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory()
+        cls.currency = CurrencyFactory(code="USD")
+        cls.user_settings = UserSettingsFactory(
+            user=cls.user, preferred_currency=cls.currency
+        )
         cls.category_1 = CategoryFactory(
             user=cls.user, for_expense=True, code="cat1", name="Category 1"
         )
@@ -27,6 +32,7 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=100,
+                currency=cls.currency,
                 category=cls.category_1,
                 amortization_start_date=date_utils.today(),
                 amortization_end_date=date_utils.today() + timedelta(days=3),
@@ -35,6 +41,7 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=None,
                 amount=100,
+                currency=cls.currency,
                 category=cls.category_1,
                 amortization_start_date=date_utils.today(),
                 amortization_end_date=date_utils.today() + timedelta(days=4),
@@ -46,6 +53,7 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=100,
+                currency=cls.currency,
                 category=cls.category_2,
                 amortization_start_date=date_utils.today() - timedelta(days=5),
                 amortization_end_date=date_utils.today() + timedelta(days=4),
@@ -54,6 +62,7 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today() + dt.timedelta(days=10),
                 amount=10,
+                currency=cls.currency,
                 category=cls.category_2,
                 amortization_start_date=date_utils.today() - timedelta(days=10),
                 amortization_end_date=date_utils.today() - timedelta(days=10),
@@ -90,6 +99,10 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory()
+        cls.currency = CurrencyFactory(code="USD")
+        cls.user_settings = UserSettingsFactory(
+            user=cls.user, preferred_currency=cls.currency
+        )
         cls.non_expense = CategoryFactory(
             user=cls.user, for_expense=False, code="income", name="salary"
         )
@@ -102,6 +115,7 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=100,
+                currency=cls.currency,
                 category=cls.non_expense,
                 amortization_start_date=date_utils.today(),
                 amortization_end_date=date_utils.today() + timedelta(days=30),
@@ -114,6 +128,7 @@ class StatisticsExpensesAmortizationTestCase(ApiTestCase):
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=30,
+                currency=cls.currency,
                 category=cls.rent,
                 amortization_start_date=date_utils.today(),
                 amortization_end_date=date_utils.today() + timedelta(days=30),

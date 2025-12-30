@@ -42,6 +42,16 @@
             "source.organizeImports.ruff": "explicit"
           }
         },
+        // python testing
+        "python.testing.pytestEnabled": false,
+        "python.testing.unittestEnabled": true,
+        "python.testing.unittestArgs": [
+          "--keepdb",
+          "-t",
+          "/coco-expenses/backend"
+        ],
+        "python.testing.cwd": "/coco-expenses/backend/",
+        "python.testing.autoTestDiscoverOnSaveEnabled": true,
         // PRETTIER
         "prettier.prettierPath": "/coco-expenses/frontend/coco-expenses-v2-frontend/node_modules/prettier",
         "[javascript]": {
@@ -58,6 +68,54 @@
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnType": true,
           "editor.formatOnSave": true
+        },
+        "launch": {
+          "configurations": [
+            {
+              "name": "Django Debug Server (Debug)",
+              "consoleName": "Django Debug Server (Debug)",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "${workspaceFolder}/backend/manage.py",
+              "args": ["runserver", "0.0.0.0:8000"],
+              "django": true,
+              "justMyCode": true,
+              "python": "/usr/local/bin/python",
+              "cwd": "${workspaceFolder}/backend",
+              "env": {
+                "PYTHONPATH": "/coco-expenses/backend",
+                "ROOT_URLCONF": "cocoExpenses.urls",
+                "DJANGO_SETTINGS_MODULE": "cocoExpenses.settings"
+              },
+              "console": "integratedTerminal"
+            },
+            {
+              "name": "Django Tests (Debug)",
+              "consoleName": "Django Tests (Debug)",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "${workspaceFolder}/backend/manage.py",
+              "args": ["test", "--keepdb", "${input:djangoTestPath}"],
+              "django": true,
+              "justMyCode": true,
+              "python": "/usr/local/bin/python",
+              "cwd": "${workspaceFolder}/backend",
+              "env": {
+                "PYTHONPATH": "/coco-expenses/backend",
+                "ROOT_URLCONF": "cocoExpenses.urls",
+                "DJANGO_SETTINGS_MODULE": "cocoExpenses.settings"
+              },
+              "console": "integratedTerminal"
+            }
+          ],
+          "inputs": [
+            {
+              "id": "djangoTestPath",
+              "description": "Test path (e.g., app.tests.test_models)",
+              "default": "",
+              "type": "promptString"
+            }
+          ]
         }
       }
     }
@@ -68,5 +126,11 @@
   ],
   "containerEnv": {
     "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"
+  },
+  "containerEnv": {
+    "MANAGE_PY_PATH": "/coco-expenses/backend/manage.py",
+    "ROOT_URLCONF": "cocoExpenses.urls",
+    "DJANGO_SETTINGS_MODULE": "cocoExpenses.settings",
+    "PYTHONPATH": "/coco-expenses/backend"
   }
 }
