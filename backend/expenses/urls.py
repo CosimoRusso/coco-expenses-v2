@@ -1,12 +1,11 @@
-from rest_framework import routers
-
+from expenses.views.currencies import CurrencyViewSet
 from expenses.views.expense_categories import ExpenseCategoryViewSet
 from expenses.views.expenses import ExpenseViewSet
 from expenses.views.statistics import StatisticViewSet
 from expenses.views.trips import TripViewSet
-from expenses.views.users import UserViewSet
-from expenses.views.currencies import CurrencyViewSet
 from expenses.views.user_settings import UserSettingsViewSet
+from expenses.views.users import UserViewSet
+from rest_framework import routers
 
 app_name = "expenses"
 

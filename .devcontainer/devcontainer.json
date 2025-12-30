@@ -4,9 +4,62 @@
   "service": "devcontainer",
   "workspaceFolder": "/coco-expenses",
   "shutdownAction": "stopCompose",
+  "postStartCommand": "/coco-expenses/.devcontainer/post_start.sh",
   "customizations": {
     "vscode": {
-        "extensions":["ms-python.python", "ms-python.debugpy", "charliermarsh.ruff", "vue.volar", "prettier.prettier-vscode"]
+      "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "charliermarsh.ruff",
+        "vue.volar",
+        "esbenp.prettier-vscode",
+        "mhutchie.git-graph", // Git repository visualizer
+        "github.vscode-pull-request-github", // GitHub PR integration
+        "donjayamanne.githistory", // Git file history
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "files.exclude": {
+          "**/.venv": true,
+          "**/__pycache__": true,
+          "**/.cache": true,
+          "**/.coverage": true,
+          "**/.coverage.*": true,
+          "**/.hypothesis": true,
+          "**/.mypy_cache": true,
+          "**/.pytest_cache": true,
+          "**/.tox": true
+        },
+        // PYTHON
+        "python.analysis.autoImportCompletions": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnType": true,
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+          }
+        },
+        // PRETTIER
+        "prettier.prettierPath": "/coco-expenses/frontend/coco-expenses-v2-frontend/node_modules/prettier",
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnType": true,
+          "editor.formatOnSave": true
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnType": true,
+          "editor.formatOnSave": true
+        },
+        "[vue]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnType": true,
+          "editor.formatOnSave": true
+        }
+      }
     }
   },
   "mounts": [
@@ -14,7 +67,6 @@
     "source=/Users/cosimorusso/.ssh,target=/root/.ssh,type=bind,consistency=cached"
   ],
   "containerEnv": {
-      "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"
+    "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"
   }
 }
-
