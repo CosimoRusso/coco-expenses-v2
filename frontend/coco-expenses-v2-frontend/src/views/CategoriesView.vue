@@ -57,48 +57,69 @@ onMounted(() => {
 </script>
 
 <template>
-  <h1>Categories</h1>
-  <h2>Add Category</h2>
-  <form @submit.prevent="addCategory">
+  <h1 class="text-2xl font-bold mb-8">Categories</h1>
+  <h2 class="text-xl font-bold mb-3">Add Category</h2>
+  <form
+    class="form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+    @submit.prevent="addCategory"
+  >
     <div>
       <label for="name">Name</label>
-      <input type="text" id="name" v-model="newCategory.name" required />
+      <input
+        type="text"
+        id="name"
+        class="input input-border w-full"
+        v-model="newCategory.name"
+        required
+      />
     </div>
     <div>
       <label for="code">Code</label>
-      <input type="text" id="code" v-model="newCategory.code" required />
+      <input
+        type="text"
+        id="code"
+        class="input input-border w-full"
+        v-model="newCategory.code"
+        required
+      />
     </div>
     <div>
-      <label for="for_expense">For Expense</label>
-      <input type="checkbox" id="for_expense" v-model="newCategory.for_expense" />
+      <label for="for_expense" class="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="for_expense"
+          class="checkbox"
+          v-model="newCategory.for_expense"
+        />
+        For Expense
+      </label>
     </div>
-    <button type="submit">Add Category</button>
+    <div class="col-span-full">
+      <button type="submit" class="btn btn-primary">Add Category</button>
+    </div>
   </form>
-  <p v-if="createCategoryError" class="error">{{ createCategoryError }}</p>
-  <h2>Categories List</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Code</th>
-        <th>For Expense</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="category in categories" :key="category.id">
-        <td>{{ category.name }}</td>
-        <td>{{ category.code }}</td>
-        <td>{{ category.for_expense }}</td>
-      </tr>
-    </tbody>
-  </table>
-  <p v-if="fetchCategoriesError" class="error">{{ fetchCategoriesError }}</p>
+  <div v-if="createCategoryError" class="text-red-50 my-4">{{ createCategoryError }}</div>
+  <h2 class="text-xl font-bold mb-3 my-8">Categories List</h2>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Code</th>
+          <th>For Expense</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="categories.length === 0">
+          <td colspan="3" class="no-data">No categories found</td>
+        </tr>
+        <tr v-for="category in categories" :key="category.id">
+          <td>{{ category.name }}</td>
+          <td>{{ category.code }}</td>
+          <td>{{ category.for_expense }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div v-if="fetchCategoriesError" class="text-red-50 my-4">{{ fetchCategoriesError }}</div>
 </template>
-
-<style scoped>
-.error {
-  color: red;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-</style>
