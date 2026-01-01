@@ -78,10 +78,15 @@ function getCurrencyName(currencyId: number | null) {
 <template>
   <div class="expenses-table">
     <!-- Filter Bar -->
-    <div class="filters-bar">
-      <div class="filter-group">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
         <label for="filter-category">Category</label>
-        <select id="filter-category" v-model="filterCategory" @change="emit('reload-expenses')">
+        <select
+          class="select input input-border w-full"
+          id="filter-category"
+          v-model="filterCategory"
+          @change="emit('reload-expenses')"
+        >
           <option :value="null">All Categories</option>
           <option v-for="category in categories" :key="category.id" :value="category.id">
             {{ category.name }}
@@ -89,9 +94,14 @@ function getCurrencyName(currencyId: number | null) {
         </select>
       </div>
 
-      <div class="filter-group">
+      <div>
         <label for="filter-trip">Trip</label>
-        <select id="filter-trip" v-model="filterTrip" @change="emit('reload-expenses')">
+        <select
+          class="select input input-border w-full"
+          id="filter-trip"
+          v-model="filterTrip"
+          @change="emit('reload-expenses')"
+        >
           <option :value="null">All Trips</option>
           <option v-for="trip in trips" :key="trip.id" :value="trip.id">
             {{ trip.name }}
@@ -99,9 +109,14 @@ function getCurrencyName(currencyId: number | null) {
         </select>
       </div>
 
-      <div class="filter-group">
+      <div>
         <label for="filter-is-expense">Type</label>
-        <select id="filter-is-expense" v-model="filterIsExpense" @change="emit('reload-expenses')">
+        <select
+          class="select input input-border w-full"
+          id="filter-is-expense"
+          v-model="filterIsExpense"
+          @change="emit('reload-expenses')"
+        >
           <option :value="null">All</option>
           <option :value="true">Expenses</option>
           <option :value="false">Income</option>
@@ -109,51 +124,53 @@ function getCurrencyName(currencyId: number | null) {
       </div>
     </div>
 
-    <div style="display: flex; align-items: center; justify-content: space-between">
-      <h2>Expenses</h2>
-      <button @click="emit('reload-expenses')" style="margin-left: auto">Reload</button>
+    <div class="flex items-center justify-between my-8">
+      <h2 class="text-2xl font-bold">Expenses</h2>
+      <button class="btn btn-primary" @click="emit('reload-expenses')">Reload</button>
     </div>
     <div v-for="msg of tableErrors" :key="msg" class="error-message">{{ msg }}</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Creation Date</th>
-          <th>Description</th>
-          <th>Amount</th>
-          <th>Currency</th>
-          <th>Amortization Start</th>
-          <th>Amortization End</th>
-          <th>Category</th>
-          <th>Trip</th>
-          <th>Is Expense</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-if="props.expenses.length === 0">
-          <td colspan="9" class="no-data">No expenses found</td>
-        </tr>
-        <tr v-for="expense in props.expenses" :key="expense.id">
-          <td>{{ expense.expense_date }}</td>
-          <td>{{ expense.description }}</td>
-          <td>{{ expense.amount }}</td>
-          <td>{{ getCurrencyName(expense.currency) }}</td>
-          <td>{{ expense.amortization_start_date }}</td>
-          <td>{{ expense.amortization_end_date }}</td>
-          <td>{{ getCategoryName(expense.category) }}</td>
-          <td>{{ getTripName(expense.trip) }}</td>
-          <td>{{ expense.is_expense ? 'Yes' : 'No' }}</td>
-          <td>
-            <button
-              @click="confirmDelete(expense)"
-              title="Elimina"
-              style="background: none; border: none; cursor: pointer"
-            >
-              <DeleteIcon />
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Creation Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Currency</th>
+            <th>Amortization Start</th>
+            <th>Amortization End</th>
+            <th>Category</th>
+            <th>Trip</th>
+            <th>Is Expense</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="props.expenses.length === 0">
+            <td colspan="9" class="no-data">No expenses found</td>
+          </tr>
+          <tr v-for="expense in props.expenses" :key="expense.id">
+            <td>{{ expense.expense_date }}</td>
+            <td>{{ expense.description }}</td>
+            <td>{{ expense.amount }}</td>
+            <td>{{ getCurrencyName(expense.currency) }}</td>
+            <td>{{ expense.amortization_start_date }}</td>
+            <td>{{ expense.amortization_end_date }}</td>
+            <td>{{ getCategoryName(expense.category) }}</td>
+            <td>{{ getTripName(expense.trip) }}</td>
+            <td>{{ expense.is_expense ? 'Yes' : 'No' }}</td>
+            <td>
+              <button
+                @click="confirmDelete(expense)"
+                title="Elimina"
+                style="background: none; border: none; cursor: pointer"
+              >
+                <DeleteIcon />
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
