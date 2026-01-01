@@ -74,7 +74,7 @@ function handleLogout() {
       </div>
       <router-link to="/" class="btn btn-ghost text-xl">CocoExpenses</router-link>
     </div>
-    <div class="navbar-center hidden lg:flex">
+    <div class="navbar-end hidden lg:flex">
       <ul class="menu menu-horizontal px-1">
         <template v-for="navElement in navElements" :key="navElement.text">
           <li v-if="navElement.link">
@@ -88,6 +88,5 @@ function handleLogout() {
         </template>
       </ul>
     </div>
-    <div class="navbar-end"></div>
   </div>
 </template>
