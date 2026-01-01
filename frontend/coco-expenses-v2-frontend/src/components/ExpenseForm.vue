@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import apiFetch from '@/utils/apiFetch'
-import Pikaday from 'pikaday'
 import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
@@ -138,18 +137,6 @@ function assignDefaultCurrencyAndTrip() {
   }
 }
 
-onMounted(async () => {
-  expenseDatePicker.value = new Pikaday({
-    field: expenseDatePicker.value,
-  })
-  amortizationStartDatePicker.value = new Pikaday({
-    field: amortizationStartDatePicker.value,
-  })
-  amortizationEndDatePicker.value = new Pikaday({
-    field: amortizationEndDatePicker.value,
-  })
-})
-
 watch(
   () => props.initialPageLoading,
   (newVal) => {
@@ -161,116 +148,107 @@ watch(
 </script>
 
 <template>
-  <h2 class="text-xl font-bold">Add New Expense</h2>
+  <h2 class="text-xl font-bold mb-3">Add New Expense</h2>
   <form
     class="form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
     @submit.prevent="addExpense"
   >
-    <div class="form-row">
-      <div class="form-group">
-        <label for="expense_date">Expense Date</label>
-        <input
-          type="text"
-          class="input pika-single"
-          v-model="newExpense.expense_date"
-          ref="expenseDatePicker"
-          required
-        />
-      </div>
+    <div>
+      <label for="expense_date">Expense Date</label>
 
-      <div class="form-group">
-        <label for="description">Description</label>
-        <input
-          type="text"
-          id="description"
-          class="input"
-          v-model="newExpense.description"
-          required
-        />
-      </div>
+      <input
+        class="input input-border"
+        type="date"
+        id="expense_date"
+        v-model="newExpense.expense_date"
+      />
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label for="amount">Amount</label>
-        <input
-          type="number"
-          id="amount"
-          v-model="newExpense.amount"
-          step="0.01"
-          required
-          class="input"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="currency">Currency</label>
-        <select class="select" id="currency" v-model="newExpense.currency" required>
-          <option value="0" disabled>Select a currency</option>
-          <option v-for="currency in currencies" :key="currency.id" :value="currency.id">
-            {{ currency.display_name }}
-          </option>
-        </select>
-      </div>
+    <div>
+      <label for="description">Description</label>
+      <input type="text" id="description" class="input" v-model="newExpense.description" required />
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label for="amortization_start_date">Amortization Start Date</label>
-        <input
-          type="text"
-          class="input pika-single"
-          id="amortization_start_date"
-          v-model="newExpense.amortization_start_date"
-          required
-          ref="amortizationStartDatePicker"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="amortization_end_date">Amortization End Date</label>
-        <input
-          type="text"
-          class="input pika-single"
-          id="amortization_end_date"
-          v-model="newExpense.amortization_end_date"
-          required
-          ref="amortizationEndDatePicker"
-        />
-      </div>
+    <div>
+      <label for="amount">Amount</label>
+      <input
+        type="number"
+        id="amount"
+        v-model="newExpense.amount"
+        step="0.01"
+        required
+        class="input"
+      />
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label for="category">Category</label>
-        <select class="select" id="category" v-model="newExpense.category" required>
-          <option value="0" disabled>Select a category</option>
-          <option v-for="category in categories" :key="category.id" :value="category.id">
-            {{ category.name }}
-          </option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="trip">Trip</label>
-        <select class="select" id="trip" v-model="newExpense.trip">
-          <option :value="null">None</option>
-          <option v-for="trip in trips" :key="trip.id" :value="trip.id">
-            {{ trip.name }}
-          </option>
-        </select>
-      </div>
+    <div>
+      <label for="currency">Currency</label>
+      <select class="select" id="currency" v-model="newExpense.currency" required>
+        <option value="0" disabled>Select a currency</option>
+        <option v-for="currency in currencies" :key="currency.id" :value="currency.id">
+          {{ currency.display_name }}
+        </option>
+      </select>
     </div>
 
-    <div v-if="formError" class="error-message">
-      {{ formError }}
+    <div>
+      <label for="amortization_start_date">Amortization Start Date</label>
+      <input
+        type="date"
+        class="input input-border"
+        id="amortization_start_date"
+        v-model="newExpense.amortization_start_date"
+        required
+      />
     </div>
 
-    <button type="submit" :disabled="isSubmitting">
+    <div>
+      <label for="amortization_end_date">Amortization End Date</label>
+      <input
+        type="date"
+        class="input input-border"
+        id="amortization_end_date"
+        v-model="newExpense.amortization_end_date"
+        required
+      />
+    </div>
+
+    <div>
+      <label for="category">Category</label>
+      <select
+        class="select input input-border"
+        id="category"
+        v-model="newExpense.category"
+        required
+      >
+        <option value="0" disabled>Select a category</option>
+        <option v-for="category in categories" :key="category.id" :value="category.id">
+          {{ category.name }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label for="trip">Trip</label>
+      <select class="select input input-border w-full" id="trip" v-model="newExpense.trip">
+        <option :value="null">Select a trip</option>
+        <option v-for="trip in trips" :key="trip.id" :value="trip.id">
+          {{ trip.name }}
+        </option>
+      </select>
+    </div>
+    <div class="col-span-full"></div>
+    <button type="submit" :disabled="isSubmitting" class="btn btn-primary col-span-full">
       {{ isSubmitting ? 'Adding...' : 'Add Expense' }}
     </button>
   </form>
-  <div class="expense-import-csv">
-    <p>or <router-link to="/import-expenses-from-csv">import from csv</router-link></p>
+  <div v-if="formError" class="text-red-50 my-4">
+    {{ formError }}
+  </div>
+  <div class="my-4 text-center">
+    <p>
+      or
+      <router-link class="text-primary" to="/import-expenses-from-csv">import from csv</router-link>
+    </p>
   </div>
 </template>
