@@ -1,8 +1,5 @@
 from decimal import Decimal
 
-from rest_framework import status
-from rest_framework.reverse import reverse
-
 from expenses import date_utils
 from expenses.models import Expense
 from expenses.tests.api.api_test_case import ApiTestCase
@@ -13,6 +10,8 @@ from expenses.tests.factories.category_factories import (
 from expenses.tests.factories.expense_factories import ExpenseFactory
 from expenses.tests.factories.trip_factories import TripFactory
 from expenses.tests.factories.user_factories import UserFactory
+from rest_framework import status
+from rest_framework.reverse import reverse
 
 
 class TestExpense(ApiTestCase):
@@ -297,7 +296,9 @@ class TestExpense(ApiTestCase):
         other_expenses = [
             ExpenseFactory(user=self.user, category=category2, trip=trip2),
         ]
-        res = self.client.get(self.list_url, {"category": category1.id, "trip": trip1.id})
+        res = self.client.get(
+            self.list_url, {"category": category1.id, "trip": trip1.id}
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
         returned_ids = {r["id"] for r in res_data}
@@ -327,7 +328,9 @@ class TestExpense(ApiTestCase):
         other_expenses = [
             ExpenseFactory(user=self.user, category=income_category, is_expense=False),
         ]
-        res = self.client.get(self.list_url, {"category": expense_category.id, "is_expense": "true"})
+        res = self.client.get(
+            self.list_url, {"category": expense_category.id, "is_expense": "true"}
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
         returned_ids = {r["id"] for r in res_data}
@@ -342,20 +345,30 @@ class TestExpense(ApiTestCase):
         category = ExpenseCategoryFactory(user=self.user)
         # Expenses matching both filters (trip1 and is_expense=True)
         matching_expenses = [
-            ExpenseFactory(user=self.user, category=category, trip=trip1, is_expense=True),
-            ExpenseFactory(user=self.user, category=category, trip=trip1, is_expense=True),
+            ExpenseFactory(
+                user=self.user, category=category, trip=trip1, is_expense=True
+            ),
+            ExpenseFactory(
+                user=self.user, category=category, trip=trip1, is_expense=True
+            ),
         ]
         # Expenses matching only trip
         trip_only_expenses = [
-            ExpenseFactory(user=self.user, category=category, trip=trip1, is_expense=False),
+            ExpenseFactory(
+                user=self.user, category=category, trip=trip1, is_expense=False
+            ),
         ]
         # Expenses matching only is_expense
         is_expense_only_expenses = [
-            ExpenseFactory(user=self.user, category=category, trip=trip2, is_expense=True),
+            ExpenseFactory(
+                user=self.user, category=category, trip=trip2, is_expense=True
+            ),
         ]
         # Expenses matching neither
         other_expenses = [
-            ExpenseFactory(user=self.user, category=category, trip=trip2, is_expense=False),
+            ExpenseFactory(
+                user=self.user, category=category, trip=trip2, is_expense=False
+            ),
         ]
         res = self.client.get(self.list_url, {"trip": trip1.id, "is_expense": "true"})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -373,26 +386,41 @@ class TestExpense(ApiTestCase):
         trip2 = TripFactory(user=self.user)
         # Expenses matching all three filters
         matching_expenses = [
-            ExpenseFactory(user=self.user, category=category1, trip=trip1, is_expense=True),
-            ExpenseFactory(user=self.user, category=category1, trip=trip1, is_expense=True),
+            ExpenseFactory(
+                user=self.user, category=category1, trip=trip1, is_expense=True
+            ),
+            ExpenseFactory(
+                user=self.user, category=category1, trip=trip1, is_expense=True
+            ),
         ]
         # Expenses matching only two filters
         two_filter_expenses = [
-            ExpenseFactory(user=self.user, category=category1, trip=trip1, is_expense=False),
-            ExpenseFactory(user=self.user, category=category1, trip=trip2, is_expense=True),
-            ExpenseFactory(user=self.user, category=category2, trip=trip1, is_expense=True),
+            ExpenseFactory(
+                user=self.user, category=category1, trip=trip1, is_expense=False
+            ),
+            ExpenseFactory(
+                user=self.user, category=category1, trip=trip2, is_expense=True
+            ),
+            ExpenseFactory(
+                user=self.user, category=category2, trip=trip1, is_expense=True
+            ),
         ]
         # Expenses matching only one filter
         one_filter_expenses = [
-            ExpenseFactory(user=self.user, category=category1, trip=trip2, is_expense=False),
-            ExpenseFactory(user=self.user, category=category2, trip=trip1, is_expense=False),
-            ExpenseFactory(user=self.user, category=category2, trip=trip2, is_expense=True),
+            ExpenseFactory(
+                user=self.user, category=category1, trip=trip2, is_expense=False
+            ),
+            ExpenseFactory(
+                user=self.user, category=category2, trip=trip1, is_expense=False
+            ),
+            ExpenseFactory(
+                user=self.user, category=category2, trip=trip2, is_expense=True
+            ),
         ]
-        res = self.client.get(self.list_url, {
-            "category": category1.id,
-            "trip": trip1.id,
-            "is_expense": "true"
-        })
+        res = self.client.get(
+            self.list_url,
+            {"category": category1.id, "trip": trip1.id, "is_expense": "true"},
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
         returned_ids = {r["id"] for r in res_data}
@@ -431,8 +459,16 @@ class TestExpense(ApiTestCase):
             ExpenseFactory(user=self.user, category=category, trip=user_trip),
         ]
         other_user_expenses = [
-            ExpenseFactory(user=other_user, category=ExpenseCategoryFactory(user=other_user), trip=other_user_trip),
-            ExpenseFactory(user=other_user, category=ExpenseCategoryFactory(user=other_user), trip=other_user_trip),
+            ExpenseFactory(
+                user=other_user,
+                category=ExpenseCategoryFactory(user=other_user),
+                trip=other_user_trip,
+            ),
+            ExpenseFactory(
+                user=other_user,
+                category=ExpenseCategoryFactory(user=other_user),
+                trip=other_user_trip,
+            ),
         ]
         res = self.client.get(self.list_url, {"trip": user_trip.id})
         self.assertEqual(res.status_code, status.HTTP_200_OK)

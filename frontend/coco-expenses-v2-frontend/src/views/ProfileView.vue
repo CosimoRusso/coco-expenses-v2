@@ -67,16 +67,21 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="profile">
-    <h1>User Profile</h1>
-    <div v-if="userStore.isLoggedIn" class="profile-content">
-      <p>Welcome to your profile page!</p>
-      <p v-if="userStore.email">Email: {{ userStore.email }}</p>
-      <p>Here are your profile settings:</p>
-      <form @submit.prevent="saveSettings">
+  <div class="max-w-3xl mx-auto p-5">
+    <h1 class="text-2xl font-bold mb-6">User Profile</h1>
+    <div v-if="userStore.isLoggedIn" class="bg-base-100 p-6 rounded-lg shadow mb-6">
+      <p class="mb-4">Welcome to your profile page!</p>
+      <p v-if="userStore.email" class="mb-4">Email: {{ userStore.email }}</p>
+      <p class="mb-4">Here are your profile settings:</p>
+      <form class="form grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="saveSettings">
         <div>
           <label for="preferredCurrency">Preferred Currency</label>
-          <select id="preferredCurrency" v-model="preferredCurrency">
+          <select
+            id="preferredCurrency"
+            v-model="preferredCurrency"
+            class="select input input-border w-full"
+          >
+            <option :value="null">Select a currency</option>
             <option v-for="currency in currencies" :key="currency.id" :value="currency.id">
               {{ currency.display_name }}
             </option>
@@ -84,59 +89,34 @@ onMounted(() => {
         </div>
         <div>
           <label for="activeTrip">Active Trip</label>
-          <select id="activeTrip" v-model="activeTrip">
-            <option v-for="trip in trips" :key="trip.id" :value="trip.id">{{ trip.name }}</option>
+          <select id="activeTrip" v-model="activeTrip" class="select input input-border w-full">
+            <option :value="null">Select a trip</option>
+            <option v-for="trip in trips" :key="trip.id" :value="trip.id">
+              {{ trip.name }}
+            </option>
           </select>
         </div>
-        <button type="submit">Save</button>
-        <p v-if="saveSettingsStatus">{{ saveSettingsStatus }}</p>
+        <div class="col-span-full">
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+        <div class="col-span-full">
+          <p
+            v-if="saveSettingsStatus"
+            :class="
+              saveSettingsStatus.includes('successfully')
+                ? 'text-success'
+                : 'text-error'
+            "
+          >
+            {{ saveSettingsStatus }}
+          </p>
+        </div>
       </form>
     </div>
-    <div v-else class="login-required">
+    <div v-else class="bg-base-100 p-8 rounded-lg shadow text-center">
       <p>Please log in to view your profile.</p>
-      <router-link to="/login" class="login-link">Go to Login</router-link>
+      <router-link to="/login" class="btn btn-primary mt-4">Go to Login</router-link>
     </div>
   </div>
 </template>
 
-<style scoped>
-.profile {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-h1 {
-  margin-bottom: 1.5rem;
-}
-
-.profile-content {
-  background-color: var(--color-background-soft);
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.login-required {
-  text-align: center;
-  padding: 2rem;
-  background-color: var(--color-background-soft);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.login-link {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: var(--color-primary);
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: background-color 0.3s;
-}
-
-.login-link:hover {
-  background-color: var(--color-primary-dark, hsl(160, 100%, 30%));
-}
-</style>

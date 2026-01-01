@@ -54,42 +54,56 @@ onMounted(() => {
 </script>
 
 <template>
-  <h1>Trips</h1>
-  <h2>Add Trip</h2>
-  <form @submit.prevent="addTrip">
+  <h1 class="text-2xl font-bold mb-8">Trips</h1>
+  <h2 class="text-xl font-bold mb-3">Add Trip</h2>
+  <form
+    class="form grid grid-cols-1 md:grid-cols-2 gap-4"
+    @submit.prevent="addTrip"
+  >
     <div>
       <label for="name">Name</label>
-      <input type="text" id="name" v-model="newTrip.name" required />
+      <input
+        type="text"
+        id="name"
+        class="input input-border w-full"
+        v-model="newTrip.name"
+        required
+      />
     </div>
     <div>
       <label for="code">Code</label>
-      <input type="text" id="code" v-model="newTrip.code" required />
+      <input
+        type="text"
+        id="code"
+        class="input input-border w-full"
+        v-model="newTrip.code"
+        required
+      />
     </div>
-    <button type="submit">Add Trip</button>
+    <div class="col-span-full">
+      <button type="submit" class="btn btn-primary">Add Trip</button>
+    </div>
   </form>
-  <p v-if="createTripError" class="error">{{ createTripError }}</p>
-  <h2>Trips List</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Code</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="trip in trips" :key="trip.id">
-        <td>{{ trip.name }}</td>
-        <td>{{ trip.code }}</td>
-      </tr>
-    </tbody>
-  </table>
-  <p v-if="fetchTripsError" class="error">{{ fetchTripsError }}</p>
+  <div v-if="createTripError" class="text-red-50 my-4">{{ createTripError }}</div>
+  <h2 class="text-xl font-bold mb-3 my-8">Trips List</h2>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Code</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="trips.length === 0">
+          <td colspan="2" class="no-data">No trips found</td>
+        </tr>
+        <tr v-for="trip in trips" :key="trip.id">
+          <td>{{ trip.name }}</td>
+          <td>{{ trip.code }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div v-if="fetchTripsError" class="text-red-50 my-4">{{ fetchTripsError }}</div>
 </template>
-
-<style scoped>
-.error {
-  color: red;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-</style>
