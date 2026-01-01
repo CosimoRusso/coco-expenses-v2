@@ -217,130 +217,79 @@ const amortizationChartOptions = {
 </script>
 
 <template>
-  <div class="statistics">
-    <h1>Statistics{{ currency?.display_name }}</h1>
-    <p>The statistics are displayed in the currency: {{ currency?.display_name }}</p>
+  <div class="max-w-5xl mx-auto p-5">
+    <h1 class="text-2xl font-bold mb-6">Statistics{{ currency?.display_name }}</h1>
+    <p class="mb-4">The statistics are displayed in the currency: {{ currency?.display_name }}</p>
   </div>
-  <div class="filter">
-    <label for="dateRange">Date Range:</label>
-    <input type="date" id="startDate" name="startDate" v-model="startDateStr" />
-    <input type="date" id="endDate" name="endDate" v-model="endDateStr" />
-    <button @click="fetchStatistics">Filter</button>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div>
+      <label for="startDate">Start Date</label>
+      <input
+        type="date"
+        id="startDate"
+        name="startDate"
+        v-model="startDateStr"
+        class="input input-border w-full"
+      />
+    </div>
+    <div>
+      <label for="endDate">End Date</label>
+      <input
+        type="date"
+        id="endDate"
+        name="endDate"
+        v-model="endDateStr"
+        class="input input-border w-full"
+      />
+    </div>
+    <div class="flex items-end">
+      <button @click="fetchStatistics" class="btn btn-primary w-full">Filter</button>
+    </div>
   </div>
-  <p class="error-message">{{ errorMessage }}</p>
+  <p v-if="errorMessage" class="text-error font-bold mb-4">{{ errorMessage }}</p>
   <div>
-    <h2>Results per Category</h2>
-    <div class="statistics-content">
-      <div class="chart-container">
+    <h2 class="text-xl font-bold mb-3">Results per Category</h2>
+    <div class="flex flex-wrap gap-8 mt-6">
+      <div class="flex-1 min-w-[400px] h-[400px] bg-base-100 p-4 rounded-lg shadow">
         <Bar v-if="categoryStatistics.length > 0" :data="chartData" :options="chartOptions" />
-        <p v-else class="no-data-message">No data available for the selected date range</p>
+        <p v-else class="text-center text-gray-500 p-8">
+          No data available for the selected date range
+        </p>
       </div>
-      <div class="table-container">
-        <table id="categoryStatisticsTable">
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="stat in categoryStatistics" :key="stat.category.id">
-              <td>{{ stat.category.name }}</td>
-              <td>{{ stat.amount }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="flex-1 min-w-[300px]">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="categoryStatistics.length === 0">
+                <td colspan="2" class="no-data">No categories found</td>
+              </tr>
+              <tr v-for="stat in categoryStatistics" :key="stat.category.id">
+                <td>{{ stat.category.name }}</td>
+                <td>{{ stat.amount }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
   <div>
-    <h2>Amortization Timeline</h2>
-    <div class="chart-container-full">
+    <h2 class="text-xl font-bold mb-3 mt-8">Amortization Timeline</h2>
+    <div class="w-full h-[400px] bg-base-100 p-4 rounded-lg shadow mt-6">
       <Line
         v-if="amortizationTimeline.length > 0"
         :data="amortizationChartData"
         :options="amortizationChartOptions"
       />
-      <p v-else class="no-data-message">No data available for the selected date range</p>
+      <p v-else class="text-center text-gray-500 p-8">
+        No data available for the selected date range
+      </p>
     </div>
   </div>
 </template>
-
-<style scoped>
-.statistics {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-h1 {
-  margin-bottom: 1.5rem;
-}
-
-.error-message {
-  color: red;
-  font-weight: bold;
-}
-
-.statistics-content {
-  display: flex;
-  gap: 2rem;
-  margin-top: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.chart-container {
-  flex: 1;
-  min-width: 400px;
-  height: 400px;
-  background-color: white;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.table-container {
-  flex: 1;
-  min-width: 300px;
-}
-
-#categoryStatisticsTable {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-#categoryStatisticsTable thead {
-  background-color: #f5f5f5;
-}
-
-#categoryStatisticsTable th,
-#categoryStatisticsTable td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-#categoryStatisticsTable th {
-  font-weight: bold;
-}
-
-.no-data-message {
-  text-align: center;
-  color: #999;
-  padding: 2rem;
-}
-
-.chart-container-full {
-  width: 100%;
-  height: 400px;
-  background-color: white;
-  padding: 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 1.5rem;
-}
-</style>
