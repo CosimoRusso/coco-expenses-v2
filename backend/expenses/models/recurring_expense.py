@@ -39,9 +39,11 @@ class RecurringExpense(models.Model):
         null=False,
         default=True,
     )
-    currency = models.CharField(
+    currency = models.ForeignKey(
+        "Currency",
+        on_delete=models.PROTECT,
+        related_name="reurring_expenses",
         verbose_name="Currency",
-        max_length=10,
         null=False,
     )
 
