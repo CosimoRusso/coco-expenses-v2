@@ -31,6 +31,8 @@ const newRecurringExpense = ref<RecurringExpense>({
   description: '',
   is_expense: true,
   currency: null,
+  amortization_duration: 1,
+  amortization_unit: 'DAY',
 })
 
 onMounted(async () => {
@@ -141,11 +143,6 @@ watch(
   },
 )
 
-// Filter categories based on is_expense
-const filteredCategories = computed(() => {
-  return categories.value.filter((c) => c.for_expense === newRecurringExpense.value.is_expense)
-})
-
 // Get category name by ID
 const getCategoryName = (categoryId: number | null) => {
   if (!categoryId) return ''
@@ -213,6 +210,17 @@ const submitForm = async () => {
       formError.value = 'Start date must be before or equal to end date'
       return
     }
+    if (
+      !newRecurringExpense.value.amortization_duration ||
+      newRecurringExpense.value.amortization_duration < 1
+    ) {
+      formError.value = 'Amortization duration must be at least 1'
+      return
+    }
+    if (!newRecurringExpense.value.amortization_unit) {
+      formError.value = 'Amortization unit is required'
+      return
+    }
 
     const selectedCategory = categories.value.find(
       (c) => c.id === newRecurringExpense.value.category,
@@ -275,6 +283,8 @@ function resetForm() {
     description: '',
     is_expense: true,
     currency: null,
+    amortization_duration: 1,
+    amortization_unit: 'DAY',
   }
   editingId.value = null
   assignDefaultCurrencyAndTrip()
@@ -293,6 +303,8 @@ function editRecurringExpense(expense: RecurringExpense) {
     description: expense.description,
     is_expense: expense.is_expense,
     currency: expense.currency,
+    amortization_duration: expense.amortization_duration ?? 1,
+    amortization_unit: expense.amortization_unit ?? 'DAY',
   }
   // Scroll to form
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -410,6 +422,35 @@ async function deleteRecurringExpense(expenseId: number) {
       </div>
 
       <div>
+        <label for="amortization_duration">Amortization Duration</label>
+        <input
+          type="number"
+          id="amortization_duration"
+          class="input input-border w-full"
+          v-model.number="newRecurringExpense.amortization_duration"
+          min="1"
+          required
+        />
+        <small class="text-gray-500">Number of units for amortization period</small>
+      </div>
+
+      <div>
+        <label for="amortization_unit">Amortization Unit</label>
+        <select
+          class="select input input-border w-full"
+          id="amortization_unit"
+          v-model="newRecurringExpense.amortization_unit"
+          required
+        >
+          <option value="DAY">Day</option>
+          <option value="WEEK">Week</option>
+          <option value="MONTH">Month</option>
+          <option value="YEAR">Year</option>
+        </select>
+        <small class="text-gray-500">Unit of measure for amortization duration</small>
+      </div>
+
+      <div>
         <label for="category">Category</label>
         <select
           class="select input input-border w-full"
@@ -418,7 +459,7 @@ async function deleteRecurringExpense(expenseId: number) {
           required
         >
           <option :value="null" disabled>Select a category</option>
-          <option v-for="category in filteredCategories" :key="category.id" :value="category.id">
+          <option v-for="category in categories" :key="category.id" :value="category.id">
             {{ category.name }}
           </option>
         </select>
@@ -478,12 +519,13 @@ async function deleteRecurringExpense(expenseId: number) {
             <th>Category</th>
             <th>Trip</th>
             <th>Type</th>
+            <th>Amortization</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="recurringExpenses.length === 0">
-            <td colspan="10" class="no-data">No recurring expenses found</td>
+            <td colspan="11" class="no-data">No recurring expenses found</td>
           </tr>
           <tr v-for="expense in recurringExpenses" :key="expense.id">
             <td>{{ expense.description }}</td>
@@ -495,6 +537,11 @@ async function deleteRecurringExpense(expenseId: number) {
             <td>{{ getCategoryName(expense.category) }}</td>
             <td>{{ getTripName(expense.trip) || '-' }}</td>
             <td>{{ expense.is_expense ? 'Expense' : 'Income' }}</td>
+            <td>
+              {{ expense.amortization_duration ?? 1 }}
+              {{ expense.amortization_unit ?? 'DAY'
+              }}{{ (expense.amortization_duration ?? 1) > 1 ? 's' : '' }}
+            </td>
             <td>
               <div class="flex gap-2">
                 <button
