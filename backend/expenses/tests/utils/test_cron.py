@@ -1,0 +1,54 @@
+import unittest
+from datetime import date, datetime
+
+from expenses.utils.cron_parser.cron import Cron
+
+
+class CronTest(unittest.TestCase):
+    def test_to_string(self):
+        cron = Cron("*/5 9-17/2 * 1-3 1-5")
+        self.assertEqual("*/5 9-17/2 * 1-3 1-5", cron.to_string())
+
+    def test_to_string_output_weekday_names(self):
+        cron = Cron("*/5 9-17/2 * 1-3 1-5", {"output_weekday_names": True})
+        self.assertEqual("*/5 9-17/2 * 1-3 MON-FRI", cron.to_string())
+
+    def test_to_string_output_month_names(self):
+        cron = Cron("*/5 9-17/2 * 1-3 1-5", {"output_month_names": True})
+        self.assertEqual("*/5 9-17/2 * JAN-MAR 1-5", cron.to_string())
+
+    def test_to_string_hashes(self):
+        cron = Cron("*/5 9-17/2 * 1-3 1-5", {"output_hashes": True})
+        self.assertEqual("H/5 H(9-17)/2 H 1-3 1-5", cron.to_string())
+
+    def test_to_string_equal_min_max_range(self):
+        cron = Cron("* * * * 1-1", {"output_weekday_names": True})
+        self.assertEqual("* * * * MON", cron.to_string())
+
+    def test_datetime_is_valid_cron(self):
+        self.assertTrue(Cron("* * * * *").validate(datetime.now()))
+        self.assertTrue(Cron("10 * * * *").validate(datetime(2022, 1, 1, 9, 10)))
+        self.assertTrue(Cron("* 10 * * *").validate(datetime(2022, 1, 1, 10, 9)))
+        self.assertTrue(Cron("* * 10 * *").validate(datetime(2022, 1, 10, 1, 9)))
+        self.assertTrue(Cron("* * * 10 *").validate(datetime(2022, 10, 1, 1, 9)))
+        # 2024-03-19 is a Tuesday
+        self.assertTrue(Cron("* * * * 2").validate(datetime(2024, 3, 19, 1, 9)))
+        self.assertTrue(Cron("9 1 19 3 2").validate(datetime(2024, 3, 19, 1, 9)))
+        self.assertTrue(Cron("* 1 19 3 2").validate(datetime(2024, 3, 19, 1, 55)))
+        self.assertTrue(
+            Cron("*/5 9-17/2 * 1-3 1-5").validate(datetime(2024, 3, 19, 15, 55))
+        )
+        # 2024-03-24 is a Sunday
+        self.assertTrue(Cron("* * * * 0").validate(datetime(2024, 3, 24, 1, 9)))
+
+    def test_date_object_in_cron(self):
+        self.assertTrue((date.today()) in Cron("* * * * *"))
+        self.assertTrue((datetime(2022, 1, 1, 1, 10)) in Cron("10 * * * *"))
+        self.assertFalse((datetime(2022, 1, 1)) in Cron("10 * * * *"))
+        self.assertTrue(date(2022, 1, 1) in (Cron("* 10 * * *")))
+        # 2024-03-19 is a Tuesday
+        self.assertTrue((date(2024, 3, 19)) in Cron("* * * * 2"))
+        self.assertTrue((date(2024, 3, 19)) in Cron("9 1 19 3 2"))
+        self.assertTrue((datetime(2024, 3, 19, 1, 55)) in Cron("* 1 19 3 2"))
+        self.assertFalse((datetime(2024, 4, 19, 1, 55)) in Cron("* 1 19 3 2"))
+        self.assertTrue((datetime(2024, 3, 19, 15, 55) in Cron("*/5 9-17/2 * 1-3 1-5")))

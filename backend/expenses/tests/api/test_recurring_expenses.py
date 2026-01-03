@@ -36,6 +36,7 @@ class TestRecurringExpense(ApiTestCase):
         body = {
             "start_date": self.today,
             "end_date": None,
+            "amount": 100,
             "description": "test description",
             "schedule": "0 0 * * *",
             "category": self.category.id,
@@ -66,6 +67,7 @@ class TestRecurringExpense(ApiTestCase):
         body = {
             "start_date": self.today,
             "end_date": end_date,
+            "amount": 100,
             "description": "test description",
             "schedule": "0 0 * * *",
             "category": self.category.id,
@@ -86,6 +88,7 @@ class TestRecurringExpense(ApiTestCase):
         body = {
             "start_date": self.today,
             "end_date": new_end_date,
+            "amount": 100,
             "description": "updated description",
             "schedule": "0 0 1 * *",
             "category": self.category.id,
@@ -308,6 +311,7 @@ class TestRecurringExpense(ApiTestCase):
         body = {
             "start_date": self.today,
             "end_date": end_date,
+            "amount": 100,
             "description": "test description",
             "schedule": "0 0 * * *",
             "category": self.category.id,
@@ -324,6 +328,7 @@ class TestRecurringExpense(ApiTestCase):
         body = {
             "start_date": self.today,
             "end_date": None,
+            "amount": 100,
             "description": "test description",
             "schedule": "0 0 * * *",
             "category": income_category.id,
