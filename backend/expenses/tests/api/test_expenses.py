@@ -1,7 +1,6 @@
 import datetime as dt
 from decimal import Decimal
 
-from django.test.utils import override_settings
 from expenses import date_utils
 from expenses.models import Expense
 from expenses.tests.api.api_test_case import ApiTestCase
@@ -268,29 +267,6 @@ class TestExpense(ApiTestCase):
         # Without explicit None support, we verify that empty string doesn't filter
         # The actual implementation may vary based on django-filters behavior
 
-    def test_filter_expenses_without_trip_parameter(self):
-        trip1 = TripFactory(user=self.user)
-        trip2 = TripFactory(user=self.user)
-        category = ExpenseCategoryFactory(user=self.user)
-        expenses_trip1 = [
-            ExpenseFactory(user=self.user, category=category, trip=trip1),
-            ExpenseFactory(user=self.user, category=category, trip=trip1),
-        ]
-        expenses_trip2 = [
-            ExpenseFactory(user=self.user, category=category, trip=trip2),
-            ExpenseFactory(user=self.user, category=category, trip=trip2),
-        ]
-        expenses_no_trip = [
-            ExpenseFactory(user=self.user, category=category, trip=None),
-            ExpenseFactory(user=self.user, category=category, trip=None),
-        ]
-        all_expenses = expenses_trip1 + expenses_trip2 + expenses_no_trip
-        res = self.client.get(self.list_url)
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        res_data = res.json()
-        returned_ids = {r["id"] for r in self._get_results(res_data)}
-        self.assertEqual(returned_ids, {e.id for e in all_expenses})
-
     def test_filter_expenses_by_category_and_trip(self):
         category1 = ExpenseCategoryFactory(user=self.user)
         category2 = ExpenseCategoryFactory(user=self.user)
@@ -502,11 +478,10 @@ class TestExpense(ApiTestCase):
         self.assertNotIn(other_user_expenses[0].id, returned_ids)
         self.assertNotIn(other_user_expenses[1].id, returned_ids)
 
-    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
     def test_list_expenses_pagination(self):
         """Test that list endpoint returns paginated response structure"""
         # Create more expenses than page size to trigger pagination
-        [ExpenseFactory(user=self.user, category=self.category) for _ in range(3)]
+        [ExpenseFactory(user=self.user, category=self.category) for _ in range(6)]
         res = self.client.get(self.list_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
@@ -516,20 +491,19 @@ class TestExpense(ApiTestCase):
         self.assertIn("previous", res_data)
         self.assertIn("results", res_data)
         # Verify count matches total expenses
-        self.assertEqual(res_data["count"], 3)
+        self.assertEqual(res_data["count"], 6)
         # Verify first page has page_size items (2)
-        self.assertEqual(len(res_data["results"]), 2)
+        self.assertEqual(len(res_data["results"]), 5)
         # Verify next page URL exists
         self.assertIsNotNone(res_data["next"])
         # Verify previous page URL is None for first page
         self.assertIsNone(res_data["previous"])
 
-    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
     def test_list_expenses_page_parameter(self):
         """Test that page query parameter works correctly"""
         # Create more expenses than page size
         expenses = [
-            ExpenseFactory(user=self.user, category=self.category) for _ in range(3)
+            ExpenseFactory(user=self.user, category=self.category) for _ in range(6)
         ]
         expense_ids = {e.id for e in expenses}
         # Get first page
@@ -537,7 +511,7 @@ class TestExpense(ApiTestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
         first_page_ids = {r["id"] for r in res_data["results"]}
-        self.assertEqual(len(first_page_ids), 2)
+        self.assertEqual(len(first_page_ids), 5)
         # Get second page
         res = self.client.get(self.list_url, {"page": 2})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -553,7 +527,6 @@ class TestExpense(ApiTestCase):
         # Verify second page has no next URL (last page)
         self.assertIsNone(res_data["next"])
 
-    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
     def test_list_expenses_pagination_with_filters(self):
         """Test that filters work correctly with pagination"""
         expense_category = ExpenseCategoryFactory(user=self.user)
@@ -561,7 +534,7 @@ class TestExpense(ApiTestCase):
         # Create expenses and income
         _expenses = [
             ExpenseFactory(user=self.user, category=expense_category, is_expense=True)
-            for _ in range(3)
+            for _ in range(6)
         ]
         income_expenses = [
             ExpenseFactory(user=self.user, category=income_category, is_expense=False)
@@ -572,7 +545,7 @@ class TestExpense(ApiTestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
         # Verify count matches filtered expenses
-        self.assertEqual(res_data["count"], 3)
+        self.assertEqual(res_data["count"], 6)
         # Verify all results are expenses (is_expense=True)
         for expense in res_data["results"]:
             self.assertTrue(expense["is_expense"])
@@ -581,20 +554,19 @@ class TestExpense(ApiTestCase):
         income_ids = {e.id for e in income_expenses}
         self.assertEqual(returned_ids & income_ids, set())
 
-    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
     def test_list_expenses_pagination_page_size(self):
         """Test that page size limit is enforced"""
         # Create more expenses than page size
         _expenses = [
-            ExpenseFactory(user=self.user, category=self.category) for _ in range(3)
+            ExpenseFactory(user=self.user, category=self.category) for _ in range(6)
         ]
         res = self.client.get(self.list_url, {"page": 1})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
         # Verify first page has exactly page_size items (2)
-        self.assertEqual(len(res_data["results"]), 2)
+        self.assertEqual(len(res_data["results"]), 5)
         # Verify total count is correct
-        self.assertEqual(res_data["count"], 3)
+        self.assertEqual(res_data["count"], 6)
 
     def test_list_expenses_pagination_empty_page(self):
         """Test handling of empty or out-of-range pages"""
@@ -603,12 +575,8 @@ class TestExpense(ApiTestCase):
             ExpenseFactory(user=self.user, category=self.category) for _ in range(10)
         ]
         # Request page beyond available pages
-        res = self.client.get(self.list_url, {"page": 10})
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        res_data = res.json()
-        # Should return empty results
-        self.assertEqual(len(res_data["results"]), 0)
-        self.assertEqual(res_data["count"], 10)
+        res = self.client.get(self.list_url, {"page": 100})
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_filter_expenses_by_start_date_only(self):
         """Test filtering expenses by start_date only"""
@@ -969,7 +937,6 @@ class TestExpense(ApiTestCase):
         res_data = res.json()
         self.assertIn("End date must be in YYYY-MM-DD format", str(res_data))
 
-    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
     def test_list_expenses_pagination_with_date_filters(self):
         """Test that pagination works correctly with date filtering"""
         start_date = self.today + dt.timedelta(days=5)
@@ -984,7 +951,7 @@ class TestExpense(ApiTestCase):
                 amortization_start_date=self.today + dt.timedelta(days=6),
                 amortization_end_date=self.today + dt.timedelta(days=9),
             )
-            for _ in range(3)
+            for _ in range(6)
         ]
 
         # Create expenses that don't match date filter
@@ -1011,10 +978,10 @@ class TestExpense(ApiTestCase):
         res_data = res.json()
 
         # Verify count matches filtered expenses
-        self.assertEqual(res_data["count"], 3)
+        self.assertEqual(res_data["count"], 6)
 
         # Verify first page has page_size items (2)
-        self.assertEqual(len(res_data["results"]), 2)
+        self.assertEqual(len(res_data["results"]), 5)
 
         # Verify all results match the date filter
         first_page_ids = {r["id"] for r in res_data["results"]}

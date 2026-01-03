@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import Literal
 
@@ -151,5 +152,10 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "PAGE_SIZE": 50,
 }
+
+
+if "test" in sys.argv:
+    REST_FRAMEWORK["PAGE_SIZE"] = 5
+
 
 OPENEXCHANGERATES_APP_ID = os.getenv("OPENEXCHANGERATES_APP_ID")
