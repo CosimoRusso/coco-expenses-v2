@@ -1,5 +1,6 @@
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 
 from expenses.date_utils import is_italian_date, from_italian_date
 from expenses.models import Expense
@@ -30,6 +31,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     serializer_class = ExpenseSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = ExpenseFilterSet
+    pagination_class = PageNumberPagination
     ordering_fields = [
         "expense_date",
         "amortization_start_date",

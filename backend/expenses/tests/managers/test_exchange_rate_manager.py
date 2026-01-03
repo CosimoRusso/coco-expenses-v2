@@ -81,7 +81,9 @@ class ExchangeRateManagerTestCase(TestCase):
             Money(amount=100, currency=self.eur, day=self.today),
         ]
         DollarExchangeRateFactory(currency=self.eur, date=self.today, rate=Decimal(0.5))
-        DollarExchangeRateFactory(currency=self.gbp, date=self.today, rate=Decimal(0.25))
+        DollarExchangeRateFactory(
+            currency=self.gbp, date=self.today, rate=Decimal(0.25)
+        )
 
         expected = [
             Money(amount=50, currency=self.eur, day=self.today),

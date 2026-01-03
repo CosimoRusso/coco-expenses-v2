@@ -5,26 +5,85 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0012_dollarexchangerate'),
+        ("expenses", "0012_dollarexchangerate"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='RecurringExpense',
+            name="RecurringExpense",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('start_date', models.DateField(verbose_name='Start Date')),
-                ('end_date', models.DateField(blank=True, null=True, verbose_name='End Date')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Amount')),
-                ('schedule', models.CharField(help_text='Schedule in crontab syntax', max_length=255, verbose_name='Schedule')),
-                ('description', models.CharField(max_length=255, verbose_name='Description')),
-                ('is_expense', models.BooleanField(default=True, verbose_name='Is Expense')),
-                ('category', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='recurring_expenses', to='expenses.expensecategory')),
-                ('currency', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='reurring_expenses', to='expenses.currency', verbose_name='Currency')),
-                ('trip', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='recurring_expenses', to='expenses.trip')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='recurring_expenses', to='expenses.user')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("start_date", models.DateField(verbose_name="Start Date")),
+                (
+                    "end_date",
+                    models.DateField(blank=True, null=True, verbose_name="End Date"),
+                ),
+                (
+                    "amount",
+                    models.DecimalField(
+                        decimal_places=2, max_digits=10, verbose_name="Amount"
+                    ),
+                ),
+                (
+                    "schedule",
+                    models.CharField(
+                        help_text="Schedule in crontab syntax",
+                        max_length=255,
+                        verbose_name="Schedule",
+                    ),
+                ),
+                (
+                    "description",
+                    models.CharField(max_length=255, verbose_name="Description"),
+                ),
+                (
+                    "is_expense",
+                    models.BooleanField(default=True, verbose_name="Is Expense"),
+                ),
+                (
+                    "category",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="recurring_expenses",
+                        to="expenses.expensecategory",
+                    ),
+                ),
+                (
+                    "currency",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="reurring_expenses",
+                        to="expenses.currency",
+                        verbose_name="Currency",
+                    ),
+                ),
+                (
+                    "trip",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="recurring_expenses",
+                        to="expenses.trip",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="recurring_expenses",
+                        to="expenses.user",
+                    ),
+                ),
             ],
         ),
     ]

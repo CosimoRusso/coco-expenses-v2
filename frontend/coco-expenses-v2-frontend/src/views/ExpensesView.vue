@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import ExpensesList from '@/components/ExpensesList.vue'
 import ExpenseForm from '@/components/ExpenseForm.vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import apiFetch from '@/utils/apiFetch'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 import type { Expense } from '@/interfaces/Expense'
+import type { PaginatedResponse } from '@/interfaces/PaginatedResponse'
 
 const initialPageLoading = ref(true)
 const expenses = ref<Expense[]>([])
@@ -16,6 +17,12 @@ const trips = ref<Trip[]>([])
 const currencies = ref<Currency[]>([])
 const userSettings = ref<UserSettings | null>(null)
 const tableErrors = ref<string[]>([])
+
+// Pagination state
+const currentPage = ref(1)
+const totalCount = ref(0)
+const hasNextPage = ref(false)
+const hasPreviousPage = ref(false)
 
 // Filter state
 const filterCategory = ref<number | null>(null)
@@ -56,6 +63,8 @@ async function fetchExpenses() {
     if (filterTrip.value !== null) {
       params.push(`trip=${filterTrip.value}`)
     }
+    // Add page parameter
+    params.push(`page=${currentPage.value}`)
 
     if (params.length > 0) {
       url += `?${params.join('&')}`
@@ -63,7 +72,11 @@ async function fetchExpenses() {
 
     const response = await apiFetch(url)
     if (response.ok) {
-      expenses.value = await response.json()
+      const data: PaginatedResponse<Expense> = await response.json()
+      expenses.value = data.results
+      totalCount.value = data.count
+      hasNextPage.value = data.next !== null
+      hasPreviousPage.value = data.previous !== null
     } else {
       throw new Error('Failed to load expenses.')
     }
@@ -130,12 +143,27 @@ async function fetchTrips() {
 }
 
 function onExpenseAdded(expense: Expense) {
+  // Simply add them as first element of the current page, when the user refreshes the page everything will work just fine
   expenses.value.unshift(expense)
 }
 
 function onExpenseDeleted(expenseId: number) {
   expenses.value = expenses.value.filter((e) => e.id !== expenseId)
 }
+
+function onPageChanged(page: number) {
+  currentPage.value = page
+  fetchExpenses()
+}
+
+// Reset to page 1 when filters change and reload
+watch([filterCategory, filterTrip, filterIsExpense], () => {
+  if (currentPage.value !== 1) {
+    currentPage.value = 1
+  }
+  // Fetch expenses with updated filters and page 1
+  fetchExpenses()
+})
 </script>
 
 <template>
@@ -155,8 +183,13 @@ function onExpenseDeleted(expenseId: number) {
       :currencies="currencies"
       :userSettings="userSettings"
       :expenses="expenses"
+      :currentPage="currentPage"
+      :totalCount="totalCount"
+      :hasNextPage="hasNextPage"
+      :hasPreviousPage="hasPreviousPage"
       @expense-deleted="onExpenseDeleted"
       @reload-expenses="fetchExpenses"
+      @page-changed="onPageChanged"
       v-model:filter-category="filterCategory"
       v-model:filter-trip="filterTrip"
       v-model:filter-is-expense="filterIsExpense"

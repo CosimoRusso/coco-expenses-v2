@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.test.utils import override_settings
 from expenses import date_utils
 from expenses.models import Expense
 from expenses.tests.api.api_test_case import ApiTestCase
@@ -24,6 +25,12 @@ class TestExpense(ApiTestCase):
 
     def details_url(self, id: int) -> str:
         return reverse("expenses:expenses-detail", args=[id])
+
+    def _get_results(self, response_data):
+        """Helper method to extract results from paginated or non-paginated response"""
+        if "results" in response_data:
+            return response_data["results"]
+        return response_data
 
     def test_create_expense(self):
         body = {
@@ -84,8 +91,10 @@ class TestExpense(ApiTestCase):
         ]
         res = self.client.get(self.list_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        res = res.json()
-        self.assertEqual({r["id"] for r in res}, {e.id for e in expenses})
+        res_data = res.json()
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
+        self.assertEqual(returned_ids, {e.id for e in expenses})
 
     def test_filter_expenses_by_is_expense_true(self):
         expense_category = ExpenseCategoryFactory(user=self.user)
@@ -101,7 +110,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"is_expense": "true"})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in expenses})
         self.assertNotIn(income_expenses[0].id, returned_ids)
         self.assertNotIn(income_expenses[1].id, returned_ids)
@@ -120,7 +130,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"is_expense": "false"})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in income_expenses})
         self.assertNotIn(expenses[0].id, returned_ids)
         self.assertNotIn(expenses[1].id, returned_ids)
@@ -140,7 +151,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in all_expenses})
 
     def test_filter_expenses_respects_user_isolation(self):
@@ -162,7 +174,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"is_expense": "true"})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         # Should only return the current user's expense (is_expense=True)
         self.assertEqual(returned_ids, {user_expenses[0].id})
         self.assertNotIn(other_user_expenses[0].id, returned_ids)
@@ -183,7 +196,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"category": category1.id})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in expenses_category1})
         self.assertNotIn(expenses_category2[0].id, returned_ids)
         self.assertNotIn(expenses_category2[1].id, returned_ids)
@@ -203,7 +217,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in all_expenses})
 
     def test_filter_expenses_by_trip(self):
@@ -225,7 +240,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"trip": trip1.id})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in expenses_trip1})
         self.assertNotIn(expenses_trip2[0].id, returned_ids)
         self.assertNotIn(expenses_trip2[1].id, returned_ids)
@@ -301,7 +317,8 @@ class TestExpense(ApiTestCase):
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in matching_expenses})
         self.assertNotIn(category_only_expenses[0].id, returned_ids)
         self.assertNotIn(trip_only_expenses[0].id, returned_ids)
@@ -333,7 +350,8 @@ class TestExpense(ApiTestCase):
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in matching_expenses})
         self.assertNotIn(category_only_expenses[0].id, returned_ids)
         self.assertNotIn(is_expense_only_expenses[0].id, returned_ids)
@@ -373,7 +391,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"trip": trip1.id, "is_expense": "true"})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in matching_expenses})
         self.assertNotIn(trip_only_expenses[0].id, returned_ids)
         self.assertNotIn(is_expense_only_expenses[0].id, returned_ids)
@@ -423,7 +442,8 @@ class TestExpense(ApiTestCase):
         )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in matching_expenses})
         for expense in two_filter_expenses + one_filter_expenses:
             self.assertNotIn(expense.id, returned_ids)
@@ -443,7 +463,8 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"category": user_category.id})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         # Should only return the current user's expenses with the specified category
         self.assertEqual(returned_ids, {e.id for e in user_expenses})
         self.assertNotIn(other_user_expenses[0].id, returned_ids)
@@ -473,8 +494,117 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url, {"trip": user_trip.id})
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
         # Should only return the current user's expenses with the specified trip
         self.assertEqual(returned_ids, {e.id for e in user_expenses})
         self.assertNotIn(other_user_expenses[0].id, returned_ids)
         self.assertNotIn(other_user_expenses[1].id, returned_ids)
+
+    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
+    def test_list_expenses_pagination(self):
+        """Test that list endpoint returns paginated response structure"""
+        # Create more expenses than page size to trigger pagination
+        [ExpenseFactory(user=self.user, category=self.category) for _ in range(3)]
+        res = self.client.get(self.list_url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        # Verify paginated response structure
+        self.assertIn("count", res_data)
+        self.assertIn("next", res_data)
+        self.assertIn("previous", res_data)
+        self.assertIn("results", res_data)
+        # Verify count matches total expenses
+        self.assertEqual(res_data["count"], 3)
+        # Verify first page has page_size items (2)
+        self.assertEqual(len(res_data["results"]), 2)
+        # Verify next page URL exists
+        self.assertIsNotNone(res_data["next"])
+        # Verify previous page URL is None for first page
+        self.assertIsNone(res_data["previous"])
+
+    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
+    def test_list_expenses_page_parameter(self):
+        """Test that page query parameter works correctly"""
+        # Create more expenses than page size
+        expenses = [
+            ExpenseFactory(user=self.user, category=self.category) for _ in range(3)
+        ]
+        expense_ids = {e.id for e in expenses}
+        # Get first page
+        res = self.client.get(self.list_url, {"page": 1})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        first_page_ids = {r["id"] for r in res_data["results"]}
+        self.assertEqual(len(first_page_ids), 2)
+        # Get second page
+        res = self.client.get(self.list_url, {"page": 2})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        second_page_ids = {r["id"] for r in res_data["results"]}
+        self.assertEqual(len(second_page_ids), 1)
+        # Verify no overlap between pages
+        self.assertEqual(first_page_ids & second_page_ids, set())
+        # Verify all expenses are accounted for
+        self.assertEqual(first_page_ids | second_page_ids, expense_ids)
+        # Verify second page has previous URL
+        self.assertIsNotNone(res_data["previous"])
+        # Verify second page has no next URL (last page)
+        self.assertIsNone(res_data["next"])
+
+    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
+    def test_list_expenses_pagination_with_filters(self):
+        """Test that filters work correctly with pagination"""
+        expense_category = ExpenseCategoryFactory(user=self.user)
+        income_category = IncomeCategoryFactory(user=self.user)
+        # Create expenses and income
+        _expenses = [
+            ExpenseFactory(user=self.user, category=expense_category, is_expense=True)
+            for _ in range(3)
+        ]
+        income_expenses = [
+            ExpenseFactory(user=self.user, category=income_category, is_expense=False)
+            for _ in range(2)
+        ]
+        # Filter by is_expense=True with pagination
+        res = self.client.get(self.list_url, {"is_expense": "true", "page": 1})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        # Verify count matches filtered expenses
+        self.assertEqual(res_data["count"], 3)
+        # Verify all results are expenses (is_expense=True)
+        for expense in res_data["results"]:
+            self.assertTrue(expense["is_expense"])
+        # Verify no income expenses are in results
+        returned_ids = {r["id"] for r in res_data["results"]}
+        income_ids = {e.id for e in income_expenses}
+        self.assertEqual(returned_ids & income_ids, set())
+
+    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
+    def test_list_expenses_pagination_page_size(self):
+        """Test that page size limit is enforced"""
+        # Create more expenses than page size
+        _expenses = [
+            ExpenseFactory(user=self.user, category=self.category) for _ in range(3)
+        ]
+        res = self.client.get(self.list_url, {"page": 1})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        # Verify first page has exactly page_size items (2)
+        self.assertEqual(len(res_data["results"]), 2)
+        # Verify total count is correct
+        self.assertEqual(res_data["count"], 3)
+
+    def test_list_expenses_pagination_empty_page(self):
+        """Test handling of empty or out-of-range pages"""
+        # Create some expenses
+        _expenses = [
+            ExpenseFactory(user=self.user, category=self.category) for _ in range(10)
+        ]
+        # Request page beyond available pages
+        res = self.client.get(self.list_url, {"page": 10})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        # Should return empty results
+        self.assertEqual(len(res_data["results"]), 0)
+        self.assertEqual(res_data["count"], 10)

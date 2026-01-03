@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
 import apiFetch from '@/utils/apiFetch'
 
@@ -16,11 +16,16 @@ const props = defineProps<{
   currencies: Currency[]
   userSettings: UserSettings | null
   expenses: Expense[]
+  currentPage: number
+  totalCount: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'expense-deleted', expenseId: number): void
   (e: 'reload-expenses'): void
+  (e: 'page-changed', page: number): void
 }>()
 
 const tableErrors = ref<string[]>([])
@@ -73,6 +78,22 @@ function getCurrencyName(currencyId: number | null) {
   const currency = props.currencies.find((c) => c.id === currencyId)
   return currency?.code ?? ''
 }
+
+function goToNextPage() {
+  if (props.hasNextPage) {
+    emit('page-changed', props.currentPage + 1)
+  }
+}
+
+function goToPreviousPage() {
+  if (props.hasPreviousPage) {
+    emit('page-changed', props.currentPage - 1)
+  }
+}
+
+const pageSize = 50
+
+const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
 </script>
 
 <template>
@@ -85,7 +106,6 @@ function getCurrencyName(currencyId: number | null) {
           class="select input input-border w-full"
           id="filter-category"
           v-model="filterCategory"
-          @change="emit('reload-expenses')"
         >
           <option :value="null">All Categories</option>
           <option v-for="category in categories" :key="category.id" :value="category.id">
@@ -96,12 +116,7 @@ function getCurrencyName(currencyId: number | null) {
 
       <div>
         <label for="filter-trip">Trip</label>
-        <select
-          class="select input input-border w-full"
-          id="filter-trip"
-          v-model="filterTrip"
-          @change="emit('reload-expenses')"
-        >
+        <select class="select input input-border w-full" id="filter-trip" v-model="filterTrip">
           <option :value="null">All Trips</option>
           <option v-for="trip in trips" :key="trip.id" :value="trip.id">
             {{ trip.name }}
@@ -115,7 +130,6 @@ function getCurrencyName(currencyId: number | null) {
           class="select input input-border w-full"
           id="filter-is-expense"
           v-model="filterIsExpense"
-          @change="emit('reload-expenses')"
         >
           <option :value="null">All</option>
           <option :value="true">Expenses</option>
@@ -171,6 +185,20 @@ function getCurrencyName(currencyId: number | null) {
           </tr>
         </tbody>
       </table>
+    </div>
+    <!-- Pagination Controls -->
+    <div v-if="totalCount > 0" class="flex items-center justify-between mt-4">
+      <div class="text-sm text-gray-600">
+        Showing {{ (currentPage - 1) * pageSize + 1 }} to
+        {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} expenses
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-sm" :disabled="!hasPreviousPage" @click="goToPreviousPage">
+          Previous
+        </button>
+        <span class="text-sm"> Page {{ currentPage }} of {{ totalPages }} </span>
+        <button class="btn btn-sm" :disabled="!hasNextPage" @click="goToNextPage">Next</button>
+      </div>
     </div>
   </div>
 </template>

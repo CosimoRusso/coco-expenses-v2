@@ -5,15 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0013_recurringexpense'),
+        ("expenses", "0013_recurringexpense"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='expense',
-            name='recurring_expense',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, related_name='expenses', to='expenses.recurringexpense'),
+            model_name="expense",
+            name="recurring_expense",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="expenses",
+                to="expenses.recurringexpense",
+            ),
         ),
     ]

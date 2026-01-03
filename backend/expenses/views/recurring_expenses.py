@@ -35,4 +35,3 @@ class RecurringExpenseViewSet(viewsets.ModelViewSet):
             .filter(user=user)
             .order_by("-start_date")
         )
-
