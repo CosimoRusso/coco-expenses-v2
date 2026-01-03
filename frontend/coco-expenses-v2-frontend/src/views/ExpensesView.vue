@@ -28,6 +28,8 @@ const hasPreviousPage = ref(false)
 const filterCategory = ref<number | null>(null)
 const filterTrip = ref<number | null>(null)
 const filterIsExpense = ref<boolean | null>(null)
+const filterStartDate = ref<string | null>(null)
+const filterEndDate = ref<string | null>(null)
 
 onMounted(async () => {
   initialPageLoading.value = true
@@ -62,6 +64,12 @@ async function fetchExpenses() {
     }
     if (filterTrip.value !== null) {
       params.push(`trip=${filterTrip.value}`)
+    }
+    if (filterStartDate.value !== null && filterStartDate.value !== '') {
+      params.push(`start_date=${filterStartDate.value}`)
+    }
+    if (filterEndDate.value !== null && filterEndDate.value !== '') {
+      params.push(`end_date=${filterEndDate.value}`)
     }
     // Add page parameter
     params.push(`page=${currentPage.value}`)
@@ -157,7 +165,7 @@ function onPageChanged(page: number) {
 }
 
 // Reset to page 1 when filters change and reload
-watch([filterCategory, filterTrip, filterIsExpense], () => {
+watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDate], () => {
   if (currentPage.value !== 1) {
     currentPage.value = 1
   }
@@ -193,6 +201,8 @@ watch([filterCategory, filterTrip, filterIsExpense], () => {
       v-model:filter-category="filterCategory"
       v-model:filter-trip="filterTrip"
       v-model:filter-is-expense="filterIsExpense"
+      v-model:filter-start-date="filterStartDate"
+      v-model:filter-end-date="filterEndDate"
     />
   </div>
   <div v-else-if="tableErrors.length > 0">

@@ -34,6 +34,8 @@ const tableErrors = ref<string[]>([])
 const filterCategory = defineModel<number | null>('filterCategory', { required: false })
 const filterTrip = defineModel<number | null>('filterTrip', { required: false })
 const filterIsExpense = defineModel<boolean | null>('filterIsExpense', { required: false })
+const filterStartDate = defineModel<string | null>('filterStartDate', { required: false })
+const filterEndDate = defineModel<string | null>('filterEndDate', { required: false })
 
 // Delete expense
 const deleteExpense = async (expenseId: number) => {
@@ -99,7 +101,7 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
 <template>
   <div class="expenses-table">
     <!-- Filter Bar -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
       <div>
         <label for="filter-category">Category</label>
         <select
@@ -135,6 +137,26 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
           <option :value="true">Expenses</option>
           <option :value="false">Income</option>
         </select>
+      </div>
+
+      <div>
+        <label for="filter-start-date">Start Date</label>
+        <input
+          type="date"
+          id="filter-start-date"
+          class="input input-bordered w-full"
+          v-model="filterStartDate"
+        />
+      </div>
+
+      <div>
+        <label for="filter-end-date">End Date</label>
+        <input
+          type="date"
+          id="filter-end-date"
+          class="input input-bordered w-full"
+          v-model="filterEndDate"
+        />
       </div>
     </div>
 

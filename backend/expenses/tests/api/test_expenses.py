@@ -1,3 +1,4 @@
+import datetime as dt
 from decimal import Decimal
 
 from django.test.utils import override_settings
@@ -287,7 +288,7 @@ class TestExpense(ApiTestCase):
         res = self.client.get(self.list_url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         res_data = res.json()
-        returned_ids = {r["id"] for r in res_data}
+        returned_ids = {r["id"] for r in self._get_results(res_data)}
         self.assertEqual(returned_ids, {e.id for e in all_expenses})
 
     def test_filter_expenses_by_category_and_trip(self):
@@ -608,3 +609,440 @@ class TestExpense(ApiTestCase):
         # Should return empty results
         self.assertEqual(len(res_data["results"]), 0)
         self.assertEqual(res_data["count"], 10)
+
+    def test_filter_expenses_by_start_date_only(self):
+        """Test filtering expenses by start_date only"""
+        start_date = self.today + dt.timedelta(days=5)
+        category = ExpenseCategoryFactory(user=self.user)
+
+        # Expense with amortization period that starts before start_date and ends after start_date (should match)
+        matching_expense1 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        # Expense with amortization period that starts after start_date (should match)
+        matching_expense2 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        # Expense with amortization period that ends before start_date (should not match)
+        non_matching_expense = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=3),
+        )
+
+        res = self.client.get(self.list_url, {"start_date": start_date.isoformat()})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
+
+        self.assertIn(matching_expense1.id, returned_ids)
+        self.assertIn(matching_expense2.id, returned_ids)
+        self.assertNotIn(non_matching_expense.id, returned_ids)
+
+    def test_filter_expenses_by_end_date_only(self):
+        """Test filtering expenses by end_date only"""
+        end_date = self.today + dt.timedelta(days=5)
+        category = ExpenseCategoryFactory(user=self.user)
+
+        # Expense with amortization_start_date <= end_date (should match)
+        matching_expense1 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        matching_expense2 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today + dt.timedelta(days=5),
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        # Expense with amortization_start_date > end_date (should not match)
+        non_matching_expense = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        res = self.client.get(self.list_url, {"end_date": end_date.isoformat()})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
+
+        self.assertIn(matching_expense1.id, returned_ids)
+        self.assertIn(matching_expense2.id, returned_ids)
+        self.assertNotIn(non_matching_expense.id, returned_ids)
+
+    def test_filter_expenses_by_start_date_and_end_date(self):
+        """Test filtering expenses by both start_date and end_date"""
+        start_date = self.today + dt.timedelta(days=5)
+        end_date = self.today + dt.timedelta(days=10)
+        category = ExpenseCategoryFactory(user=self.user)
+
+        # Expense that overlaps with the date range (starts before, ends after) (should match)
+        matching_expense1 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=15),
+        )
+
+        # Expense that starts before range and ends within range (should match)
+        matching_expense2 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=8),
+        )
+
+        # Expense that starts within range and ends after range (should match)
+        matching_expense3 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today + dt.timedelta(days=7),
+            amortization_end_date=self.today + dt.timedelta(days=15),
+        )
+
+        # Expense that starts and ends within range (should match)
+        matching_expense4 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=9),
+        )
+
+        # Expense that starts before range and ends before range (should not match)
+        non_matching_expense1 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=3),
+        )
+
+        # Expense that starts after range and ends after range (should not match)
+        non_matching_expense2 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today + dt.timedelta(days=11),
+            amortization_end_date=self.today + dt.timedelta(days=15),
+        )
+
+        res = self.client.get(
+            self.list_url,
+            {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+            },
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
+
+        self.assertIn(matching_expense1.id, returned_ids)
+        self.assertIn(matching_expense2.id, returned_ids)
+        self.assertIn(matching_expense3.id, returned_ids)
+        self.assertIn(matching_expense4.id, returned_ids)
+        self.assertNotIn(non_matching_expense1.id, returned_ids)
+        self.assertNotIn(non_matching_expense2.id, returned_ids)
+
+    def test_filter_expenses_by_date_range_exact_boundaries(self):
+        """Test filtering with expenses exactly on start_date and end_date boundaries"""
+        start_date = self.today + dt.timedelta(days=5)
+        end_date = self.today + dt.timedelta(days=10)
+        category = ExpenseCategoryFactory(user=self.user)
+
+        # Expense that starts exactly on start_date (should match)
+        matching_expense1 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=start_date,
+            amortization_end_date=self.today + dt.timedelta(days=15),
+        )
+
+        # Expense that ends exactly on end_date (should match)
+        matching_expense2 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=end_date,
+        )
+
+        # Expense that starts exactly on end_date (should match)
+        matching_expense3 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=end_date,
+            amortization_end_date=self.today + dt.timedelta(days=15),
+        )
+
+        res = self.client.get(
+            self.list_url,
+            {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+            },
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
+
+        self.assertIn(matching_expense1.id, returned_ids)
+        self.assertIn(matching_expense2.id, returned_ids)
+        self.assertIn(matching_expense3.id, returned_ids)
+
+    def test_filter_expenses_by_date_range_single_day(self):
+        """Test filtering with start_date == end_date (single day)"""
+        single_date = self.today + dt.timedelta(days=5)
+        category = ExpenseCategoryFactory(user=self.user)
+
+        # Expense that overlaps with that single day (starts before, ends after) (should match)
+        matching_expense1 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        # Expense that starts exactly on that day (should match)
+        matching_expense2 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=single_date,
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        # Expense that ends exactly on that day (should match)
+        matching_expense3 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=single_date,
+        )
+
+        # Expense that starts and ends on that day (should match)
+        matching_expense4 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=single_date,
+            amortization_end_date=single_date,
+        )
+
+        # Expense that starts after that day (should not match)
+        non_matching_expense1 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=10),
+        )
+
+        # Expense that ends before that day (should not match)
+        non_matching_expense2 = ExpenseFactory(
+            user=self.user,
+            category=category,
+            amortization_start_date=self.today,
+            amortization_end_date=self.today + dt.timedelta(days=4),
+        )
+
+        res = self.client.get(
+            self.list_url,
+            {
+                "start_date": single_date.isoformat(),
+                "end_date": single_date.isoformat(),
+            },
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
+
+        self.assertIn(matching_expense1.id, returned_ids)
+        self.assertIn(matching_expense2.id, returned_ids)
+        self.assertIn(matching_expense3.id, returned_ids)
+        self.assertIn(matching_expense4.id, returned_ids)
+        self.assertNotIn(non_matching_expense1.id, returned_ids)
+        self.assertNotIn(non_matching_expense2.id, returned_ids)
+
+    def test_filter_all_filters(self):
+        """Test combining date filters with category, trip, and is_expense filters"""
+        start_date = self.today + dt.timedelta(days=5)
+        end_date = self.today + dt.timedelta(days=10)
+        category1 = ExpenseCategoryFactory(user=self.user)
+        category2 = ExpenseCategoryFactory(user=self.user)
+        trip1 = TripFactory(user=self.user)
+        trip2 = TripFactory(user=self.user)
+
+        # Expense matching all filters (category1, trip1, is_expense=True, date range)
+        matching_expense = ExpenseFactory(
+            user=self.user,
+            category=category1,
+            trip=trip1,
+            is_expense=True,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=9),
+        )
+
+        # Expenses matching only some filters
+        wrong_category = ExpenseFactory(
+            user=self.user,
+            category=category2,
+            trip=trip1,
+            is_expense=True,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=9),
+        )
+
+        wrong_trip = ExpenseFactory(
+            user=self.user,
+            category=category1,
+            trip=trip2,
+            is_expense=True,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=9),
+        )
+
+        wrong_type = ExpenseFactory(
+            user=self.user,
+            category=category1,
+            trip=trip1,
+            is_expense=False,
+            amortization_start_date=self.today + dt.timedelta(days=6),
+            amortization_end_date=self.today + dt.timedelta(days=9),
+        )
+
+        wrong_date = ExpenseFactory(
+            user=self.user,
+            category=category1,
+            trip=trip1,
+            is_expense=True,
+            amortization_start_date=self.today + dt.timedelta(days=11),
+            amortization_end_date=self.today + dt.timedelta(days=15),
+        )
+
+        res = self.client.get(
+            self.list_url,
+            {
+                "category": category1.id,
+                "trip": trip1.id,
+                "is_expense": "true",
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+            },
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        results = self._get_results(res_data)
+        returned_ids = {r["id"] for r in results}
+
+        self.assertIn(matching_expense.id, returned_ids)
+        self.assertNotIn(wrong_category.id, returned_ids)
+        self.assertNotIn(wrong_trip.id, returned_ids)
+        self.assertNotIn(wrong_type.id, returned_ids)
+        self.assertNotIn(wrong_date.id, returned_ids)
+
+    def test_filter_expenses_with_invalid_start_date_format(self):
+        """Test that invalid start_date format raises ValidationError"""
+        res = self.client.get(self.list_url, {"start_date": "invalid-date"})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        res_data = res.json()
+        self.assertIn("Start date must be in YYYY-MM-DD format", str(res_data))
+
+    def test_filter_expenses_with_invalid_end_date_format(self):
+        """Test that invalid end_date format raises ValidationError"""
+        res = self.client.get(self.list_url, {"end_date": "invalid-date"})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        res_data = res.json()
+        self.assertIn("End date must be in YYYY-MM-DD format", str(res_data))
+
+    @override_settings(REST_FRAMEWORK={"PAGE_SIZE": 2})
+    def test_list_expenses_pagination_with_date_filters(self):
+        """Test that pagination works correctly with date filtering"""
+        start_date = self.today + dt.timedelta(days=5)
+        end_date = self.today + dt.timedelta(days=10)
+        category = ExpenseCategoryFactory(user=self.user)
+
+        # Create multiple expenses matching date filter
+        matching_expenses = [
+            ExpenseFactory(
+                user=self.user,
+                category=category,
+                amortization_start_date=self.today + dt.timedelta(days=6),
+                amortization_end_date=self.today + dt.timedelta(days=9),
+            )
+            for _ in range(3)
+        ]
+
+        # Create expenses that don't match date filter
+        non_matching_expenses = [
+            ExpenseFactory(
+                user=self.user,
+                category=category,
+                amortization_start_date=self.today + dt.timedelta(days=11),
+                amortization_end_date=self.today + dt.timedelta(days=15),
+            )
+            for _ in range(2)
+        ]
+
+        # Filter by date range with pagination
+        res = self.client.get(
+            self.list_url,
+            {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "page": 1,
+            },
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+
+        # Verify count matches filtered expenses
+        self.assertEqual(res_data["count"], 3)
+
+        # Verify first page has page_size items (2)
+        self.assertEqual(len(res_data["results"]), 2)
+
+        # Verify all results match the date filter
+        first_page_ids = {r["id"] for r in res_data["results"]}
+        matching_ids = {e.id for e in matching_expenses}
+        self.assertTrue(first_page_ids.issubset(matching_ids))
+
+        # Verify no non-matching expenses are in results
+        non_matching_ids = {e.id for e in non_matching_expenses}
+        self.assertEqual(first_page_ids & non_matching_ids, set())
+
+        # Get second page
+        res = self.client.get(
+            self.list_url,
+            {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "page": 2,
+            },
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        res_data = res.json()
+        second_page_ids = {r["id"] for r in res_data["results"]}
+
+        # Verify second page has remaining item
+        self.assertEqual(len(second_page_ids), 1)
+
+        # Verify no overlap between pages
+        self.assertEqual(first_page_ids & second_page_ids, set())
+
+        # Verify all matching expenses are accounted for
+        self.assertEqual(first_page_ids | second_page_ids, matching_ids)

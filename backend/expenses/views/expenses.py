@@ -1,25 +1,72 @@
-from rest_framework import permissions, viewsets
-from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
-
-from expenses.date_utils import is_italian_date, from_italian_date
-from expenses.models import Expense
-from expenses.serializers.expenses import ExpenseSerializer
 import csv
-from django.db import transaction
-from expenses.models import ExpenseCategory, Trip
-from rest_framework.response import Response
-from rest_framework import status
+import datetime as dt
 from io import TextIOWrapper
-from rest_framework.filters import OrderingFilter
+
 import django_filters
+from django.db import transaction
+from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
+from expenses.date_utils import from_italian_date, is_italian_date
+from expenses.models import Expense, ExpenseCategory, Trip
+from expenses.serializers.expenses import ExpenseSerializer
+from rest_framework import permissions, serializers, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
 
 
 class ExpenseFilterSet(django_filters.FilterSet):
     is_expense = django_filters.BooleanFilter()
     category = django_filters.NumberFilter()
     trip = django_filters.NumberFilter()
+
+    def filter_queryset(self, queryset):
+        start_date = self.request.query_params.get("start_date")
+        end_date = self.request.query_params.get("end_date")
+        if start_date:
+            try:
+                start_date = dt.date.fromisoformat(start_date)
+            except ValueError:
+                raise serializers.ValidationError(
+                    "Start date must be in YYYY-MM-DD format"
+                )
+        if end_date:
+            try:
+                end_date = dt.date.fromisoformat(end_date)
+            except ValueError:
+                raise serializers.ValidationError(
+                    "End date must be in YYYY-MM-DD format"
+                )
+        if start_date or end_date:
+            queryset = self.filter_by_date_range(queryset, start_date, end_date)
+
+        queryset = super().filter_queryset(queryset)
+        return queryset
+
+    def filter_by_date_range(self, queryset, start_date, end_date):
+        if start_date and end_date:
+            return queryset.filter(
+                (
+                    Q(amortization_start_date__lte=start_date)
+                    & Q(amortization_end_date__gte=start_date)
+                )
+                | (
+                    Q(amortization_start_date__gte=start_date)
+                    & Q(amortization_start_date__lte=end_date)
+                )
+            )
+        elif start_date:
+            return queryset.filter(
+                (
+                    Q(amortization_start_date__lte=start_date)
+                    & Q(amortization_end_date__gte=start_date)
+                )
+                | (Q(amortization_start_date__gte=start_date))
+            )
+        elif end_date:
+            return queryset.filter(amortization_start_date__lte=end_date)
+        return queryset
 
     class Meta:
         model = Expense
