@@ -1,5 +1,7 @@
+import calendar
 import datetime as dt
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Exists, OuterRef, Q, Subquery
 from expenses import date_utils
@@ -85,6 +87,70 @@ class RecurringExpense(models.Model):
         verbose_name="Currency",
         null=False,
     )
+    amortization_duration = models.IntegerField(
+        verbose_name="Amortization Duration",
+        null=False,
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text="Duration for amortization calculation",
+    )
+    amortization_unit = models.CharField(
+        verbose_name="Amortization Unit",
+        max_length=10,
+        null=False,
+        default="DAY",
+        choices=[
+            ("DAY", "Day"),
+            ("WEEK", "Week"),
+            ("MONTH", "Month"),
+            ("YEAR", "Year"),
+        ],
+        help_text="Unit of measure for amortization duration",
+    )
+
+    def calculate_amortization_dates(
+        self, start_date: dt.date
+    ) -> tuple[dt.date, dt.date]:
+        """
+        Calculate amortization start and end dates based on the recurring expense settings.
+
+        Args:
+            start_date: The date to start amortization from (typically today)
+
+        Returns:
+            Tuple of (amortization_start_date, amortization_end_date)
+        """
+        amortization_start_date = start_date
+
+        if self.amortization_unit == "DAY":
+            amortization_end_date = start_date + dt.timedelta(
+                days=self.amortization_duration - 1
+            )
+        elif self.amortization_unit == "WEEK":
+            amortization_end_date = (
+                start_date
+                + dt.timedelta(weeks=self.amortization_duration)
+                - dt.timedelta(days=1)
+            )
+        elif self.amortization_unit == "MONTH":
+            # Calculate end of month: add (duration - 1) months, then get end of that month
+            # For duration=1, this means end of current month
+            month = start_date.month - 1 + (self.amortization_duration - 1)
+            year = start_date.year + month // 12
+            month = month % 12 + 1
+            # Get the last day of the target month
+            last_day = calendar.monthrange(year, month)[1]
+            amortization_end_date = dt.date(year, month, last_day)
+        elif self.amortization_unit == "YEAR":
+            # Calculate end of year: add (duration - 1) years, then get end of that year
+            # For duration=1, this means end of current year
+            year = start_date.year + (self.amortization_duration - 1)
+            amortization_end_date = dt.date(year, 12, 31)
+        else:
+            # Default to same day if unit is invalid
+            amortization_end_date = start_date
+
+        return amortization_start_date, amortization_end_date
 
     def __str__(self):
         return (

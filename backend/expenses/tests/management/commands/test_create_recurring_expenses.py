@@ -244,3 +244,155 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
         # Verify no expenses were created
         self.assertEqual(Expense.objects.count(), initial_count)
+
+    def test_amortization_dates_with_default_values(self):
+        """Test that default amortization (1 DAY) sets both dates to today"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user,
+            category=self.category,
+            currency=self.currency,
+            start_date=self.today - dt.timedelta(days=5),
+            end_date=None,
+            schedule="0 0 * * *",
+            amortization_duration=1,
+            amortization_unit="DAY",
+        )
+
+        call_command("create_recurring_expenses")
+
+        created_expense = Expense.objects.get()
+        self.assertEqual(created_expense.amortization_start_date, self.today)
+        self.assertEqual(created_expense.amortization_end_date, self.today)
+
+    def test_amortization_dates_with_day_unit(self):
+        """Test amortization with DAY unit"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user,
+            category=self.category,
+            currency=self.currency,
+            start_date=self.today - dt.timedelta(days=5),
+            end_date=None,
+            schedule="0 0 * * *",
+            amortization_duration=5,
+            amortization_unit="DAY",
+        )
+
+        call_command("create_recurring_expenses")
+
+        created_expense = Expense.objects.get()
+        self.assertEqual(created_expense.amortization_start_date, self.today)
+        expected_end_date = self.today + dt.timedelta(days=4)  # 5 days: today + 4 days
+        self.assertEqual(created_expense.amortization_end_date, expected_end_date)
+
+    def test_amortization_dates_with_week_unit(self):
+        """Test amortization with WEEK unit"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user,
+            category=self.category,
+            currency=self.currency,
+            start_date=self.today - dt.timedelta(days=5),
+            end_date=None,
+            schedule="0 0 * * *",
+            amortization_duration=2,
+            amortization_unit="WEEK",
+        )
+
+        call_command("create_recurring_expenses")
+
+        created_expense = Expense.objects.get()
+        self.assertEqual(created_expense.amortization_start_date, self.today)
+        expected_end_date = self.today + dt.timedelta(weeks=2) - dt.timedelta(days=1)
+        self.assertEqual(created_expense.amortization_end_date, expected_end_date)
+
+    def test_amortization_dates_with_month_unit(self):
+        """Test amortization with MONTH unit - should set end date to end of month"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user,
+            category=self.category,
+            currency=self.currency,
+            start_date=self.today - dt.timedelta(days=5),
+            end_date=None,
+            schedule="0 0 * * *",
+            amortization_duration=1,
+            amortization_unit="MONTH",
+        )
+
+        call_command("create_recurring_expenses")
+
+        created_expense = Expense.objects.get()
+        self.assertEqual(created_expense.amortization_start_date, self.today)
+        # End date should be the last day of the current month
+        import calendar
+
+        last_day = calendar.monthrange(self.today.year, self.today.month)[1]
+        expected_end_date = dt.date(self.today.year, self.today.month, last_day)
+        self.assertEqual(created_expense.amortization_end_date, expected_end_date)
+
+    def test_amortization_dates_with_multiple_months(self):
+        """Test amortization with multiple MONTH units"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user,
+            category=self.category,
+            currency=self.currency,
+            start_date=self.today - dt.timedelta(days=5),
+            end_date=None,
+            schedule="0 0 * * *",
+            amortization_duration=3,
+            amortization_unit="MONTH",
+        )
+
+        call_command("create_recurring_expenses")
+
+        created_expense = Expense.objects.get()
+        self.assertEqual(created_expense.amortization_start_date, self.today)
+        # End date should be the last day of the month 2 months from now (duration - 1)
+        import calendar
+
+        month = self.today.month - 1 + (3 - 1)
+        year = self.today.year + month // 12
+        month = month % 12 + 1
+        last_day = calendar.monthrange(year, month)[1]
+        expected_end_date = dt.date(year, month, last_day)
+        self.assertEqual(created_expense.amortization_end_date, expected_end_date)
+
+    def test_amortization_dates_with_year_unit(self):
+        """Test amortization with YEAR unit"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user,
+            category=self.category,
+            currency=self.currency,
+            start_date=self.today - dt.timedelta(days=5),
+            end_date=None,
+            schedule="0 0 * * *",
+            amortization_duration=1,
+            amortization_unit="YEAR",
+        )
+
+        call_command("create_recurring_expenses")
+
+        created_expense = Expense.objects.get()
+        self.assertEqual(created_expense.amortization_start_date, self.today)
+        # End date should be December 31st of the current year (duration - 1 = 0 years added)
+        expected_end_date = dt.date(self.today.year, 12, 31)
+        self.assertEqual(created_expense.amortization_end_date, expected_end_date)
+
+    def test_amortization_dates_with_multiple_years(self):
+        """Test amortization with multiple YEAR units"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user,
+            category=self.category,
+            currency=self.currency,
+            start_date=self.today - dt.timedelta(days=5),
+            end_date=None,
+            schedule="0 0 * * *",
+            amortization_duration=2,
+            amortization_unit="YEAR",
+        )
+
+        call_command("create_recurring_expenses")
+
+        created_expense = Expense.objects.get()
+        self.assertEqual(created_expense.amortization_start_date, self.today)
+        # End date should be December 31st of next year (duration - 1 = 1 year added)
+        expected_end_date = dt.date(self.today.year + 1, 12, 31)
+        self.assertEqual(created_expense.amortization_end_date, expected_end_date)

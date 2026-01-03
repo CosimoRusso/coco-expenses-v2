@@ -8,6 +8,14 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
     start_date = serializers.DateField(required=True, allow_null=False)
     description = serializers.CharField(required=True, allow_null=False)
     schedule = serializers.CharField(required=True, allow_null=False)
+    amortization_duration = serializers.IntegerField(
+        required=False, allow_null=False, min_value=1
+    )
+    amortization_unit = serializers.ChoiceField(
+        required=False,
+        allow_null=False,
+        choices=["DAY", "WEEK", "MONTH", "YEAR"],
+    )
 
     def validate_start_date(self, value):
         if value < dt.date(2000, 1, 1):
@@ -75,5 +83,7 @@ class RecurringExpenseSerializer(serializers.ModelSerializer):
             "description",
             "is_expense",
             "currency",
+            "amortization_duration",
+            "amortization_unit",
         ]
         read_only_fields = ["id"]

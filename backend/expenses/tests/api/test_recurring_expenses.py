@@ -355,3 +355,105 @@ class TestRecurringExpense(ApiTestCase):
         res = self.client.post(self.list_url, body, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("End date must be after 1 gen 2000", str(res.data))
+
+    def test_create_recurring_expense_with_amortization_fields(self):
+        """Test creating recurring expense with amortization fields"""
+        body = {
+            "start_date": self.today,
+            "end_date": None,
+            "amount": 100,
+            "description": "test description",
+            "schedule": "0 0 * * *",
+            "category": self.category.id,
+            "trip": None,
+            "is_expense": True,
+            "currency": self.currency.id,
+            "amortization_duration": 1,
+            "amortization_unit": "MONTH",
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        new_recurring_expense = RecurringExpense.objects.get()
+        self.assertEqual(new_recurring_expense.amortization_duration, 1)
+        self.assertEqual(new_recurring_expense.amortization_unit, "MONTH")
+
+    def test_create_recurring_expense_with_default_amortization_fields(self):
+        """Test creating recurring expense without amortization fields uses defaults"""
+        body = {
+            "start_date": self.today,
+            "end_date": None,
+            "amount": 100,
+            "description": "test description",
+            "schedule": "0 0 * * *",
+            "category": self.category.id,
+            "trip": None,
+            "is_expense": True,
+            "currency": self.currency.id,
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        new_recurring_expense = RecurringExpense.objects.get()
+        self.assertEqual(new_recurring_expense.amortization_duration, 1)
+        self.assertEqual(new_recurring_expense.amortization_unit, "DAY")
+
+    def test_update_recurring_expense_with_amortization_fields(self):
+        """Test updating recurring expense with amortization fields"""
+        recurring_expense = RecurringExpenseFactory(
+            user=self.user, category=self.category, currency=self.currency
+        )
+        body = {
+            "start_date": self.today,
+            "end_date": None,
+            "amount": 100,
+            "description": "updated description",
+            "schedule": "0 0 1 * *",
+            "category": self.category.id,
+            "trip": None,
+            "is_expense": True,
+            "currency": self.currency.id,
+            "amortization_duration": 2,
+            "amortization_unit": "WEEK",
+        }
+        res = self.client.put(
+            self.details_url(recurring_expense.id), body, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        recurring_expense.refresh_from_db()
+        self.assertEqual(recurring_expense.amortization_duration, 2)
+        self.assertEqual(recurring_expense.amortization_unit, "WEEK")
+
+    def test_validation_amortization_duration_min_value(self):
+        """Test that amortization_duration must be at least 1"""
+        body = {
+            "start_date": self.today,
+            "end_date": None,
+            "amount": 100,
+            "description": "test description",
+            "schedule": "0 0 * * *",
+            "category": self.category.id,
+            "trip": None,
+            "is_expense": True,
+            "currency": self.currency.id,
+            "amortization_duration": 0,
+            "amortization_unit": "DAY",
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_validation_amortization_unit_choices(self):
+        """Test that amortization_unit must be one of the valid choices"""
+        body = {
+            "start_date": self.today,
+            "end_date": None,
+            "amount": 100,
+            "description": "test description",
+            "schedule": "0 0 * * *",
+            "category": self.category.id,
+            "trip": None,
+            "is_expense": True,
+            "currency": self.currency.id,
+            "amortization_duration": 1,
+            "amortization_unit": "INVALID",
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

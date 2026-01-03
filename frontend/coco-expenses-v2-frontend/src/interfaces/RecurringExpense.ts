@@ -9,5 +9,6 @@ export interface RecurringExpense {
   description: string
   is_expense: boolean
   currency: number | null
+  amortization_duration?: number
+  amortization_unit?: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
 }
-

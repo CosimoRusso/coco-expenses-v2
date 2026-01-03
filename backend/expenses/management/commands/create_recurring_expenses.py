@@ -41,13 +41,16 @@ def fires_today(schedule: str) -> bool:
 
 def create_expense(recurring_expense: RecurringExpense):
     today = date_utils.today()
+    amortization_start_date, amortization_end_date = (
+        recurring_expense.calculate_amortization_dates(today)
+    )
     expense = Expense(
         user=recurring_expense.user,
         expense_date=today,
         description=recurring_expense.description,
         amount=recurring_expense.amount,
-        amortization_start_date=today,
-        amortization_end_date=today,
+        amortization_start_date=amortization_start_date,
+        amortization_end_date=amortization_end_date,
         category=recurring_expense.category,
         trip=recurring_expense.trip,
         is_expense=recurring_expense.is_expense,
