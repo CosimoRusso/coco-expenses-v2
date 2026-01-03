@@ -29,6 +29,9 @@ class Expense(models.Model):
     currency = models.ForeignKey(
         "Currency", on_delete=models.PROTECT, related_name="expenses", null=True
     )
+    recurring_expense = models.ForeignKey(
+        "RecurringExpense", on_delete=models.PROTECT, related_name="expenses", null=True
+    )
 
     def __str__(self):
         return (

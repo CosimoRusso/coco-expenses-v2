@@ -15,6 +15,7 @@ interface NavElement {
 const navElements = computed<NavElement[]>(() => {
   return [
     { text: 'Expenses', link: '/expenses' },
+    { text: 'Recurring Expenses', link: '/recurring-expenses' },
     { text: 'Categories', link: '/categories' },
     { text: 'Trips', link: '/trips' },
     { text: 'Statistics', link: '/statistics' },
