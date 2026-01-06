@@ -14,6 +14,8 @@ Next planned features, in order of development
 
 - fix database backup
 - fix import and export from csv
+- Do not download currencies on the fly, use days before
+- Add all filters to statistics
 
 ## Project Setup
 
