@@ -1,5 +1,7 @@
 from django.urls import reverse
+from rest_framework import status
 
+from expenses.models import Settings
 from expenses.tests.api.api_test_case import ApiTestCase
 from expenses.tests.factories.trip_factories import TripFactory
 from expenses.tests.factories.user_factories import UserFactory
@@ -76,3 +78,65 @@ class TestTrips(ApiTestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.data), 1)
         self.assertEqual(res.data[0]["id"], inactive_trip.id)
+
+    def test_create_trip_when_limit_not_set(self):
+        """Test that creation works when max_trips is not set"""
+        Settings.objects.all().delete()  # Ensure no settings exist
+        body = {
+            "code": "test_trip",
+            "name": "Test Trip",
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, 201)
+
+    def test_create_trip_when_limit_not_reached(self):
+        """Test that creation works when limit is not reached"""
+        Settings.objects.all().delete()
+        Settings.objects.create(max_categories=None, max_trips=2)
+        
+        # Create one trip (limit is 2)
+        TripFactory(user=self.user, code="trip1", name="Trip 1")
+        
+        body = {
+            "code": "trip2",
+            "name": "Trip 2",
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, 201)
+
+    def test_create_trip_when_limit_reached(self):
+        """Test that creation fails when limit is reached"""
+        Settings.objects.all().delete()
+        Settings.objects.create(max_categories=None, max_trips=2)
+        
+        # Create two trips (reaching the limit of 2)
+        TripFactory(user=self.user, code="trip1", name="Trip 1")
+        TripFactory(user=self.user, code="trip2", name="Trip 2")
+        
+        body = {
+            "code": "trip3",
+            "name": "Trip 3",
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Maximum number of trips (2) has been reached", str(res.data))
+
+    def test_create_trip_limit_per_user(self):
+        """Test that limits are per user, not global"""
+        Settings.objects.all().delete()
+        Settings.objects.create(max_categories=None, max_trips=2)
+        
+        # Create 2 trips for self.user (reaching limit)
+        TripFactory(user=self.user, code="trip1", name="Trip 1")
+        TripFactory(user=self.user, code="trip2", name="Trip 2")
+        
+        # Another user should still be able to create trips
+        other_user = UserFactory()
+        self.login(other_user.email)
+        
+        body = {
+            "code": "other_trip1",
+            "name": "Other Trip 1",
+        }
+        res = self.client.post(self.list_url, body, format="json")
+        self.assertEqual(res.status_code, 201)
