@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import apiFetch from '@/utils/apiFetch'
 import { onMounted, ref } from 'vue'
+import EditIcon from '../../icons/EditIcon.vue'
+import DeleteIcon from '../../icons/DeleteIcon.vue'
 
 interface Category {
   id: number
@@ -19,6 +21,8 @@ const newCategory = ref<Category>({
 const createCategoryError = ref<string>('')
 const categories = ref<Category[]>([])
 const fetchCategoriesError = ref<string>('')
+const deleteCategoryError = ref<string>('')
+const editingId = ref<number | null>(null)
 
 async function fetchCategories() {
   fetchCategoriesError.value = ''
@@ -32,22 +36,93 @@ async function fetchCategories() {
 }
 
 async function addCategory() {
-  const response = await apiFetch('/expenses/expense-categories/', {
-    method: 'POST',
-    body: JSON.stringify(newCategory.value),
-  })
+  createCategoryError.value = ''
+  let response: Response
+  
+  if (editingId.value) {
+    // Update existing category
+    response = await apiFetch(`/expenses/expense-categories/${editingId.value}/`, {
+      method: 'PUT',
+      body: JSON.stringify(newCategory.value),
+    })
+  } else {
+    // Create new category
+    response = await apiFetch('/expenses/expense-categories/', {
+      method: 'POST',
+      body: JSON.stringify(newCategory.value),
+    })
+  }
+  
   if (response.ok) {
     createCategoryError.value = ''
+    const updatedCategory = await response.json()
+    
+    if (editingId.value) {
+      // Update existing category in list
+      const index = categories.value.findIndex((c) => c.id === editingId.value)
+      if (index !== -1) {
+        categories.value[index] = updatedCategory
+      }
+      editingId.value = null
+    } else {
+      // Refresh categories list to get the new category
+      await fetchCategories()
+    }
+    
+    // Reset form
     newCategory.value = {
       id: 0,
       name: '',
       code: '',
       for_expense: true,
     }
-    await fetchCategories()
   } else {
     const errorData = await response.json()
-    createCategoryError.value = errorData?.detail || 'Failed to create category.'
+    createCategoryError.value = errorData?.detail || (editingId.value ? 'Failed to update category.' : 'Failed to create category.')
+  }
+}
+
+function editCategory(category: Category) {
+  editingId.value = category.id
+  newCategory.value = {
+    id: category.id,
+    name: category.name,
+    code: category.code,
+    for_expense: category.for_expense,
+  }
+  // Scroll to form for better UX
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function cancelEdit() {
+  editingId.value = null
+  newCategory.value = {
+    id: 0,
+    name: '',
+    code: '',
+    for_expense: true,
+  }
+}
+
+async function deleteCategory(categoryId: number) {
+  if (!confirm('Are you sure you want to delete this category?')) {
+    return
+  }
+  
+  deleteCategoryError.value = ''
+  try {
+    const response = await apiFetch(`/expenses/expense-categories/${categoryId}/`, {
+      method: 'DELETE',
+    })
+    if (response.ok) {
+      await fetchCategories()
+    } else {
+      const errorData = await response.json()
+      deleteCategoryError.value = errorData?.detail || 'Failed to delete category.'
+    }
+  } catch (error) {
+    console.error('Error deleting category:', error)
+    deleteCategoryError.value = 'Failed to delete category.'
   }
 }
 
@@ -58,7 +133,7 @@ onMounted(() => {
 
 <template>
   <h1 class="text-2xl font-bold mb-8">Categories</h1>
-  <h2 class="text-xl font-bold mb-3">Add Category</h2>
+  <h2 class="text-xl font-bold mb-3">{{ editingId ? 'Edit Category' : 'Add Category' }}</h2>
   <form
     class="form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
     @submit.prevent="addCategory"
@@ -94,12 +169,14 @@ onMounted(() => {
         For Expense
       </label>
     </div>
-    <div class="col-span-full">
-      <button type="submit" class="btn btn-primary">Add Category</button>
+    <div class="col-span-full flex gap-2">
+      <button type="submit" class="btn btn-primary">{{ editingId ? 'Update' : 'Add Category' }}</button>
+      <button v-if="editingId" type="button" @click="cancelEdit" class="btn btn-secondary">Cancel</button>
     </div>
   </form>
   <div v-if="createCategoryError" class="text-red-50 my-4">{{ createCategoryError }}</div>
   <h2 class="text-xl font-bold mb-3 my-8">Categories List</h2>
+  <div v-if="deleteCategoryError" class="text-red-50 my-4">{{ deleteCategoryError }}</div>
   <div class="overflow-x-auto">
     <table class="table">
       <thead>
@@ -107,16 +184,35 @@ onMounted(() => {
           <th>Name</th>
           <th>Code</th>
           <th>For Expense</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="categories.length === 0">
-          <td colspan="3" class="no-data">No categories found</td>
+          <td colspan="4" class="no-data">No categories found</td>
         </tr>
         <tr v-for="category in categories" :key="category.id">
           <td>{{ category.name }}</td>
           <td>{{ category.code }}</td>
           <td>{{ category.for_expense }}</td>
+          <td>
+            <div class="flex gap-2">
+              <button
+                @click="editCategory(category)"
+                title="Edit"
+                style="background: none; border: none; cursor: pointer"
+              >
+                <EditIcon />
+              </button>
+              <button
+                @click="deleteCategory(category.id)"
+                title="Delete"
+                style="background: none; border: none; cursor: pointer"
+              >
+                <DeleteIcon />
+              </button>
+            </div>
+          </td>
         </tr>
       </tbody>
     </table>
