@@ -113,7 +113,7 @@ async function fetchCurrencies() {
 
 async function fetchCategories() {
   try {
-    const response = await apiFetch('/expenses/expense-categories/')
+    const response = await apiFetch('/expenses/expense-categories')
     if (response.ok) {
       categories.value = await response.json()
     } else {

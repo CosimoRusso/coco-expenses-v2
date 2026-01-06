@@ -8,12 +8,14 @@ interface Trip {
   id: number
   name: string
   code: string
+  is_active: boolean
 }
 
 const newTrip = ref<Trip>({
   id: 0,
   name: '',
   code: '',
+  is_active: true,
 })
 
 const createTripError = ref<string>('')
@@ -36,7 +38,7 @@ async function fetchTrips() {
 async function addTrip() {
   createTripError.value = ''
   let response: Response
-  
+
   if (editingId.value) {
     // Update existing trip
     response = await apiFetch(`/expenses/trips/${editingId.value}/`, {
@@ -50,11 +52,11 @@ async function addTrip() {
       body: JSON.stringify(newTrip.value),
     })
   }
-  
+
   if (response.ok) {
     createTripError.value = ''
     const updatedTrip = await response.json()
-    
+
     if (editingId.value) {
       // Update existing trip in list
       const index = trips.value.findIndex((t) => t.id === editingId.value)
@@ -66,16 +68,18 @@ async function addTrip() {
       // Refresh trips list to get the new trip
       await fetchTrips()
     }
-    
+
     // Reset form
     newTrip.value = {
       id: 0,
       name: '',
       code: '',
+      is_active: true,
     }
   } else {
     const errorData = await response.json()
-    createTripError.value = errorData?.detail || (editingId.value ? 'Failed to update trip.' : 'Failed to create trip.')
+    createTripError.value =
+      errorData?.detail || (editingId.value ? 'Failed to update trip.' : 'Failed to create trip.')
   }
 }
 
@@ -85,6 +89,7 @@ function editTrip(trip: Trip) {
     id: trip.id,
     name: trip.name,
     code: trip.code,
+    is_active: trip.is_active,
   }
   // Scroll to form for better UX
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -96,6 +101,7 @@ function cancelEdit() {
     id: 0,
     name: '',
     code: '',
+    is_active: true,
   }
 }
 
@@ -103,7 +109,7 @@ async function deleteTrip(tripId: number) {
   if (!confirm('Are you sure you want to delete this trip?')) {
     return
   }
-  
+
   deleteTripError.value = ''
   try {
     const response = await apiFetch(`/expenses/trips/${tripId}/`, {
@@ -129,10 +135,7 @@ onMounted(() => {
 <template>
   <h1 class="text-2xl font-bold mb-8">Trips</h1>
   <h2 class="text-xl font-bold mb-3">{{ editingId ? 'Edit Trip' : 'Add Trip' }}</h2>
-  <form
-    class="form grid grid-cols-1 md:grid-cols-2 gap-4"
-    @submit.prevent="addTrip"
-  >
+  <form class="form grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="addTrip">
     <div>
       <label for="name">Name</label>
       <input
@@ -153,9 +156,17 @@ onMounted(() => {
         required
       />
     </div>
+    <div>
+      <label for="is_active" class="flex items-center gap-2">
+        <input type="checkbox" id="is_active" class="checkbox" v-model="newTrip.is_active" />
+        Is Active
+      </label>
+    </div>
     <div class="col-span-full flex gap-2">
       <button type="submit" class="btn btn-primary">{{ editingId ? 'Update' : 'Add Trip' }}</button>
-      <button v-if="editingId" type="button" @click="cancelEdit" class="btn btn-secondary">Cancel</button>
+      <button v-if="editingId" type="button" @click="cancelEdit" class="btn btn-secondary">
+        Cancel
+      </button>
     </div>
   </form>
   <div v-if="createTripError" class="text-red-50 my-4">{{ createTripError }}</div>
@@ -167,16 +178,18 @@ onMounted(() => {
         <tr>
           <th>Name</th>
           <th>Code</th>
+          <th>Is Active</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="trips.length === 0">
-          <td colspan="3" class="no-data">No trips found</td>
+          <td colspan="4" class="no-data">No trips found</td>
         </tr>
         <tr v-for="trip in trips" :key="trip.id">
           <td>{{ trip.name }}</td>
           <td>{{ trip.code }}</td>
+          <td>{{ trip.is_active }}</td>
           <td>
             <div class="flex gap-2">
               <button

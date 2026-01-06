@@ -11,6 +11,7 @@ class ExpenseCategorySerializer(serializers.ModelSerializer):
             "code",
             "name",
             "for_expense",
+            "is_active",
         ]
 
     def create(self, validated_data):

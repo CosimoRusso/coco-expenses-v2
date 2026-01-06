@@ -9,6 +9,7 @@ interface Category {
   name: string
   code: string
   for_expense: boolean
+  is_active: boolean
 }
 
 const newCategory = ref<Category>({
@@ -16,6 +17,7 @@ const newCategory = ref<Category>({
   name: '',
   code: '',
   for_expense: true,
+  is_active: true,
 })
 
 const createCategoryError = ref<string>('')
@@ -75,6 +77,7 @@ async function addCategory() {
       name: '',
       code: '',
       for_expense: true,
+      is_active: true,
     }
   } else {
     const errorData = await response.json()
@@ -89,6 +92,7 @@ function editCategory(category: Category) {
     name: category.name,
     code: category.code,
     for_expense: category.for_expense,
+    is_active: category.is_active,
   }
   // Scroll to form for better UX
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -101,6 +105,7 @@ function cancelEdit() {
     name: '',
     code: '',
     for_expense: true,
+    is_active: true,
   }
 }
 
@@ -169,6 +174,17 @@ onMounted(() => {
         For Expense
       </label>
     </div>
+    <div>
+      <label for="is_active" class="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="is_active"
+          class="checkbox"
+          v-model="newCategory.is_active"
+        />
+        Is Active
+      </label>
+    </div>
     <div class="col-span-full flex gap-2">
       <button type="submit" class="btn btn-primary">{{ editingId ? 'Update' : 'Add Category' }}</button>
       <button v-if="editingId" type="button" @click="cancelEdit" class="btn btn-secondary">Cancel</button>
@@ -184,17 +200,19 @@ onMounted(() => {
           <th>Name</th>
           <th>Code</th>
           <th>For Expense</th>
+          <th>Is Active</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="categories.length === 0">
-          <td colspan="4" class="no-data">No categories found</td>
+          <td colspan="5" class="no-data">No categories found</td>
         </tr>
         <tr v-for="category in categories" :key="category.id">
           <td>{{ category.name }}</td>
           <td>{{ category.code }}</td>
           <td>{{ category.for_expense }}</td>
+          <td>{{ category.is_active }}</td>
           <td>
             <div class="flex gap-2">
               <button

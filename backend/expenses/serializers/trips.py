@@ -10,6 +10,7 @@ class TripSerializer(serializers.ModelSerializer):
             "id",
             "code",
             "name",
+            "is_active",
         ]
 
     def create(self, validated_data):

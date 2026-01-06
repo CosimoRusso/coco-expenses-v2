@@ -29,6 +29,7 @@ class TestExpenses(ApiTestCase):
         self.assertEqual(res.data["code"], body["code"])
         self.assertEqual(res.data["name"], body["name"])
         self.assertTrue(res.data["for_expense"])
+        self.assertTrue(res.data["is_active"])  # Default should be True
 
     def test_update_expense_category(self):
         category = ExpenseCategoryFactory(user=self.user, for_expense=True)
@@ -37,6 +38,7 @@ class TestExpenses(ApiTestCase):
             "code": "updated_category",
             "name": "Updated Category",
             "for_expense": False,
+            "is_active": False,
         }
         res = self.client.put(self.details_url(category.id), update_body, format="json")
         self.assertEqual(res.status_code, 200)
@@ -44,6 +46,7 @@ class TestExpenses(ApiTestCase):
         self.assertEqual(category.code, update_body["code"])
         self.assertEqual(category.name, update_body["name"])
         self.assertFalse(category.for_expense)
+        self.assertFalse(category.is_active)
 
     def test_list_categories(self):
         other_user = UserFactory()
@@ -61,3 +64,19 @@ class TestExpenses(ApiTestCase):
             self.assertIn(category.id, [cat["id"] for cat in res.data])
 
         self.assertNotIn(other_category.code, [cat["code"] for cat in res.data])
+
+    def test_filter_categories_by_is_active(self):
+        active_category = ExpenseCategoryFactory(user=self.user, is_active=True)
+        inactive_category = ExpenseCategoryFactory(user=self.user, is_active=False)
+
+        # Filter by active
+        res = self.client.get(self.list_url, {"is_active": "true"})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]["id"], active_category.id)
+
+        # Filter by inactive
+        res = self.client.get(self.list_url, {"is_active": "false"})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]["id"], inactive_category.id)

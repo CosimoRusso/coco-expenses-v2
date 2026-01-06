@@ -4,4 +4,5 @@ export interface ExpenseCategory {
   code: string
   name: string
   for_expense: boolean
+  is_active: boolean
 }

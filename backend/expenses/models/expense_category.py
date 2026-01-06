@@ -9,6 +9,7 @@ class ExpenseCategory(models.Model):
     name = models.CharField(verbose_name="Expense Category", max_length=128)
     # True for expenses, False for income
     for_expense = models.BooleanField(verbose_name="For expenses", default=True)
+    is_active = models.BooleanField(verbose_name="Is Active", default=True)
 
     def __str__(self):
         return f"{self.name} ({self.code}))"

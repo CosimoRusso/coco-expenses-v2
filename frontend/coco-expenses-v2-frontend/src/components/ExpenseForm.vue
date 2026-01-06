@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import apiFetch from '@/utils/apiFetch'
 import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
@@ -40,6 +40,10 @@ const newExpense = ref<Expense>({
 // Form error handling
 const formError = ref('')
 const isSubmitting = ref(false)
+
+// Filter active categories and trips
+const activeCategories = computed(() => props.categories.filter(cat => cat.is_active))
+const activeTrips = computed(() => props.trips.filter(trip => trip.is_active))
 
 // Add or update expense
 const addOrUpdateExpense = async () => {
@@ -258,7 +262,7 @@ watch(
         required
       >
         <option value="0" disabled>Select a category</option>
-        <option v-for="category in categories" :key="category.id" :value="category.id">
+        <option v-for="category in activeCategories" :key="category.id" :value="category.id">
           {{ category.name }}
         </option>
       </select>
@@ -268,7 +272,7 @@ watch(
       <label for="trip">Trip</label>
       <select class="select input input-border w-full" id="trip" v-model="newExpense.trip">
         <option :value="null">Select a trip</option>
-        <option v-for="trip in trips" :key="trip.id" :value="trip.id">
+        <option v-for="trip in activeTrips" :key="trip.id" :value="trip.id">
           {{ trip.name }}
         </option>
       </select>
