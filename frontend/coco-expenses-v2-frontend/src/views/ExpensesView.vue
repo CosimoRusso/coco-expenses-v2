@@ -31,6 +31,9 @@ const filterIsExpense = ref<boolean | null>(null)
 const filterStartDate = ref<string | null>(null)
 const filterEndDate = ref<string | null>(null)
 
+// Editing state
+const editingExpense = ref<Expense | null>(null)
+
 onMounted(async () => {
   initialPageLoading.value = true
   try {
@@ -155,8 +158,21 @@ function onExpenseAdded(expense: Expense) {
   expenses.value.unshift(expense)
 }
 
+function onExpenseUpdated(expense: Expense) {
+  // Update the expense in the list
+  const index = expenses.value.findIndex((e) => e.id === expense.id)
+  if (index !== -1) {
+    expenses.value[index] = expense
+  }
+  editingExpense.value = null
+}
+
 function onExpenseDeleted(expenseId: number) {
   expenses.value = expenses.value.filter((e) => e.id !== expenseId)
+}
+
+function onEditExpense(expense: Expense) {
+  editingExpense.value = expense
 }
 
 function onPageChanged(page: number) {
@@ -182,7 +198,9 @@ watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDa
       :trips="trips"
       :currencies="currencies"
       :userSettings="userSettings"
+      :editingExpense="editingExpense"
       @expense-added="onExpenseAdded"
+      @expense-updated="onExpenseUpdated"
     />
     <ExpensesList
       :initialPageLoading="initialPageLoading"
@@ -198,6 +216,7 @@ watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDa
       @expense-deleted="onExpenseDeleted"
       @reload-expenses="fetchExpenses"
       @page-changed="onPageChanged"
+      @edit-expense="onEditExpense"
       v-model:filter-category="filterCategory"
       v-model:filter-trip="filterTrip"
       v-model:filter-is-expense="filterIsExpense"

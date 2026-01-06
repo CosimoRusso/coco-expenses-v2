@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
+import EditIcon from '../../icons/EditIcon.vue'
 import apiFetch from '@/utils/apiFetch'
 
 import type { Expense } from '@/interfaces/Expense'
@@ -26,6 +27,7 @@ const emit = defineEmits<{
   (e: 'expense-deleted', expenseId: number): void
   (e: 'reload-expenses'): void
   (e: 'page-changed', page: number): void
+  (e: 'edit-expense', expense: Expense): void
 }>()
 
 const tableErrors = ref<string[]>([])
@@ -59,6 +61,10 @@ function confirmDelete(expense: Expense) {
   if (confirm('Sei sicuro di voler eliminare questa spesa?')) {
     deleteExpense(expense.id!)
   }
+}
+
+function editExpense(expense: Expense) {
+  emit('edit-expense', expense)
 }
 
 // Get category name by ID
@@ -196,13 +202,22 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
             <td>{{ getTripName(expense.trip) }}</td>
             <td>{{ expense.is_expense ? 'Yes' : 'No' }}</td>
             <td>
-              <button
-                @click="confirmDelete(expense)"
-                title="Elimina"
-                style="background: none; border: none; cursor: pointer"
-              >
-                <DeleteIcon />
-              </button>
+              <div class="flex gap-2">
+                <button
+                  @click="editExpense(expense)"
+                  title="Modifica"
+                  style="background: none; border: none; cursor: pointer"
+                >
+                  <EditIcon />
+                </button>
+                <button
+                  @click="confirmDelete(expense)"
+                  title="Elimina"
+                  style="background: none; border: none; cursor: pointer"
+                >
+                  <DeleteIcon />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>

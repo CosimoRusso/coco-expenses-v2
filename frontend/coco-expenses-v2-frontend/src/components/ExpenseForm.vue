@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import apiFetch from '@/utils/apiFetch'
 import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
@@ -16,10 +16,12 @@ const props = defineProps<{
   trips: Trip[]
   currencies: Currency[]
   userSettings: UserSettings | null
+  editingExpense?: Expense | null
 }>()
 
 const emit = defineEmits<{
   (e: 'expense-added', expense: Expense): void
+  (e: 'expense-updated', expense: Expense): void
 }>()
 
 // New expense form
@@ -37,35 +39,10 @@ const newExpense = ref<Expense>({
 
 // Form error handling
 const formError = ref('')
-const tableErrors = ref<string[]>([])
 const isSubmitting = ref(false)
 
-const expenseDatePicker = ref<HTMLInputElement | null>(null)
-const amortizationStartDatePicker = ref<HTMLInputElement | null>(null)
-const amortizationEndDatePicker = ref<HTMLInputElement | null>(null)
-
-// Get category name by ID
-const getCategoryName = (categoryId: number | null) => {
-  if (!categoryId) return ''
-  const category = props.categories.find((c) => c.id === categoryId)
-  return category ? category.name : 'Unknown'
-}
-
-// Get trip name by ID
-const getTripName = (tripId: number | null) => {
-  if (!tripId) return ''
-  const trip = props.trips.find((t) => t.id === tripId)
-  return trip ? trip.name : 'Unknown'
-}
-
-function getCurrencyName(currencyId: number | null) {
-  if (!currencyId) return ''
-  const currency = props.currencies.find((c) => c.id === currencyId)
-  return currency?.code ?? ''
-}
-
-// Add new expense
-const addExpense = async () => {
+// Add or update expense
+const addOrUpdateExpense = async () => {
   isSubmitting.value = true
   formError.value = ''
 
@@ -73,56 +50,78 @@ const addExpense = async () => {
     // Validate form
     if (!newExpense.value.expense_date) {
       formError.value = 'Expense date is required'
+      isSubmitting.value = false
       return
     }
     if (!newExpense.value.description) {
       formError.value = 'Description is required'
+      isSubmitting.value = false
       return
     }
     if (!newExpense.value.category) {
       formError.value = 'Category is required'
+      isSubmitting.value = false
       return
     }
     if (!newExpense.value.amortization_start_date || !newExpense.value.amortization_end_date) {
       formError.value = 'Amortization dates are required'
+      isSubmitting.value = false
       return
     }
 
     const _selectedCategory = props.categories.find((c) => c.id === newExpense.value.category)
     if (!_selectedCategory) {
       formError.value = 'Invalid category selected'
+      isSubmitting.value = false
       return
     }
     newExpense.value.is_expense = _selectedCategory.for_expense
 
+    const isEditing = props.editingExpense && props.editingExpense.id
+
     // Submit form
-    const response = await apiFetch('/expenses/expenses/', {
-      method: 'POST',
-      body: JSON.stringify(newExpense.value),
-    })
-    if (response.ok) {
-      const newExpense = await response.json()
-      emit('expense-added', newExpense)
+    let response: Response
+    if (isEditing) {
+      // Update existing expense
+      response = await apiFetch(`/expenses/expenses/${props.editingExpense!.id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(newExpense.value),
+      })
     } else {
-      throw new Error('Failed to add expense.')
+      // Create new expense
+      response = await apiFetch('/expenses/expenses/', {
+        method: 'POST',
+        body: JSON.stringify(newExpense.value),
+      })
     }
 
-    // Reset form
-    newExpense.value = {
-      expense_date: todayStr,
-      description: '',
-      amount: 0,
-      amortization_start_date: todayStr,
-      amortization_end_date: todayStr,
-      category: null,
-      trip: null,
-      is_expense: true,
-      currency: null,
+    if (response.ok) {
+      const updatedExpense = await response.json()
+      if (isEditing) {
+        emit('expense-updated', updatedExpense)
+        // Form will be reset by watch when editingExpense becomes null
+      } else {
+        emit('expense-added', updatedExpense)
+        // Reset form after creating
+        newExpense.value = {
+          expense_date: todayStr,
+          description: '',
+          amount: 0,
+          amortization_start_date: todayStr,
+          amortization_end_date: todayStr,
+          category: null,
+          trip: null,
+          is_expense: true,
+          currency: null,
+        }
+        assignDefaultCurrencyAndTrip()
+      }
+    } else {
+      throw new Error(isEditing ? 'Failed to update expense.' : 'Failed to add expense.')
     }
-    assignDefaultCurrencyAndTrip()
   } catch (error: any) {
-    console.error('Error adding expense:', error)
-    formError.value = error.response?.data?.detail || 'An error occurred while adding the expense'
+    console.error('Error saving expense:', error)
+    formError.value = error.response?.data?.detail || 'An error occurred while saving the expense'
   } finally {
     isSubmitting.value = false
   }
@@ -145,13 +144,50 @@ watch(
     }
   },
 )
+
+// Watch for editing expense changes and populate form
+watch(
+  () => props.editingExpense,
+  (expense) => {
+    if (expense && expense.id) {
+      newExpense.value = {
+        expense_date: expense.expense_date,
+        description: expense.description,
+        amount: expense.amount,
+        amortization_start_date: expense.amortization_start_date,
+        amortization_end_date: expense.amortization_end_date,
+        category: expense.category,
+        trip: expense.trip,
+        is_expense: expense.is_expense,
+        currency: expense.currency,
+      }
+    } else {
+      // Reset form when not editing
+      newExpense.value = {
+        expense_date: todayStr,
+        description: '',
+        amount: 0,
+        amortization_start_date: todayStr,
+        amortization_end_date: todayStr,
+        category: null,
+        trip: null,
+        is_expense: true,
+        currency: null,
+      }
+      assignDefaultCurrencyAndTrip()
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
-  <h2 class="text-xl font-bold mb-3">Add New Expense</h2>
+  <h2 class="text-xl font-bold mb-3">
+    {{ editingExpense && editingExpense.id ? 'Edit Expense' : 'Add New Expense' }}
+  </h2>
   <form
     class="form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-    @submit.prevent="addExpense"
+    @submit.prevent="addOrUpdateExpense"
   >
     <div>
       <label for="expense_date">Expense Date</label>
@@ -239,7 +275,15 @@ watch(
     </div>
     <div class="col-span-full"></div>
     <button type="submit" :disabled="isSubmitting" class="btn btn-primary col-span-full">
-      {{ isSubmitting ? 'Adding...' : 'Add Expense' }}
+      {{
+        isSubmitting
+          ? editingExpense && editingExpense.id
+            ? 'Updating...'
+            : 'Adding...'
+          : editingExpense && editingExpense.id
+            ? 'Update Expense'
+            : 'Add Expense'
+      }}
     </button>
   </form>
   <div v-if="formError" class="text-red-50 my-4">
