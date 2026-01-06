@@ -42,8 +42,8 @@ const formError = ref('')
 const isSubmitting = ref(false)
 
 // Filter active categories and trips
-const activeCategories = computed(() => props.categories.filter(cat => cat.is_active))
-const activeTrips = computed(() => props.trips.filter(trip => trip.is_active))
+const activeCategories = computed(() => props.categories.filter((cat) => cat.is_active))
+const activeTrips = computed(() => props.trips.filter((trip) => trip.is_active))
 
 // Add or update expense
 const addOrUpdateExpense = async () => {
@@ -197,7 +197,7 @@ watch(
       <label for="expense_date">Expense Date</label>
 
       <input
-        class="input input-border"
+        class="input input-border w-full"
         type="date"
         id="expense_date"
         v-model="newExpense.expense_date"
@@ -206,7 +206,13 @@ watch(
 
     <div>
       <label for="description">Description</label>
-      <input type="text" id="description" class="input" v-model="newExpense.description" required />
+      <input
+        type="text"
+        id="description"
+        class="input input-border w-full"
+        v-model="newExpense.description"
+        required
+      />
     </div>
 
     <div>
@@ -217,13 +223,13 @@ watch(
         v-model="newExpense.amount"
         step="0.01"
         required
-        class="input"
+        class="input input-border w-full"
       />
     </div>
 
     <div>
       <label for="currency">Currency</label>
-      <select class="select" id="currency" v-model="newExpense.currency" required>
+      <select class="select w-full" id="currency" v-model="newExpense.currency" required>
         <option value="0" disabled>Select a currency</option>
         <option v-for="currency in currencies" :key="currency.id" :value="currency.id">
           {{ currency.display_name }}
@@ -235,7 +241,7 @@ watch(
       <label for="amortization_start_date">Amortization Start Date</label>
       <input
         type="date"
-        class="input input-border"
+        class="input input-border w-full"
         id="amortization_start_date"
         v-model="newExpense.amortization_start_date"
         required
@@ -246,7 +252,7 @@ watch(
       <label for="amortization_end_date">Amortization End Date</label>
       <input
         type="date"
-        class="input input-border"
+        class="input input-border w-full"
         id="amortization_end_date"
         v-model="newExpense.amortization_end_date"
         required
@@ -256,7 +262,7 @@ watch(
     <div>
       <label for="category">Category</label>
       <select
-        class="select input input-border"
+        class="select input input-border w-full"
         id="category"
         v-model="newExpense.category"
         required
