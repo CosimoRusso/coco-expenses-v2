@@ -1,7 +1,7 @@
 docker exec ce-db pg_dump -U postgres coco_expenses > /tmp/backup_$(date +%Y-%m-%d).sql
 
 # Must be logged in with gdrive
-rclone copy /tmp/backup_$(date +%Y-%m-%d).sql gdrive_backup_db:coco-expenses-v2/backups/
+rclone copy /tmp/backup_$(date +%Y-%m-%d).sql gdrive_backup_db:coco-expenses/backups/
 
 # Add to cron job
 # 0 3 * * * /home/ubuntu/coco-expenses-v2/backup_db.sh
