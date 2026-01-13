@@ -1,7 +1,7 @@
 docker exec ce-db pg_dump -U postgres coco_expenses > /tmp/backup_$(date +%Y-%m-%d).sql
 
 # Must be logged in with gdrive
-gdrive files upload --parent 1z44dlXLPZk8iQMYzktbJmrjuworxyATo /tmp/backup_$(date +%Y-%m-%d).sql
+rclone copy /tmp/backup_$(date +%Y-%m-%d).sql gdrive_backup_db:coco-expenses-v2/backups/
 
 # Add to cron job
 # 0 3 * * * /home/ubuntu/coco-expenses-v2/backup_db.sh
@@ -10,3 +10,6 @@ gdrive files upload --parent 1z44dlXLPZk8iQMYzktbJmrjuworxyATo /tmp/backup_$(dat
 # docker exec ce-db dropdb -U postgres coco_expenses
 # docker exec ce-db createdb -T template0 -U postgres coco_expenses
 # docker exec ce-db psql -U postgres -X coco_expenses < backup_$(date +%Y-%m-%d).sql
+
+# When the google key expires, run:
+# rclone config
