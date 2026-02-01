@@ -33,6 +33,12 @@ interface CategoryStatistics {
   amount: string
 }
 
+interface TripStatistics {
+  trip: { id: number | null; code: string; name: string; is_active: boolean }
+  currency: Currency
+  amount: string
+}
+
 interface AmortizationTimelineItem {
   date: string
   expense_amount: string
@@ -44,6 +50,7 @@ const startDateStr = ref<string>('')
 const endDateStr = ref<string>('')
 const errorMessage = ref<string | null>(null)
 const categoryStatistics = ref<CategoryStatistics[]>([])
+const tripStatistics = ref<TripStatistics[]>([])
 const amortizationTimeline = ref<AmortizationTimelineItem[]>([])
 const currency = ref<Currency | null>(null)
 
@@ -57,6 +64,7 @@ onMounted(() => {
   endDateStr.value = dateToISOString(_endDate)
 
   fetchCategoryStatistics().then(() => {})
+  fetchTripStatistics().then(() => {})
   fetchAmortizationTimeline().then(() => {})
 })
 
@@ -83,7 +91,24 @@ async function fetchCategoryStatistics() {
 
 async function fetchStatistics() {
   await fetchCategoryStatistics()
+  await fetchTripStatistics()
   await fetchAmortizationTimeline()
+}
+
+async function fetchTripStatistics() {
+  if (!startDateStr.value || !endDateStr.value) {
+    return
+  }
+  try {
+    const response = await apiFetch(
+      `/expenses/statistics/trips/?start_date=${startDateStr.value}&end_date=${endDateStr.value}`,
+    )
+    if (response.ok) {
+      tripStatistics.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Error fetching trip statistics:', error)
+  }
 }
 
 async function fetchAmortizationTimeline() {
@@ -135,6 +160,47 @@ const chartOptions = {
     title: {
       display: true,
       text: 'Amount by Category',
+    },
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+    },
+  },
+}
+
+const tripChartData = computed(() => {
+  if (tripStatistics.value.length === 0) {
+    return {
+      labels: [],
+      datasets: [],
+    }
+  }
+
+  return {
+    labels: tripStatistics.value.map((stat) => stat.trip.name),
+    datasets: [
+      {
+        label: 'Amount',
+        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1,
+        data: tripStatistics.value.map((stat) => parseFloat(stat.amount) || 0),
+      },
+    ],
+  }
+})
+
+const tripChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false,
+    },
+    title: {
+      display: true,
+      text: 'Amount by Trip',
     },
   },
   scales: {
@@ -271,6 +337,38 @@ const amortizationChartOptions = {
               </tr>
               <tr v-for="stat in categoryStatistics" :key="stat.category.id">
                 <td>{{ stat.category.name }}</td>
+                <td>{{ stat.amount }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <h2 class="text-xl font-bold mb-3 mt-8">Results per Trip</h2>
+    <div class="flex flex-wrap gap-8 mt-6">
+      <div class="flex-1 min-w-[400px] h-[400px] bg-base-100 p-4 rounded-lg shadow">
+        <Bar v-if="tripStatistics.length > 0" :data="tripChartData" :options="tripChartOptions" />
+        <p v-else class="text-center text-gray-500 p-8">
+          No data available for the selected date range
+        </p>
+      </div>
+      <div class="flex-1 min-w-[300px]">
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Trip</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="tripStatistics.length === 0">
+                <td colspan="2" class="no-data">No trips found</td>
+              </tr>
+              <tr v-for="stat in tripStatistics" :key="stat.trip.id || 'no-trip'">
+                <td>{{ stat.trip.name }}</td>
                 <td>{{ stat.amount }}</td>
               </tr>
             </tbody>

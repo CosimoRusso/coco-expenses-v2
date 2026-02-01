@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from expenses.serializers.expense_categories import ExpenseCategorySerializer
+from expenses.serializers.trips import TripSerializer
 from expenses.models.currency import Currency
 
 
@@ -26,6 +27,12 @@ class CurrencySerializer(serializers.ModelSerializer):
 
 class CategoryStatisticsSerializer(serializers.Serializer):
     category = ExpenseCategorySerializer()
+    currency = CurrencySerializer()
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+
+class TripStatisticsSerializer(serializers.Serializer):
+    trip = serializers.DictField(allow_null=True)
     currency = CurrencySerializer()
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
 

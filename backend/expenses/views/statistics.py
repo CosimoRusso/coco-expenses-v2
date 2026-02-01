@@ -1,22 +1,24 @@
 from decimal import Decimal
 
 from django.db.models import QuerySet
+from expenses.date_utils import all_dates_in_range
+from expenses.models import Currency, Expense, ExpenseCategory, Trip, UserSettings
+from expenses.serializers.statistics import (
+    AmortizationTimelineSerializer,
+    CategoryStatisticsSerializer,
+    StatisticsInputSerializer,
+    TripStatisticsSerializer,
+)
+from expenses.statistics_utils import (
+    convert_expenses_to_currency,
+    convert_expenses_to_statistics_expenses,
+    get_expenses_date_range_in_currency,
+    get_non_expenses_date_range,
+)
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
-
-from expenses.date_utils import all_dates_in_range
-from expenses.models import Currency, Expense, ExpenseCategory, UserSettings
-from expenses.serializers.statistics import (
-    StatisticsInputSerializer,
-    CategoryStatisticsSerializer,
-    AmortizationTimelineSerializer,
-)
-from expenses.statistics_utils import (
-    get_expenses_date_range_in_currency,
-    get_non_expenses_date_range,
-)
 
 
 class StatisticViewSet(ViewSet):
@@ -71,6 +73,92 @@ class StatisticViewSet(ViewSet):
         ]
 
         serializer = CategoryStatisticsSerializer(result, many=True)
+        response = list(
+            sorted(
+                serializer.data, key=lambda item: float(item["amount"]), reverse=True
+            )
+        )
+        return Response(response)
+
+    @action(detail=False, methods=["GET"])
+    def trips(self, request, *args, **kwargs):
+        user = self.request.user
+        queryset: QuerySet[Expense] = Expense.objects.filter(user=user).select_related(
+            "category", "trip"
+        )
+        trips = Trip.objects.filter(user=request.user)
+        input_serializer = StatisticsInputSerializer(data=request.query_params)
+        input_serializer.is_valid(raise_exception=True)
+        start_date = input_serializer.validated_data["start_date"]
+        end_date = input_serializer.validated_data["end_date"]
+        currency: Currency = (
+            input_serializer.validated_data.get("currency")
+            or UserSettings.objects.get(user=user).preferred_currency
+            or Currency.objects.get(code="USD")
+        )
+
+        # Get original expenses (before amortization) that overlap with date range
+        all_expenses = queryset.filter(is_expense=True)
+        expenses_as_statistics = convert_expenses_to_statistics_expenses(all_expenses)
+        expenses_in_currency = convert_expenses_to_currency(
+            expenses_as_statistics, currency
+        )
+
+        # Filter expenses that overlap with the date range
+        overlapping_expenses = []
+        date_range_days = set(all_dates_in_range(start_date, end_date))
+        for expense in expenses_in_currency:
+            expense_days = set(
+                all_dates_in_range(
+                    expense.amortization_start_date, expense.amortization_end_date
+                )
+            )
+            if expense_days & date_range_days:  # If there's any overlap
+                overlapping_expenses.append(expense)
+
+        # Initialize result with all trips and None for expenses without a trip
+        trip_amounts = {trip: {"amount": Decimal("0.00")} for trip in trips}
+        trip_amounts[None] = {"amount": Decimal("0.00")}
+
+        # Calculate average daily amount based on amortization period from start_date onwards
+        for expense in overlapping_expenses:
+            trip = expense.trip
+            if expense.amortization_start_date and expense.amortization_end_date:
+                # Calculate effective amortization period: from max(start_date, amortization_start_date) to amortization_end_date
+                effective_start = max(start_date, expense.amortization_start_date)
+                effective_end = expense.amortization_end_date
+                if effective_start <= effective_end:
+                    num_days = (effective_end - effective_start).days + 1
+                    if num_days > 0:
+                        daily_amount = expense.amount / num_days
+                        trip_amounts[trip]["amount"] += daily_amount
+
+        result = []
+        for trip, data in trip_amounts.items():
+            if data["amount"] > 0:  # Only include trips with expenses
+                # Handle None trips by creating a dict representation
+                if trip is None:
+                    trip_data = {
+                        "id": None,
+                        "code": "",
+                        "name": "No Trip",
+                        "is_active": False,
+                    }
+                else:
+                    # Use TripSerializer to serialize the trip instance
+                    from expenses.serializers.trips import TripSerializer
+
+                    trip_serializer = TripSerializer(trip)
+                    trip_data = trip_serializer.data
+                result.append(
+                    {
+                        "trip": trip_data,
+                        "currency": currency,
+                        "amount": data["amount"],
+                    }
+                )
+
+        serializer = TripStatisticsSerializer(result, many=True)
         response = list(
             sorted(
                 serializer.data, key=lambda item: float(item["amount"]), reverse=True
