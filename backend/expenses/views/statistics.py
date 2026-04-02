@@ -12,8 +12,8 @@ from expenses.serializers.statistics import (
 from expenses.statistics_utils import (
     convert_expenses_to_currency,
     convert_expenses_to_statistics_expenses,
+    get_expenses_by_day,
     get_expenses_date_range_in_currency,
-    get_non_expenses_date_range,
 )
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -104,64 +104,91 @@ class StatisticViewSet(ViewSet):
             expenses_as_statistics, currency
         )
 
-        # Filter expenses that overlap with the date range
-        overlapping_expenses = []
-        date_range_days = set(all_dates_in_range(start_date, end_date))
-        for expense in expenses_in_currency:
-            expense_days = set(
-                all_dates_in_range(
-                    expense.amortization_start_date, expense.amortization_end_date
-                )
-            )
-            if expense_days & date_range_days:  # If there's any overlap
-                overlapping_expenses.append(expense)
-
         # Initialize result with all trips and None for expenses without a trip
-        trip_amounts = {trip: {"amount": Decimal("0.00")} for trip in trips}
-        trip_amounts[None] = {"amount": Decimal("0.00")}
+        trip_amounts = {
+            trip: {
+                "amount_in_dates": Decimal("0.00"),
+                "total_amount": Decimal("0.00"),
+                "start_date": None,
+                "end_date": None,
+                "duration": None,
+                "price_per_day": None,
+            }
+            for trip in trips
+        }
+        trip_amounts[None] = {
+            "amount_in_dates": Decimal("0.00"),
+            "total_amount": Decimal("0.00"),
+            "start_date": None,
+            "end_date": None,
+            "duration": None,
+            "price_per_day": None,
+        }
 
-        # Calculate average daily amount based on amortization period from start_date onwards
-        for expense in overlapping_expenses:
-            trip = expense.trip
-            if expense.amortization_start_date and expense.amortization_end_date:
-                # Calculate effective amortization period: from max(start_date, amortization_start_date) to amortization_end_date
-                effective_start = max(start_date, expense.amortization_start_date)
-                effective_end = expense.amortization_end_date
-                if effective_start <= effective_end:
-                    num_days = (effective_end - effective_start).days + 1
-                    if num_days > 0:
-                        daily_amount = expense.amount / num_days
-                        trip_amounts[trip]["amount"] += daily_amount
+        for expense in expenses_in_currency:
+            current_trip = trip_amounts[expense.trip]
+            # Total amount
+            current_trip["total_amount"] += expense.amount
+
+            # Trip start date
+            if (
+                current_trip["start_date"] is None
+                or expense.amortization_end_date < current_trip["start_date"]
+            ):
+                current_trip["start_date"] = expense.amortization_start_date
+
+            # Trip end date
+            if (
+                current_trip["end_date"] is None
+                or current_trip["end_date"] < expense.amortization_end_date
+            ):
+                current_trip["end_date"] = expense.amortization_end_date
+
+        # Trip duration
+        for trip, data in trip_amounts.items():
+            if data["end_date"] and data["start_date"]:
+                data["duration"] = (data["end_date"] - data["start_date"]).days + 1
+            else:
+                data["duration"] = 0
+            if data["duration"] > 0:
+                data["price_per_day"] = data["total_amount"] / data["duration"]
+
+        expenses_by_day = get_expenses_by_day(expenses_in_currency)
+        for day in all_dates_in_range(start_date, end_date):
+            for expense in expenses_by_day[day]:
+                trip_amounts[expense.trip]["amount_in_dates"] += expense.amount
 
         result = []
         for trip, data in trip_amounts.items():
-            if data["amount"] > 0:  # Only include trips with expenses
-                # Handle None trips by creating a dict representation
-                if trip is None:
-                    trip_data = {
-                        "id": None,
-                        "code": "",
-                        "name": "No Trip",
-                        "is_active": False,
-                    }
-                else:
-                    # Use TripSerializer to serialize the trip instance
-                    from expenses.serializers.trips import TripSerializer
+            # Handle None trips by creating a dict representation
+            if trip is None:
+                trip_general_data = {
+                    "id": None,
+                    "code": "",
+                    "name": "No Trip",
+                    "is_active": False,
+                }
+            else:
+                # Use TripSerializer to serialize the trip instance
+                from expenses.serializers.trips import TripSerializer
 
-                    trip_serializer = TripSerializer(trip)
-                    trip_data = trip_serializer.data
-                result.append(
-                    {
-                        "trip": trip_data,
-                        "currency": currency,
-                        "amount": data["amount"],
-                    }
-                )
+                trip_serializer = TripSerializer(trip)
+                trip_general_data = trip_serializer.data
+
+            result.append(
+                {
+                    **trip_general_data,
+                    **data,
+                    "currency": currency,
+                }
+            )
 
         serializer = TripStatisticsSerializer(result, many=True)
         response = list(
             sorted(
-                serializer.data, key=lambda item: float(item["amount"]), reverse=True
+                serializer.data,
+                key=lambda item: float(item["total_amount"]),
+                reverse=True,
             )
         )
         return Response(response)

@@ -1,8 +1,6 @@
-from rest_framework import serializers
-
-from expenses.serializers.expense_categories import ExpenseCategorySerializer
-from expenses.serializers.trips import TripSerializer
 from expenses.models.currency import Currency
+from expenses.serializers.expense_categories import ExpenseCategorySerializer
+from rest_framework import serializers
 
 
 class StatisticsInputSerializer(serializers.Serializer):
@@ -32,9 +30,17 @@ class CategoryStatisticsSerializer(serializers.Serializer):
 
 
 class TripStatisticsSerializer(serializers.Serializer):
-    trip = serializers.DictField(allow_null=True)
+    id = serializers.IntegerField()
+    code = serializers.CharField()
+    name = serializers.CharField()
+    is_active = serializers.BooleanField()
     currency = CurrencySerializer()
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2, default=0)
+    amount_in_dates = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    duration = serializers.IntegerField()
+    price_per_day = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
 class AmortizationTimelineSerializer(serializers.Serializer):

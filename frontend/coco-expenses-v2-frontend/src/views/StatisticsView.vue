@@ -34,9 +34,17 @@ interface CategoryStatistics {
 }
 
 interface TripStatistics {
-  trip: { id: number | null; code: string; name: string; is_active: boolean }
+  id: number | null
+  code: string
+  name: string
+  is_active: boolean
   currency: Currency
-  amount: string
+  total_amount: string
+  amount_in_dates: string
+  start_date: string
+  end_date: string
+  duration: number | null
+  price_per_day: string
 }
 
 interface AmortizationTimelineItem {
@@ -178,14 +186,14 @@ const tripChartData = computed(() => {
   }
 
   return {
-    labels: tripStatistics.value.map((stat) => stat.trip.name),
+    labels: tripStatistics.value.map((stat) => stat.name),
     datasets: [
       {
         label: 'Amount',
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
-        data: tripStatistics.value.map((stat) => parseFloat(stat.amount) || 0),
+        data: tripStatistics.value.map((stat) => parseFloat(stat.total_amount) || 0),
       },
     ],
   }
@@ -360,16 +368,26 @@ const amortizationChartOptions = {
             <thead>
               <tr>
                 <th>Trip</th>
-                <th>Amount</th>
+                <th>Total Amount</th>
+                <th>Amount in selected days</th>
+                <th>Duration (days)</th>
+                <th>Start date</th>
+                <th>End date</th>
+                <th>Price per day</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="tripStatistics.length === 0">
-                <td colspan="2" class="no-data">No trips found</td>
+                <td colspan="3" class="no-data">No trips found</td>
               </tr>
-              <tr v-for="stat in tripStatistics" :key="stat.trip.id || 'no-trip'">
-                <td>{{ stat.trip.name }}</td>
-                <td>{{ stat.amount }}</td>
+              <tr v-for="stat in tripStatistics" :key="stat.id || 'no-trip'">
+                <td>{{ stat.name }}</td>
+                <td>{{ stat.total_amount }}</td>
+                <td>{{ stat.amount_in_dates }}</td>
+                <td>{{ stat.duration ?? '-' }}</td>
+                <td>{{ stat.start_date ?? '-' }}</td>
+                <td>{{ stat.end_date ?? '-' }}</td>
+                <td>{{ stat.price_per_day ?? '-' }}</td>
               </tr>
             </tbody>
           </table>

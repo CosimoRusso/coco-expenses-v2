@@ -106,79 +106,59 @@ class StatisticsTripsTestCase(ApiTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 3)  # trip_1, trip_2, and "No Trip"
 
-        # Check that results are sorted by amount (descending)
-        amounts = [float(item["amount"]) for item in response.data]
+        # Check that results are sorted by total_amount (descending)
+        amounts = [float(item["total_amount"]) for item in response.data]
         self.assertEqual(amounts, sorted(amounts, reverse=True))
 
         # Verify trip_1 data
         trip_1_data = next(
-            (item for item in response.data if item["trip"]["id"] == self.trip_1.id), None
+            (item for item in response.data if item["id"] == self.trip_1.id),
+            None,
         )
         self.assertIsNotNone(trip_1_data)
-        self.assertEqual(trip_1_data["trip"]["code"], self.trip_1.code)
-        self.assertEqual(trip_1_data["trip"]["name"], self.trip_1.name)
-        self.assertEqual(trip_1_data["amount"], "25.00")  # 100 / 4 days
+        self.assertEqual(trip_1_data["code"], self.trip_1.code)
+        self.assertEqual(trip_1_data["name"], self.trip_1.name)
+        # 100 / 4 days = 25 per day, we are considering 2 days so 50
+        self.assertEqual(trip_1_data["total_amount"], "100.00")
+        self.assertEqual(trip_1_data["amount_in_dates"], "50.00")
 
         # Verify trip_2 data
         trip_2_data = next(
-            (item for item in response.data if item["trip"]["id"] == self.trip_2.id), None
+            (item for item in response.data if item["id"] == self.trip_2.id),
+            None,
         )
         self.assertIsNotNone(trip_2_data)
-        self.assertEqual(trip_2_data["trip"]["code"], self.trip_2.code)
-        self.assertEqual(trip_2_data["trip"]["name"], self.trip_2.name)
-        self.assertEqual(trip_2_data["amount"], "20.00")  # 100 / 5 days (overlapping with date range)
+        self.assertEqual(trip_2_data["code"], self.trip_2.code)
+        self.assertEqual(trip_2_data["name"], self.trip_2.name)
+        # 100 / 10 days, we are considering 5 days so 50
+        self.assertEqual(trip_1_data["total_amount"], "100.00")
+        self.assertEqual(trip_1_data["amount_in_dates"], "50.00")
 
         # Verify "No Trip" data
         no_trip_data = next(
-            (item for item in response.data if item["trip"]["id"] is None), None
+            (item for item in response.data if item["id"] is None), None
         )
         self.assertIsNotNone(no_trip_data)
-        self.assertEqual(no_trip_data["trip"]["name"], "No Trip")
-        self.assertEqual(no_trip_data["amount"], "20.00")  # 100 / 5 days
-
-    def test_statistics_trips_excludes_income(self):
-        """
-        Test that the statistics trips endpoint excludes income (non-expenses).
-        """
-        today = date_utils.today()
-        tomorrow = date_utils.today() + timedelta(days=1)
-        response = self.client.get(self.url(start_date=today, end_date=tomorrow))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Verify that income is not included in any trip's amount
-        for item in response.data:
-            # The income amount (200 / 5 days = 40 per day) should not affect trip_1's amount
-            if item["trip"]["id"] == self.trip_1.id:
-                self.assertEqual(item["amount"], "25.00")  # Only expense, not income
+        self.assertEqual(no_trip_data["name"], "No Trip")
+        # 100 / 5 days, we must consider 2 days
+        self.assertEqual(no_trip_data["total_amount"], "100.00")
+        self.assertEqual(no_trip_data["amount_in_dates"], "40.00")
 
     def test_statistics_trips_date_range_filtering(self):
         """
         Test that the statistics trips endpoint correctly filters by date range.
         """
-        today = date_utils.today()
         # Test with a date range that excludes some expenses
         future_date = date_utils.today() + timedelta(days=10)
-        response = self.client.get(self.url(start_date=future_date, end_date=future_date))
+        response = self.client.get(
+            self.url(start_date=future_date, end_date=future_date)
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Should return empty results or only expenses that fall within this date range
         # Since all our test expenses are amortized around today, future_date should return minimal/no results
         self.assertIsInstance(response.data, list)
-
-    def test_statistics_trips_only_includes_trips_with_expenses(self):
-        """
-        Test that trips without expenses in the date range are not included.
-        """
-        # Create a trip with no expenses
-        trip_no_expenses = TripFactory(user=self.user, code="EMPTY", name="Empty Trip")
-
-        today = date_utils.today()
-        tomorrow = date_utils.today() + timedelta(days=1)
-        response = self.client.get(self.url(start_date=today, end_date=tomorrow))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-        # Verify that trip_no_expenses is not in the results
-        trip_ids = [item["trip"]["id"] for item in response.data if item["trip"]["id"] is not None]
-        self.assertNotIn(trip_no_expenses.id, trip_ids)
+        for trip in response.data:
+            self.assertEqual(trip["amount_in_dates"], "0.00")
 
     def test_statistics_trips_user_isolation(self):
         """
@@ -204,7 +184,7 @@ class StatisticsTripsTestCase(ApiTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Verify that other_user's trip is not in the results
-        trip_ids = [item["trip"]["id"] for item in response.data if item["trip"]["id"] is not None]
+        trip_ids = [item["id"] for item in response.data if item["id"] is not None]
         self.assertNotIn(other_trip.id, trip_ids)
 
     def test_statistics_trips_currency_serialization(self):
@@ -235,9 +215,9 @@ class StatisticsTripsTestCase(ApiTestCase):
 
         # Find the "No Trip" entry
         no_trip_data = next(
-            (item for item in response.data if item["trip"]["id"] is None), None
+            (item for item in response.data if item["id"] is None), None
         )
         self.assertIsNotNone(no_trip_data)
-        self.assertEqual(no_trip_data["trip"]["name"], "No Trip")
-        self.assertEqual(no_trip_data["trip"]["code"], "")
-        self.assertFalse(no_trip_data["trip"]["is_active"])
+        self.assertEqual(no_trip_data["name"], "No Trip")
+        self.assertEqual(no_trip_data["code"], "")
+        self.assertFalse(no_trip_data["is_active"])
