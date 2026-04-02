@@ -177,47 +177,6 @@ const chartOptions = {
   },
 }
 
-const tripChartData = computed(() => {
-  if (tripStatistics.value.length === 0) {
-    return {
-      labels: [],
-      datasets: [],
-    }
-  }
-
-  return {
-    labels: tripStatistics.value.map((stat) => stat.name),
-    datasets: [
-      {
-        label: 'Amount',
-        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1,
-        data: tripStatistics.value.map((stat) => parseFloat(stat.total_amount) || 0),
-      },
-    ],
-  }
-})
-
-const tripChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false,
-    },
-    title: {
-      display: true,
-      text: 'Amount by Trip',
-    },
-  },
-  scales: {
-    y: {
-      beginAtZero: true,
-    },
-  },
-}
-
 const amortizationChartData = computed(() => {
   if (amortizationTimeline.value.length === 0) {
     return {
@@ -355,44 +314,34 @@ const amortizationChartOptions = {
   </div>
   <div>
     <h2 class="text-xl font-bold mb-3 mt-8">Results per Trip</h2>
-    <div class="flex flex-wrap gap-8 mt-6">
-      <div class="flex-1 min-w-[400px] h-[400px] bg-base-100 p-4 rounded-lg shadow">
-        <Bar v-if="tripStatistics.length > 0" :data="tripChartData" :options="tripChartOptions" />
-        <p v-else class="text-center text-gray-500 p-8">
-          No data available for the selected date range
-        </p>
-      </div>
-      <div class="flex-1 min-w-[300px]">
-        <div class="overflow-x-auto">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Trip</th>
-                <th>Total Amount</th>
-                <th>Amount in selected days</th>
-                <th>Duration (days)</th>
-                <th>Start date</th>
-                <th>End date</th>
-                <th>Price per day</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="tripStatistics.length === 0">
-                <td colspan="3" class="no-data">No trips found</td>
-              </tr>
-              <tr v-for="stat in tripStatistics" :key="stat.id || 'no-trip'">
-                <td>{{ stat.name }}</td>
-                <td>{{ stat.total_amount }}</td>
-                <td>{{ stat.amount_in_dates }}</td>
-                <td>{{ stat.duration ?? '-' }}</td>
-                <td>{{ stat.start_date ?? '-' }}</td>
-                <td>{{ stat.end_date ?? '-' }}</td>
-                <td>{{ stat.price_per_day ?? '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+    <div class="mt-6 overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Trip</th>
+            <th>Total Amount</th>
+            <th>Amount in selected days</th>
+            <th>Duration (days)</th>
+            <th>Start date</th>
+            <th>End date</th>
+            <th>Price per day</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="tripStatistics.length === 0">
+            <td colspan="7" class="no-data">No trips found</td>
+          </tr>
+          <tr v-for="stat in tripStatistics" :key="stat.id || 'no-trip'">
+            <td>{{ stat.name }}</td>
+            <td>{{ stat.total_amount }}</td>
+            <td>{{ stat.amount_in_dates }}</td>
+            <td>{{ stat.duration ?? '-' }}</td>
+            <td>{{ stat.start_date ?? '-' }}</td>
+            <td>{{ stat.end_date ?? '-' }}</td>
+            <td>{{ stat.price_per_day ?? '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
   <div>
