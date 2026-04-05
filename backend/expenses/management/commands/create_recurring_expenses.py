@@ -11,6 +11,7 @@ class Command(BaseCommand):
         active_recurring_expenses = (
             get_active_recurring_expenses_without_expense_today()
         )
+        print(f"Found {active_recurring_expenses.count()} expenses to create")
         for recurring_expense in active_recurring_expenses.iterator():
             if fires_today(recurring_expense.schedule):
                 create_expense(recurring_expense)
@@ -58,3 +59,4 @@ def create_expense(recurring_expense: RecurringExpense):
         recurring_expense=recurring_expense,
     )
     expense.save()
+    print(f"Expense created: {expense.description}")

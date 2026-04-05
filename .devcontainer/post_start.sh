@@ -9,4 +9,7 @@ echo "alias o='cursor -r'" >> ~/.bashrc
 echo "alias rf='cd /coco-expenses/frontend/coco-expenses-v2-frontend && npm run dev -- --host 0.0.0.0'" >> ~/.bashrc
 echo "alias rb='cd /coco-expenses/backend && python manage.py runserver 0.0.0.0:8000'" >> ~/.bashrc
 
+# Launch tmp.py in shell
+echo "alias stmp=\"cd /coco-expenses/backend && python manage.py shell < /coco-expenses/backend/tmp.py\"" >> ~/.bashrc
+
 echo "READY TO CODE!"
