@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginPage from '@/views/LoginPage.vue'
 import RegisterPage from '@/views/RegisterPage.vue'
+import { useUserStore } from '@/stores/user'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,11 +22,13 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginPage,
+      meta: { isOpen: true },
     },
     {
       path: '/register',
       name: 'register',
       component: RegisterPage,
+      meta: { isOpen: true },
     },
     {
       path: '/expenses',
@@ -63,6 +66,19 @@ const router = createRouter({
       component: () => import('@/views/ImportExpensesFromCsv.vue'),
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const user = useUserStore()
+
+  // If the route requires auth and user is not logged in
+  if (!to.meta.isOpen && !user.isLoggedIn) {
+    return {
+      name: 'login',
+      // Optional: Save the location they were trying to go to
+      query: { redirect: to.fullPath },
+    }
+  }
 })
 
 export default router
