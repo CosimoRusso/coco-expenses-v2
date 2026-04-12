@@ -15,7 +15,7 @@ const router = createRouter({
       // route level code-splitting
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      component: () => import('@/views/AboutView.vue'),
     },
     {
       path: '/login',
@@ -30,17 +30,17 @@ const router = createRouter({
     {
       path: '/expenses',
       name: 'expenses',
-      component: () => import('../views/ExpensesView.vue'),
+      component: () => import('@/views/ExpensesView.vue'),
     },
     {
       path: '/recurring-expenses',
       name: 'recurring-expenses',
-      component: () => import('../views/RecurringExpensesView.vue'),
+      component: () => import('@/views/RecurringExpensesView.vue'),
     },
     {
       path: '/statistics',
       name: 'statistics',
-      component: () => import('../views/StatisticsView.vue'),
+      component: () => import('@/views/StatisticsView.vue'),
     },
     {
       path: '/trips',
@@ -55,12 +55,12 @@ const router = createRouter({
     {
       path: '/profile',
       name: 'profile',
-      component: () => import('../views/ProfileView.vue'),
+      component: () => import('@/views/ProfileView.vue'),
     },
     {
       path: '/import-expenses-from-csv',
       name: 'import-expenses-from-csv',
-      component: () => import('../views/ImportExpensesFromCsv.vue'),
+      component: () => import('@/views/ImportExpensesFromCsv.vue'),
     },
   ],
 })
