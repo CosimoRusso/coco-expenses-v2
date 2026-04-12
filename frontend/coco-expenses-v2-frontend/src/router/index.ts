@@ -68,8 +68,10 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const user = useUserStore()
+
+  await user.checkAuthStatus()
 
   // If the route requires auth and user is not logged in
   if (!to.meta.isOpen && !user.isLoggedIn) {
