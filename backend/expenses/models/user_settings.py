@@ -18,3 +18,4 @@ class UserSettings(models.Model):
         null=True,
         blank=True,
     )
+    is_encrypted = models.BooleanField(default=False)
