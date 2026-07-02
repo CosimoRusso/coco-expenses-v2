@@ -9,8 +9,14 @@ class Expense(models.Model):
     )
     expense_date = models.DateField(verbose_name="Expense Date", null=True)
     description = models.CharField(verbose_name="Description", max_length=255)
+    encrypted_description = models.CharField(
+        verbose_name="Encrypted Description", max_length=255, blank=True
+    )
     amount = models.DecimalField(
         verbose_name="Actual Amount", decimal_places=2, max_digits=10, null=True
+    )
+    encrypted_amount = models.CharField(
+        verbose_name="Encrypted Amount", max_length=255, blank=True
     )
     amortization_start_date = models.DateField(
         verbose_name="Amortization Start Date", null=True
