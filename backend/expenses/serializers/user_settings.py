@@ -6,8 +6,8 @@ from rest_framework import serializers
 class UserSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSettings
-        fields = ["id", "user", "preferred_currency", "active_trip"]
-        read_only_fields = ["id", "user"]
+        fields = ["id", "user", "preferred_currency", "active_trip", "is_encrypted"]
+        read_only_fields = ["id", "user", "is_encrypted"]
 
 
 class UserActivateEncryptionSerializer(serializers.Serializer):

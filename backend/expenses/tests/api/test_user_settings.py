@@ -39,6 +39,24 @@ class TestUserSettings(ApiTestCase):
         self.assertEqual(user_settings.preferred_currency, self.currency)
         self.assertEqual(user_settings.active_trip, self.trip)
 
+    def test_update_cannot_activate_encryption(self):
+        user_settings = UserSettings.objects.get(user=self.user)
+        body = {"is_encrypted": True}
+        res = self.client.patch(self.details_url(user_settings.id), body, format="json")
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        user_settings.refresh_from_db()
+        self.assertFalse(user_settings.is_encrypted)
+
+    def test_update_cannot_deactivate_encryption(self):
+        user_settings = UserSettings.objects.get(user=self.user)
+        user_settings.is_encrypted = True
+        user_settings.save(update_fields=["is_encrypted"])
+        body = {"is_encrypted": False}
+        res = self.client.patch(self.details_url(user_settings.id), body, format="json")
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        user_settings.refresh_from_db()
+        self.assertTrue(user_settings.is_encrypted)
+
     def test_get_user_settings(self):
         user_settings = UserSettings.objects.get(user=self.user)
         res = self.client.get(self.details_url(user_settings.id))
@@ -47,6 +65,7 @@ class TestUserSettings(ApiTestCase):
             res.data["preferred_currency"], user_settings.preferred_currency_id
         )
         self.assertEqual(res.data["active_trip"], user_settings.active_trip_id)
+        self.assertEqual(res.data["is_encrypted"], user_settings.is_encrypted)
 
     def cannot_get_user_settings_for_other_user(self):
         other_user = UserFactory()
