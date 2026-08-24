@@ -33,6 +33,7 @@
           "**/.tox": true
         },
         // PYTHON
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.analysis.autoImportCompletions": true,
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff",
