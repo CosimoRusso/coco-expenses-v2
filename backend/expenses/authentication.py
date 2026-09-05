@@ -1,11 +1,9 @@
 from typing import Tuple
 
-from rest_framework import authentication
-from rest_framework import exceptions
-from rest_framework.request import Request
-
 from expenses.models import User
 from expenses.models.token import Token
+from rest_framework import authentication, exceptions
+from rest_framework.request import Request
 
 
 class CustomTokenAuthentication(authentication.BaseAuthentication):
@@ -16,7 +14,7 @@ class CustomTokenAuthentication(authentication.BaseAuthentication):
         try:
             token = Token.objects.get(token=token)
             user = token.user
-            token.extend_expiration_date()
+            # The extension of the expiration date is handled by the SessionRefreshMiddleware
         except Token.DoesNotExist:
             return None
 

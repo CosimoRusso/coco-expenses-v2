@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from expenses import date_utils
 from expenses.models import Expense
+from expenses.models.user import get_hashed_password
 from expenses.tests.api.api_test_case import ApiTestCase
 from expenses.tests.factories.category_factories import (
     ExpenseCategoryFactory,
@@ -11,16 +12,20 @@ from expenses.tests.factories.category_factories import (
 from expenses.tests.factories.expense_factories import ExpenseFactory
 from expenses.tests.factories.trip_factories import TripFactory
 from expenses.tests.factories.user_factories import UserFactory
+from expenses.utils.encryption.encryption import encrypt_user_data
 from rest_framework import status
 from rest_framework.reverse import reverse
 
 
 class TestExpense(ApiTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.category = ExpenseCategoryFactory()
+        cls.list_url = reverse("expenses:expenses-list")
+        cls.today = date_utils.today()
+        cls.user = UserFactory()
+
     def setUp(self):
-        self.category = ExpenseCategoryFactory()
-        self.list_url = reverse("expenses:expenses-list")
-        self.today = date_utils.today()
-        self.user = UserFactory()
         self.login(self.user.email)
 
     def details_url(self, id: int) -> str:
@@ -1013,3 +1018,56 @@ class TestExpense(ApiTestCase):
 
         # Verify all matching expenses are accounted for
         self.assertEqual(first_page_ids | second_page_ids, matching_ids)
+
+
+class TestExpenseListWithEncryption(ApiTestCase):
+    password = "PASSWORD"
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password_hash=get_hashed_password(cls.password))
+        cls.category = ExpenseCategoryFactory(user=cls.user)
+        cls.trip = TripFactory(user=cls.user)
+        cls.list_url = reverse("expenses:expenses-list")
+
+    def activate_encryption(self):
+        response = self.client.post(
+            reverse("expenses:user-settings-activate-encryption"),
+            {"password": self.password},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def post_expense(self, data):
+        response = self.client.post(self.list_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        return response.json()
+
+    def list_expenses(self, params=None):
+        response = self.client.get(self.list_url, params)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.json()
+
+    def setUp(self):
+        self.login(self.user, self.password)
+        self.activate_encryption()
+
+    def test_list_expenses_with_encryption(self):
+        reponse = self.post_expense(
+            {
+                "category": self.category.id,
+                "description": "Encrypted Expense",
+                "amount": 100.0,
+                "is_expense": True,
+                "date": date_utils.today().isoformat(),
+                "amortization_start_date": date_utils.today().isoformat(),
+                "amortization_end_date": date_utils.today().isoformat(),
+            }
+        )
+        expense_id = reponse["id"]
+        expenses_list = self.list_expenses()
+        self.assertEqual(len(expenses_list["results"]), 1)
+        expense = expenses_list["results"][0]
+        self.assertEqual(expense["id"], expense_id)
+        self.assertEqual(expense["description"], "Encrypted Expense")
+        self.assertEqual(expense["amount"], "100.00")
