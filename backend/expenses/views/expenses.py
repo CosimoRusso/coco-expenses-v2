@@ -1,16 +1,24 @@
 import csv
 import datetime as dt
+import io
+from dataclasses import asdict, dataclass
 from io import TextIOWrapper
 
 import django_filters
 from django.db import transaction
 from django.db.models import Q
+from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from expenses.date_utils import from_italian_date, is_italian_date
-from expenses.models import Expense, ExpenseCategory, Trip
+from expenses.models import Currency, Expense, ExpenseCategory, Trip
 from expenses.serializers.expenses import ExpenseSerializer
+from expenses.utils.encryption.encryption import (
+    decrypt_text_with_key,
+    encrypt_text_with_key,
+)
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -108,13 +116,16 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         reader = csv.DictReader(csv_file)
         created = 0
         errors = []
+        user_is_encrypted = user.usersettings.is_encrypted
+        user_crypto_key = request.COOKIES.get("user_crypto_key")
+        if user_is_encrypted and not user_crypto_key:
+            raise ValidationError(
+                "Encryption key not present in cookie 'user_crypto_key'"
+            )
         with transaction.atomic():
             for i, row in enumerate(reader, 1):
                 try:
-                    # Tipologia: True per expense, False per income
-                    is_expense = (
-                        row.get("typology", "expense").strip().lower() != "income"
-                    )
+                    is_expense = row.get("is_expense", "True").strip().lower() == "true"
                     # Categoria: cerca per code, crea se non esiste
                     cat_code = row["category"].strip()
                     category, _ = ExpenseCategory.objects.get_or_create(
@@ -144,26 +155,39 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                             )
                     if row.get("amount"):
                         row["amount"] = (
-                            float(
-                                row["amount"]
-                                .replace(".", "")
-                                .replace(",", ".")
-                                .replace("€", "")
-                                .strip()
-                            )
+                            float(row["amount"].replace(",", ".").strip())
                             if isinstance(row["amount"], str)
                             else row["amount"]
                         )
+                    if user_is_encrypted:
+                        amount = None
+                        encrypted_amount = encrypt_text_with_key(
+                            user, user_crypto_key, str(row["amount"])
+                        )
+                        description = ""
+                        encrypted_description = encrypt_text_with_key(
+                            user, user_crypto_key, row["description"]
+                        )
+                    else:
+                        amount = row["amount"]
+                        encrypted_amount = ""
+                        description = row["description"]
+                        encrypted_description = ""
+                    # Currency
+                    currency = Currency.objects.get(code=row["currency"])
                     # Crea Expense
                     Expense.objects.create(
                         user=user,
                         expense_date=row["expense_date"],
-                        description=row["description"],
-                        amount=row["amount"],
+                        description=description,
+                        encrypted_description=encrypted_description,
+                        amount=amount,
+                        encrypted_amount=encrypted_amount,
                         amortization_start_date=row["amortization_start_date"],
                         amortization_end_date=row["amortization_end_date"],
                         category=category,
                         trip=trip,
+                        currency=currency,
                         is_expense=is_expense,
                     )
                     created += 1
@@ -173,3 +197,69 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             {"created": created, "errors": errors},
             status=status.HTTP_201_CREATED if created else status.HTTP_400_BAD_REQUEST,
         )
+
+    @action(detail=False, methods=["get"])
+    def download_csv(self, request):
+        user = request.user
+        queryset = Expense.objects.select_related(
+            "trip", "category", "currency"
+        ).order_by("expense_date", "id")
+
+        buffer = io.StringIO()
+        fieldnames = list(ExpenseCSV.__annotations__.keys())
+        writer = csv.DictWriter(buffer, fieldnames=fieldnames)
+        writer.writeheader()
+
+        data = []
+        for expense in queryset.iterator():
+            amount = expense.amount
+            description = expense.description
+            if user.usersettings.is_encrypted:
+                crypto_key = request.COOKIES.get("user_crypto_key")
+                amount = decrypt_text_with_key(
+                    user, crypto_key, expense.encrypted_amount
+                )
+                description = decrypt_text_with_key(
+                    user, crypto_key, expense.encrypted_description
+                )
+            data.append(
+                asdict(
+                    ExpenseCSV(
+                        amount=amount,
+                        description=description,
+                        category=expense.category.code,
+                        trip=expense.trip and expense.trip.code,
+                        currency=expense.currency.code,
+                        expense_date=expense.expense_date,
+                        amortization_start_date=expense.amortization_start_date,
+                        amortization_end_date=expense.amortization_end_date,
+                        is_expense=expense.is_expense,
+                    )
+                )
+            )
+
+        writer.writerows(data)
+
+        mem_file = io.BytesIO(buffer.getvalue().encode("utf-8"))
+
+        response = FileResponse(
+            mem_file,
+            content_type="text/csv",
+            as_attachment=True,
+            filename="users_export.csv",
+        )
+        response["Access-Control-Expose-Headers"] = "Content-Disposition"
+        return response
+
+
+@dataclass
+class ExpenseCSV:
+    amount: str
+    description: str
+    category: str
+    trip: str
+    currency: str
+    expense_date: str
+    amortization_start_date: str
+    amortization_end_date: str
+    is_expense: bool

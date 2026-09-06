@@ -65,6 +65,11 @@ const router = createRouter({
       name: 'import-expenses-from-csv',
       component: () => import('@/views/ImportExpensesFromCsv.vue'),
     },
+    {
+      path: '/export-expenses-to-csv',
+      name: 'export-expenses-to-csv',
+      component: () => import('@/views/ExportExpensesToCsv.vue'),
+    },
   ],
 })
 

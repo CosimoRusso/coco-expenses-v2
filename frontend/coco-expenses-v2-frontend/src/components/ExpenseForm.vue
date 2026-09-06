@@ -303,6 +303,8 @@ watch(
     <p>
       or
       <router-link class="text-primary" to="/import-expenses-from-csv">import from csv</router-link>
+      <span> / </span>
+      <router-link class="text-primary" to="/export-expenses-to-csv">export to csv</router-link>
     </p>
   </div>
 </template>

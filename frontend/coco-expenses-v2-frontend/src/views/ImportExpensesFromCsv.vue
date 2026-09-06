@@ -1,21 +1,33 @@
 <template>
-  <div class="import-expenses">
-    <h1>Importa Spese da CSV</h1>
-    <p>Il file CSV deve contenere le seguenti colonne</p>
-    <p>
-      expense_date, description, amount,
-      amortization_start_date,amortization_end_date,category,trip,typology
+  <div class="container mx-auto px-4">
+    <h1 class="text-3xl font-bold mb-3">Importa Spese da CSV</h1>
+    <p>Il file CSV deve contenere le seguenti colonne:</p>
+    <p class="font-semibold mb-2 mt-2">
+      expense_date, description, amount, amortization_start_date, amortization_end_date, category,
+      trip, currency, is_expense
     </p>
 
-    <p>Esempi di righe valide:</p>
-    <p>
-      2025-01-01,Spesa di esempio,100,100,2025-01-01,2025-01-01,Categoria di esempio,Viaggio di
-      esempio,expense
-    </p>
-    <p>2025-01-01,Entrata di esempio,100,100,2025-01-01,2025-01-01,Categoria 2,Viaggio 2,income</p>
+    <div
+      class="rounded-xl overflow-hidden shadow-lg bg-white border border-gray-100 transition-all hover:shadow-xl p-4 mb-4"
+    >
+      <p>Esempi di righe valide:</p>
+      <ul class="list-disc list-inside space-y-1 text-gray-700">
+        <li>
+          2025-01-01,Spesa di
+          esempio,1034.34,100,2025-01-01,2025-01-01,Categoria_esempio,Viaggio_esempio,EUR,True
+        </li>
+        <li>
+          2025-01-01,Entrata di
+          esempio,20.43,11.1,2025-01-01,2025-01-01,Categoria_2,Viaggio_2,USD,False
+        </li>
+      </ul>
+    </div>
+
     <form @submit.prevent="submitCsv" enctype="multipart/form-data">
-      <div>
-        <label for="csvFile">Seleziona file CSV:</label>
+      <div class="max-w-md mb-4">
+        <label for="csvFile" class="block text-sm font-medium text-gray-700 mb-2"
+          >Seleziona file CSV:</label
+        >
         <input
           type="file"
           id="csvFile"
@@ -23,9 +35,10 @@
           @change="onFileChange"
           accept=".csv"
           required
+          class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:cursor-pointer file:transition-colors"
         />
       </div>
-      <button type="submit" :disabled="loading">Carica</button>
+      <button type="submit" :disabled="loading" class="btn btn-primary w-full">Carica</button>
     </form>
     <div v-if="loading">Caricamento in corso...</div>
     <div v-if="result">
@@ -87,19 +100,3 @@ async function submitCsv() {
   }
 }
 </script>
-
-<style scoped>
-.import-expenses {
-  max-width: 500px;
-  margin: 2rem auto;
-  padding: 2rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background: #fafafa;
-}
-
-.error {
-  color: red;
-  margin-top: 1rem;
-}
-</style>

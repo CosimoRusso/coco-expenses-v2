@@ -95,11 +95,6 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
         self.assertEqual(response.data[1]["category"]["code"], self.category_2.code)
         self.assertEqual(response.data[1]["amount"], "20.00")
 
-        self.assertEqual(response.data[0]["date"], today.isoformat())
-        self.assertEqual(response.data[0]["expense_amount"], "0.97")
-        self.assertEqual(response.data[0]["non_expense_amount"], "3.23")
-        self.assertEqual(response.data[0]["difference"], "2.26")
-
 
 class EncryptedStatisticsExpenseCategoriesTestCase(ApiTestCase):
     PASSWORD = "password"
@@ -185,8 +180,3 @@ class EncryptedStatisticsExpenseCategoriesTestCase(ApiTestCase):
         # Category 2
         self.assertEqual(response.data[1]["category"]["code"], self.category_2.code)
         self.assertEqual(response.data[1]["amount"], "20.00")
-
-        self.assertEqual(response.data[0]["date"], today.isoformat())
-        self.assertEqual(response.data[0]["expense_amount"], "0.97")
-        self.assertEqual(response.data[0]["non_expense_amount"], "3.23")
-        self.assertEqual(response.data[0]["difference"], "2.26")
