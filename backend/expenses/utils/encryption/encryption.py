@@ -24,14 +24,14 @@ def derive_key_from_password(password: str, user_id: int) -> str:
     return base64.urlsafe_b64encode(derived_bytes).decode()
 
 
-def get_fernet_for_user(user_crypto_key: str) -> Fernet:
+def get_fernet_from_crypto_key(user_crypto_key: str) -> Fernet:
     return Fernet(user_crypto_key.encode())
 
 
 def encrypt_user_data(user: User, password: str) -> None:
     """Encrypts user data using a derived key from the password."""
     user_crypto_key = derive_key_from_password(password, user.id)
-    fernet = get_fernet_for_user(user_crypto_key)
+    fernet = get_fernet_from_crypto_key(user_crypto_key)
 
     expenses = Expense.objects.filter(user=user).order_by("id").iterator()
     for expense in expenses:
@@ -54,7 +54,7 @@ def encrypt_user_data(user: User, password: str) -> None:
 def decrypt_user_data(user: User, password: str) -> None:
     """Decrypts user data using a derived key from the password."""
     user_crypto_key = derive_key_from_password(password, user.id)
-    fernet = get_fernet_for_user(user_crypto_key)
+    fernet = get_fernet_from_crypto_key(user_crypto_key)
 
     expenses = Expense.objects.filter(user=user).order_by("id").iterator()
     for expense in expenses:
@@ -79,24 +79,24 @@ def decrypt_user_data(user: User, password: str) -> None:
 def encrypt_text_with_password(user: User, password: str, text: str) -> str:
     """Encrypts a given text using a derived key from the password."""
     user_crypto_key = derive_key_from_password(password, user.id)
-    fernet = get_fernet_for_user(user_crypto_key)
+    fernet = get_fernet_from_crypto_key(user_crypto_key)
     return fernet.encrypt(text.encode()).decode()
 
 
 def encrypt_text_with_key(user: User, user_crypto_key: str, text: str) -> str:
     """Encrypts a given text using a provided user crypto key."""
-    fernet = get_fernet_for_user(user_crypto_key)
+    fernet = get_fernet_from_crypto_key(user_crypto_key)
     return fernet.encrypt(text.encode()).decode()
 
 
 def decrypt_text_with_password(user: User, password: str, encrypted_text: str) -> str:
     """Decrypts a given encrypted text using a derived key from the password."""
     user_crypto_key = derive_key_from_password(password, user.id)
-    fernet = get_fernet_for_user(user_crypto_key)
+    fernet = get_fernet_from_crypto_key(user_crypto_key)
     return fernet.decrypt(encrypted_text.encode()).decode()
 
 
 def decrypt_text_with_key(user: User, user_crypto_key: str, encrypted_text: str) -> str:
     """Decrypts a given encrypted text using a provided user crypto key."""
-    fernet = get_fernet_for_user(user_crypto_key)
+    fernet = get_fernet_from_crypto_key(user_crypto_key)
     return fernet.decrypt(encrypted_text.encode()).decode()

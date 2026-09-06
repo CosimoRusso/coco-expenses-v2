@@ -1,14 +1,15 @@
-from dataclasses import dataclass
 import datetime as dt
 from collections import defaultdict
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Iterable
 
 from expenses.managers import exchange_rate_manager
-from expenses.models import Expense
+from expenses.models import Expense, User
 from expenses.models.currency import Currency
 from expenses.models.expense_category import ExpenseCategory
 from expenses.models.trip import Trip
+from expenses.utils.encryption.encryption import decrypt_text_with_key
 
 ZERO = Decimal("0.00")
 
@@ -63,14 +64,28 @@ def amortize_value(value: Decimal | None, num_days: int) -> Decimal:
     return (value / num_days).quantize(ZERO)
 
 
+class MissingEncryptionPasswordException(Exception):
+    pass
+
+
 def convert_expenses_to_statistics_expenses(
-    expenses: Iterable[Expense],
+    expenses: Iterable[Expense], user: User, encryption_key: str
 ) -> list[StatisticsExpense]:
     res = []
+    is_encrypted = user.usersettings.is_encrypted
+    if is_encrypted and not encryption_key:
+        raise MissingEncryptionPasswordException()
     for expense in expenses:
+        amount = (
+            Decimal(
+                decrypt_text_with_key(user, encryption_key, expense.encrypted_amount)
+            )
+            if is_encrypted
+            else expense.amount
+        )
         res.append(
             StatisticsExpense(
-                amount=expense.amount,
+                amount=amount,
                 currency=expense.currency,
                 expense_date=expense.expense_date,
                 amortization_start_date=expense.amortization_start_date,
@@ -111,15 +126,12 @@ def convert_expenses_to_currency(
 
 
 def get_expenses_date_range_in_currency(
-    expenses: Iterable[Expense],
+    expenses: Iterable[StatisticsExpense],
     start_date: dt.date,
     end_date: dt.date,
     currency: Currency,
 ) -> dict[dt.date, list[StatisticsExpense]]:
-    expenses_as_statistics_expenses = convert_expenses_to_statistics_expenses(expenses)
-    expenses_in_currency = convert_expenses_to_currency(
-        expenses_as_statistics_expenses, currency
-    )
+    expenses_in_currency = convert_expenses_to_currency(expenses, currency)
 
     expenses_by_day = get_expenses_by_day(expenses_in_currency)
     return {

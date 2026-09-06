@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.db.models import QuerySet
+from django.forms import ValidationError
 from expenses.date_utils import all_dates_in_range
 from expenses.models import Currency, Expense, ExpenseCategory, Trip, UserSettings
 from expenses.serializers.statistics import (
@@ -10,11 +11,13 @@ from expenses.serializers.statistics import (
     TripStatisticsSerializer,
 )
 from expenses.statistics_utils import (
+    MissingEncryptionPasswordException,
     convert_expenses_to_currency,
     convert_expenses_to_statistics_expenses,
     get_expenses_by_day,
     get_expenses_date_range_in_currency,
 )
+from expenses.utils.encryption.encryption import decrypt_text_with_password
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -44,8 +47,16 @@ class StatisticViewSet(ViewSet):
             or UserSettings.objects.get(user=user).preferred_currency
             or Currency.objects.get(code="USD")
         )
+        try:
+            expenses_as_statistics_expenses = convert_expenses_to_statistics_expenses(
+                queryset, user, request.COOKIES.get("user_crypto_key")
+            )
+        except MissingEncryptionPasswordException:
+            raise ValidationError(
+                "Missing encryption password in cookie 'user_crypto_key'"
+            )
         all_expenses_in_currency = get_expenses_date_range_in_currency(
-            queryset,
+            expenses_as_statistics_expenses,
             currency=currency,
             start_date=start_date,
             end_date=end_date,
@@ -86,7 +97,7 @@ class StatisticViewSet(ViewSet):
         queryset: QuerySet[Expense] = Expense.objects.filter(user=user).select_related(
             "category", "trip"
         )
-        trips = Trip.objects.filter(user=request.user)
+        trips = Trip.objects.filter(user=request.user).order_by("name")
         input_serializer = StatisticsInputSerializer(data=request.query_params)
         input_serializer.is_valid(raise_exception=True)
         start_date = input_serializer.validated_data["start_date"]
@@ -99,7 +110,14 @@ class StatisticViewSet(ViewSet):
 
         # Get original expenses (before amortization) that overlap with date range
         all_expenses = queryset.filter(is_expense=True)
-        expenses_as_statistics = convert_expenses_to_statistics_expenses(all_expenses)
+        try:
+            expenses_as_statistics = convert_expenses_to_statistics_expenses(
+                all_expenses, user, request.COOKIES.get("user_crypto_key")
+            )
+        except MissingEncryptionPasswordException:
+            raise ValidationError(
+                "Missing encryption password in cookie 'user_crypto_key'"
+            )
         expenses_in_currency = convert_expenses_to_currency(
             expenses_as_statistics, currency
         )
@@ -208,8 +226,17 @@ class StatisticViewSet(ViewSet):
             or UserSettings.objects.get(user=user).preferred_currency
             or Currency.objects.get(code="USD")
         )
+        try:
+            expenses_as_statistics_expenses = convert_expenses_to_statistics_expenses(
+                queryset, user, request.COOKIES.get("user_crypto_key")
+            )
+        except MissingEncryptionPasswordException:
+            raise ValidationError(
+                "Missing encryption password in cookie 'user_crypto_key'"
+            )
+
         all_expenses_in_currency = get_expenses_date_range_in_currency(
-            queryset,
+            expenses_as_statistics_expenses,
             currency=currency,
             start_date=start_date,
             end_date=end_date,

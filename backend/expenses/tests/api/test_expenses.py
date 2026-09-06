@@ -1030,14 +1030,6 @@ class TestExpenseListWithEncryption(ApiTestCase):
         cls.trip = TripFactory(user=cls.user)
         cls.list_url = reverse("expenses:expenses-list")
 
-    def activate_encryption(self):
-        response = self.client.post(
-            reverse("expenses:user-settings-activate-encryption"),
-            {"password": self.password},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
     def post_expense(self, data):
         response = self.client.post(self.list_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -1050,7 +1042,7 @@ class TestExpenseListWithEncryption(ApiTestCase):
 
     def setUp(self):
         self.login(self.user, self.password)
-        self.activate_encryption()
+        self.activate_encryption(self.password)
 
     def test_list_expenses_with_encryption(self):
         reponse = self.post_expense(

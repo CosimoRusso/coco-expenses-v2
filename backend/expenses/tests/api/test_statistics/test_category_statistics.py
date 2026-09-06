@@ -2,6 +2,7 @@ import datetime as dt
 from datetime import timedelta
 
 from expenses import date_utils
+from expenses.models.user import get_hashed_password
 from expenses.tests.api.api_test_case import ApiTestCase
 from expenses.tests.factories.category_factories import CategoryFactory
 from expenses.tests.factories.currency_factories import CurrencyFactory
@@ -94,65 +95,96 @@ class StatisticsExpenseCategoriesTestCase(ApiTestCase):
         self.assertEqual(response.data[1]["category"]["code"], self.category_2.code)
         self.assertEqual(response.data[1]["amount"], "20.00")
 
+        self.assertEqual(response.data[0]["date"], today.isoformat())
+        self.assertEqual(response.data[0]["expense_amount"], "0.97")
+        self.assertEqual(response.data[0]["non_expense_amount"], "3.23")
+        self.assertEqual(response.data[0]["difference"], "2.26")
 
-class StatisticsExpensesAmortizationTestCase(ApiTestCase):
+
+class EncryptedStatisticsExpenseCategoriesTestCase(ApiTestCase):
+    PASSWORD = "password"
+
     @classmethod
     def setUpTestData(cls):
-        cls.user = UserFactory()
+        cls.user = UserFactory(password_hash=get_hashed_password(cls.PASSWORD))
         cls.currency = CurrencyFactory(code="USD")
         cls.user_settings = UserSettingsFactory(
             user=cls.user, preferred_currency=cls.currency
         )
-        cls.non_expense = CategoryFactory(
-            user=cls.user, for_expense=False, code="income", name="salary"
+        cls.category_1 = CategoryFactory(
+            user=cls.user, for_expense=True, code="cat1", name="Category 1"
         )
-        cls.rent = CategoryFactory(
-            user=cls.user, for_expense=True, code="rent", name="house"
+        cls.category_2 = CategoryFactory(
+            user=cls.user, for_expense=True, code="cat2", name="Category 2"
         )
 
-        cls.non_expense = [
-            ExpenseFactory(
+        cls.expenses_cat_1 = [
+            ExpenseFactory(  # 25 euro a day for 4 days
                 user=cls.user,
                 expense_date=date_utils.today(),
                 amount=100,
                 currency=cls.currency,
-                category=cls.non_expense,
+                category=cls.category_1,
                 amortization_start_date=date_utils.today(),
-                amortization_end_date=date_utils.today() + timedelta(days=30),
-                is_expense=False,
+                amortization_end_date=date_utils.today() + timedelta(days=3),
+            ),
+            ExpenseFactory(  # 20 euro a day for 5 days, forecast only
+                user=cls.user,
+                expense_date=None,
+                amount=100,
+                currency=cls.currency,
+                category=cls.category_1,
+                amortization_start_date=date_utils.today(),
+                amortization_end_date=date_utils.today() + timedelta(days=4),
             ),
         ]
 
-        cls.rent = [
-            ExpenseFactory(
+        cls.expenses_cat_2 = [
+            ExpenseFactory(  # 10 euro a day for 10 days
                 user=cls.user,
                 expense_date=date_utils.today(),
-                amount=30,
+                amount=100,
                 currency=cls.currency,
-                category=cls.rent,
-                amortization_start_date=date_utils.today(),
-                amortization_end_date=date_utils.today() + timedelta(days=30),
+                category=cls.category_2,
+                amortization_start_date=date_utils.today() - timedelta(days=5),
+                amortization_end_date=date_utils.today() + timedelta(days=4),
+            ),
+            ExpenseFactory(  # 10 euro a day for 1 day, old one
+                user=cls.user,
+                expense_date=date_utils.today() + dt.timedelta(days=10),
+                amount=10,
+                currency=cls.currency,
+                category=cls.category_2,
+                amortization_start_date=date_utils.today() - timedelta(days=10),
+                amortization_end_date=date_utils.today() - timedelta(days=10),
             ),
         ]
 
     def url(self, start_date: dt.date, end_date: dt.date):
         return (
-            f"{reverse('expenses:statistics-amortization-timeline')}"
+            f"{reverse('expenses:statistics-expense-categories')}"
             f"?start_date={start_date.isoformat()}&end_date={end_date.isoformat()}"
         )
 
     def setUp(self):
-        self.login(email=self.user.email)
+        self.login(email=self.user.email, password=self.PASSWORD)
+        self.activate_encryption(self.PASSWORD)
 
     def test_statistics_expense_categories(self):
         """
-        Test the statistics expense amortization endpoint.
+        Test the statistics expense categories endpoint.
         """
-
         today = date_utils.today()
-        end_month = date_utils.today() + timedelta(days=30)
-        response = self.client.get(self.url(start_date=today, end_date=end_month))
+        tomorrow = date_utils.today() + timedelta(days=1)
+        response = self.client.get(self.url(start_date=today, end_date=tomorrow))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        # Category 1
+        self.assertEqual(response.data[0]["category"]["code"], self.category_1.code)
+        self.assertEqual(response.data[0]["amount"], "90.00")
+        # Category 2
+        self.assertEqual(response.data[1]["category"]["code"], self.category_2.code)
+        self.assertEqual(response.data[1]["amount"], "20.00")
 
         self.assertEqual(response.data[0]["date"], today.isoformat())
         self.assertEqual(response.data[0]["expense_amount"], "0.97")
