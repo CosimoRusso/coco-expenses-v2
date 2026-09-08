@@ -4,8 +4,6 @@ services:
     container_name: ce-db
     env_file: "database/.env"
     restart: always
-    ports:
-      - "5430:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -34,8 +32,6 @@ services:
       dockerfile: Dockerfile
       target: prod
     container_name: ce-nginx
-    ports:
-      - "8080:8080"
     depends_on:
       - backend
     networks:
