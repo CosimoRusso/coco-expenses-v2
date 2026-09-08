@@ -35,30 +35,16 @@ services:
       target: prod
     container_name: ce-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:8080"
     depends_on:
       - backend
     networks:
       - coco-network
+      - proxy-network 
     volumes:
       - django_static_files:/usr/share/nginx/html/static
       - certbot_www:/var/www/certbot/:ro
       - certbot_conf:/etc/nginx/ssl/:ro
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: ce-certbot
-    volumes:
-      - certbot_www:/var/www/certbot/:rw
-      - certbot_conf:/etc/letsencrypt/:rw
-    networks:
-      - coco-network
-    command: >-
-      certonly --webroot -w /var/www/certbot
-      --email cosimo.russo123@gmail.com
-      -d spese.cosimorusso.it -d www.spese.cosimorusso.it
-      --agree-tos --non-interactive
 
 volumes:
   postgres_data:
@@ -69,3 +55,6 @@ volumes:
 networks:
   coco-network:
     driver: bridge
+  proxy-network:
+    external: true
+  
