@@ -28,12 +28,12 @@ class TestBalances(ApiTestCase):
     def setUp(self):
         self.login(self.me.email)
 
-    def share(self, creator, friends, total, currency=None):
+    def share(self, creator, friends, total, currency=None, description="Dinner"):
         create_shared_expense(
             ExpenseShare(
                 creator=creator,
                 friends=friends,
-                description="Dinner",
+                description=description,
                 total=Decimal(total),
                 currency=currency or self.euro,
             )
@@ -43,6 +43,16 @@ class TestBalances(ApiTestCase):
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         return {b["user_id"]: b["amount"] for b in res.data["balances"]}
+
+    def movements(self) -> dict[int, list[dict]]:
+        res = self.client.get(self.url)
+        return {b["user_id"]: b["movements"] for b in res.data["balances"]}
+
+    def descriptions(self) -> dict[int, list[str]]:
+        return {
+            user_id: [m["description"] for m in movements]
+            for user_id, movements in self.movements().items()
+        }
 
     def test_friends_owe_me_their_quota_of_what_i_paid(self):
         self.share(self.me, [self.anna, self.bruno], "30.00")
@@ -119,3 +129,68 @@ class TestBalances(ApiTestCase):
         res = self.client.get(self.url)
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_movement_i_paid_shows_the_quota_the_friend_owes_me(self):
+        self.share(self.me, [self.anna], "30.00", currency=self.dollar)
+
+        self.assertEqual(
+            self.movements()[self.anna.id],
+            [
+                {
+                    "description": "Dinner",
+                    "date": timezone.localdate().isoformat(),
+                    "amount": "15.00",
+                    "currency": {
+                        "id": self.dollar.id,
+                        "code": "USD",
+                        "symbol": "$",
+                        "display_name": "Dollar",
+                    },
+                }
+            ],
+        )
+
+    def test_movement_a_friend_paid_shows_my_quota_as_negative(self):
+        self.share(self.anna, [self.me, self.bruno], "30.00")
+
+        self.assertEqual(self.movements()[self.anna.id][0]["amount"], "-10.00")
+
+    def test_movements_are_listed_under_the_person_they_are_shared_with(self):
+        self.share(self.me, [self.anna], "10.00", description="Cinema")
+        self.share(self.bruno, [self.me], "10.00", description="Taxi")
+
+        self.assertEqual(
+            self.descriptions(), {self.anna.id: ["Cinema"], self.bruno.id: ["Taxi"]}
+        )
+
+    def test_movements_are_newest_first(self):
+        self.share(self.me, [self.anna], "10.00", description="Cinema")
+        self.share(self.anna, [self.me], "10.00", description="Taxi")
+
+        self.assertEqual(self.descriptions()[self.anna.id], ["Taxi", "Cinema"])
+
+    def test_only_the_latest_ten_movements_are_listed(self):
+        for number in range(1, 12):
+            self.share(self.me, [self.anna], "10.00", description=f"Dinner {number}")
+
+        self.assertEqual(
+            self.descriptions()[self.anna.id],
+            [
+                "Dinner 11",
+                "Dinner 10",
+                "Dinner 9",
+                "Dinner 8",
+                "Dinner 7",
+                "Dinner 6",
+                "Dinner 5",
+                "Dinner 4",
+                "Dinner 3",
+                "Dinner 2",
+            ],
+        )
+
+    def test_balance_counts_movements_beyond_the_latest_ten(self):
+        for _ in range(11):
+            self.share(self.me, [self.anna], "10.00")
+
+        self.assertEqual(self.balances(), {self.anna.id: "55.00"})

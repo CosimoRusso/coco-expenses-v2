@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import apiFetch from '@/utils/apiFetch'
-import type { Balance, Balances } from '@/interfaces/Balance'
+import type { Balance, Balances, Movement } from '@/interfaces/Balance'
 
 const isLoading = ref(true)
 const balances = ref<Balances | null>(null)
@@ -25,6 +25,15 @@ onMounted(async () => {
 function formatAmount(amount: string): string {
   const absolute = Math.abs(Number(amount)).toFixed(2)
   return `${balances.value!.currency.symbol} ${absolute}`
+}
+
+function formatMovementAmount(movement: Movement): string {
+  const absolute = Math.abs(Number(movement.amount)).toFixed(2)
+  return `${movement.currency.symbol} ${absolute}`
+}
+
+function movementClass(movement: Movement): string {
+  return Number(movement.amount) < 0 ? 'text-error' : 'text-success'
 }
 
 function status(balance: Balance): { text: string; class: string } {
@@ -53,13 +62,33 @@ function status(balance: Balance): { text: string; class: string } {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="balance in balances.balances" :key="balance.user_id">
-            <td>{{ balance.first_name }} {{ balance.last_name }}</td>
-            <td :class="status(balance).class">{{ status(balance).text }}</td>
-            <td class="text-right font-semibold" :class="status(balance).class">
-              {{ formatAmount(balance.amount) }}
-            </td>
-          </tr>
+          <template v-for="balance in balances.balances" :key="balance.user_id">
+            <tr class="border-b-0">
+              <td>{{ balance.first_name }} {{ balance.last_name }}</td>
+              <td :class="status(balance).class">{{ status(balance).text }}</td>
+              <td class="text-right font-semibold" :class="status(balance).class">
+                {{ formatAmount(balance.amount) }}
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3" class="pt-0">
+                <ul class="text-sm text-base-content/70 pl-4">
+                  <li
+                    v-for="(movement, index) in balance.movements"
+                    :key="index"
+                    class="flex gap-4 py-0.5"
+                  >
+                    <span class="text-base-content/50 whitespace-nowrap">{{ movement.date }}</span>
+                    <span class="grow">{{ movement.description }}</span>
+                    <span class="whitespace-nowrap" :class="movementClass(movement)">
+                      {{ Number(movement.amount) < 0 ? '−' : '+' }}
+                      {{ formatMovementAmount(movement) }}
+                    </span>
+                  </li>
+                </ul>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>

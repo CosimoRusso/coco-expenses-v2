@@ -1,11 +1,24 @@
+import datetime as dt
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.utils import timezone
 from expenses.managers import exchange_rate_manager
-from expenses.models import Currency, SharedExpenseParticipant, User
+from expenses.models import Currency, SharedExpense, SharedExpenseParticipant, User
 from expenses.sharing import CENT
+
+MOVEMENTS_PER_PERSON = 10
+
+
+@dataclass(frozen=True)
+class Movement:
+    """One shared expense with `other`: positive when `other` owes the user their quota."""
+
+    description: str
+    date: dt.date
+    amount: Decimal
+    currency: Currency
 
 
 @dataclass(frozen=True)
@@ -14,11 +27,13 @@ class Balance:
 
     other: User
     amount: Decimal
+    movements: list[Movement]
 
 
 @dataclass(frozen=True)
 class _Debt:
     other: User
+    shared_expense: SharedExpense
     money: exchange_rate_manager.Money
 
 
@@ -26,20 +41,54 @@ def balances_of(user: User, currency: Currency) -> list[Balance]:
     """The user's net balance with each person they share expenses with, in `currency`.
 
     The creator of a shared expense paid for all of it, so every other participant
-    owes the creator their quota.
+    owes the creator their quota. Each balance lists the latest shared expenses with
+    that person, in their own currency.
     """
     debts = _owed_to(user) + _owed_by(user)
+    totals = _converted_totals(debts, currency)
+    movements = _latest_movements(debts)
+    balances = [
+        Balance(
+            other=other,
+            amount=total.quantize(CENT, rounding=ROUND_HALF_UP),
+            movements=movements[other],
+        )
+        for other, total in totals.items()
+    ]
+    return sorted(balances, key=_by_name)
+
+
+def _converted_totals(debts: list[_Debt], currency: Currency) -> dict[User, Decimal]:
+    """The sum of the debts with each person, converted to `currency`."""
     converted = exchange_rate_manager.bulk_convert_to_currency(
         [debt.money for debt in debts], currency
     )
     totals: dict[User, Decimal] = defaultdict(Decimal)
     for debt, money in zip(debts, converted):
         totals[debt.other] += money.amount
-    balances = [
-        Balance(other=other, amount=total.quantize(CENT, rounding=ROUND_HALF_UP))
-        for other, total in totals.items()
-    ]
-    return sorted(balances, key=_by_name)
+    return totals
+
+
+def _latest_movements(debts: list[_Debt]) -> dict[User, list[Movement]]:
+    """The newest `MOVEMENTS_PER_PERSON` debts with each person, newest first."""
+    movements: dict[User, list[Movement]] = defaultdict(list)
+    for debt in sorted(debts, key=_by_recency, reverse=True):
+        if len(movements[debt.other]) < MOVEMENTS_PER_PERSON:
+            movements[debt.other].append(_movement(debt))
+    return movements
+
+
+def _movement(debt: _Debt) -> Movement:
+    return Movement(
+        description=debt.shared_expense.description,
+        date=debt.money.day,
+        amount=debt.money.amount,
+        currency=debt.money.currency,
+    )
+
+
+def _by_recency(debt: _Debt) -> tuple[dt.datetime, int]:
+    return (debt.shared_expense.created_at, debt.shared_expense.id)
 
 
 def _owed_to(user: User) -> list[_Debt]:
@@ -49,7 +98,10 @@ def _owed_to(user: User) -> list[_Debt]:
         .exclude(user=user)
         .select_related("user", "shared_expense__currency")
     )
-    return [_Debt(other=p.user, money=_quota(p, sign=1)) for p in participants]
+    return [
+        _Debt(other=p.user, shared_expense=p.shared_expense, money=_quota(p, sign=1))
+        for p in participants
+    ]
 
 
 def _owed_by(user: User) -> list[_Debt]:
@@ -60,7 +112,11 @@ def _owed_by(user: User) -> list[_Debt]:
         .select_related("shared_expense__created_by", "shared_expense__currency")
     )
     return [
-        _Debt(other=p.shared_expense.created_by, money=_quota(p, sign=-1))
+        _Debt(
+            other=p.shared_expense.created_by,
+            shared_expense=p.shared_expense,
+            money=_quota(p, sign=-1),
+        )
         for p in participants
     ]
 
