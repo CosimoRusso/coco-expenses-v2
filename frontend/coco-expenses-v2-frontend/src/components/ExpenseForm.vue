@@ -5,6 +5,7 @@ import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
 import type { Friend } from '@/interfaces/Friend'
+import type { SharedExpenseRequest } from '@/interfaces/Notification'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 import MultiSelect from '@/components/MultiSelect.vue'
@@ -20,29 +21,45 @@ const props = defineProps<{
   friends: Friend[]
   userSettings: UserSettings | null
   editingExpense?: Expense | null
+  // A friend's shared expense this form completes with the current user's quota
+  sharedExpenseRequest?: SharedExpenseRequest | null
 }>()
 
 const emit = defineEmits<{
   (e: 'expense-added', expense: Expense): void
   (e: 'expense-updated', expense: Expense): void
+  (e: 'shared-expense-request-cancelled'): void
 }>()
 
+function emptyExpense(): Expense {
+  return {
+    expense_date: todayStr,
+    description: '',
+    amount: 0,
+    amortization_start_date: todayStr,
+    amortization_end_date: todayStr,
+    category: null,
+    trip: null,
+    is_expense: true,
+    currency: null,
+  }
+}
+
 // New expense form
-const newExpense = ref<Expense>({
-  expense_date: todayStr,
-  description: '',
-  amount: 0,
-  amortization_start_date: todayStr,
-  amortization_end_date: todayStr,
-  category: null,
-  trip: null,
-  is_expense: true,
-  currency: null,
-})
+const newExpense = ref<Expense>(emptyExpense())
 
 // Form error handling
 const formError = ref('')
 const isSubmitting = ref(false)
+
+const isEditing = computed(() => !!props.editingExpense?.id)
+const isCompletingShare = computed(() => !isEditing.value && !!props.sharedExpenseRequest)
+
+const heading = computed(() => {
+  if (isEditing.value) return 'Edit Expense'
+  if (isCompletingShare.value) return 'Complete Shared Expense'
+  return 'Add New Expense'
+})
 
 // Filter active categories and trips
 const activeCategories = computed(() => props.categories.filter((cat) => cat.is_active))
@@ -56,6 +73,16 @@ const friendOptions = computed(() =>
 
 // Friends to share the expense with
 const selectedFriendIds = ref<number[]>([])
+
+function requestBody() {
+  if (isCompletingShare.value) {
+    return { ...newExpense.value, shared_expense_participant: props.sharedExpenseRequest!.id }
+  }
+  if (isEditing.value) {
+    return newExpense.value
+  }
+  return { ...newExpense.value, shared_with: selectedFriendIds.value }
+}
 
 // Add or update expense
 const addOrUpdateExpense = async () => {
@@ -93,48 +120,33 @@ const addOrUpdateExpense = async () => {
     }
     newExpense.value.is_expense = _selectedCategory.for_expense
 
-    const isEditing = props.editingExpense && props.editingExpense.id
-
     // Submit form
     let response: Response
-    if (isEditing) {
+    if (isEditing.value) {
       // Update existing expense
       response = await apiFetch(`/expenses/expenses/${props.editingExpense!.id}/`, {
         method: 'PUT',
-        body: JSON.stringify(newExpense.value),
+        body: JSON.stringify(requestBody()),
       })
     } else {
       // Create new expense
       response = await apiFetch('/expenses/expenses/', {
         method: 'POST',
-        body: JSON.stringify(newExpense.value),
+        body: JSON.stringify(requestBody()),
       })
     }
 
     if (response.ok) {
       const updatedExpense = await response.json()
-      if (isEditing) {
+      if (isEditing.value) {
         emit('expense-updated', updatedExpense)
         // Form will be reset by watch when editingExpense becomes null
       } else {
         emit('expense-added', updatedExpense)
-        // Reset form after creating
-        newExpense.value = {
-          expense_date: todayStr,
-          description: '',
-          amount: 0,
-          amortization_start_date: todayStr,
-          amortization_end_date: todayStr,
-          category: null,
-          trip: null,
-          is_expense: true,
-          currency: null,
-        }
-        selectedFriendIds.value = []
-        assignDefaultCurrencyAndTrip()
+        resetForm()
       }
     } else {
-      throw new Error(isEditing ? 'Failed to update expense.' : 'Failed to add expense.')
+      throw new Error(isEditing.value ? 'Failed to update expense.' : 'Failed to add expense.')
     }
   } catch (error: any) {
     console.error('Error saving expense:', error)
@@ -142,6 +154,12 @@ const addOrUpdateExpense = async () => {
   } finally {
     isSubmitting.value = false
   }
+}
+
+function resetForm() {
+  newExpense.value = emptyExpense()
+  selectedFriendIds.value = []
+  assignDefaultCurrencyAndTrip()
 }
 
 function assignDefaultCurrencyAndTrip() {
@@ -180,29 +198,35 @@ watch(
       }
     } else {
       // Reset form when not editing
-      newExpense.value = {
-        expense_date: todayStr,
-        description: '',
-        amount: 0,
-        amortization_start_date: todayStr,
-        amortization_end_date: todayStr,
-        category: null,
-        trip: null,
-        is_expense: true,
-        currency: null,
-      }
-      selectedFriendIds.value = []
-      assignDefaultCurrencyAndTrip()
+      resetForm()
     }
+  },
+  { immediate: true },
+)
+
+// Registered after the editing watch, so its prefill is not overwritten by the reset above
+watch(
+  () => props.sharedExpenseRequest,
+  (request) => {
+    if (!request) {
+      resetForm()
+      return
+    }
+    newExpense.value.description = request.description
+    newExpense.value.amount = Number(request.quota)
+    newExpense.value.currency = request.currency
   },
   { immediate: true },
 )
 </script>
 
 <template>
-  <h2 class="text-xl font-bold mb-3">
-    {{ editingExpense && editingExpense.id ? 'Edit Expense' : 'Add New Expense' }}
-  </h2>
+  <h2 class="text-xl font-bold mb-3">{{ heading }}</h2>
+  <p v-if="isCompletingShare" class="mb-3">
+    {{ sharedExpenseRequest!.created_by }} shared "{{ sharedExpenseRequest!.description }}" with
+    you, for a total of {{ sharedExpenseRequest!.total_amount }}. Your quota is
+    {{ sharedExpenseRequest!.quota }}.
+  </p>
   <form
     class="form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
     @submit.prevent="addOrUpdateExpense"
@@ -237,13 +261,20 @@ watch(
         v-model="newExpense.amount"
         step="0.01"
         required
+        :disabled="isCompletingShare"
         class="input input-border w-full"
       />
     </div>
 
     <div>
       <label for="currency">Currency</label>
-      <select class="select w-full" id="currency" v-model="newExpense.currency" required>
+      <select
+        class="select w-full"
+        id="currency"
+        v-model="newExpense.currency"
+        :disabled="isCompletingShare"
+        required
+      >
         <option value="0" disabled>Select a currency</option>
         <option v-for="currency in currencies" :key="currency.id" :value="currency.id">
           {{ currency.display_name }}
@@ -297,7 +328,7 @@ watch(
         </option>
       </select>
     </div>
-    <div>
+    <div v-if="!isEditing && !isCompletingShare">
       <label for="friends">Share with</label>
       <MultiSelect
         id="friends"
@@ -311,13 +342,21 @@ watch(
     <button type="submit" :disabled="isSubmitting" class="btn btn-primary col-span-full">
       {{
         isSubmitting
-          ? editingExpense && editingExpense.id
+          ? isEditing
             ? 'Updating...'
             : 'Adding...'
-          : editingExpense && editingExpense.id
+          : isEditing
             ? 'Update Expense'
             : 'Add Expense'
       }}
+    </button>
+    <button
+      v-if="isCompletingShare"
+      type="button"
+      class="btn col-span-full"
+      @click="emit('shared-expense-request-cancelled')"
+    >
+      Cancel
     </button>
   </form>
   <div v-if="formError" class="text-red-50 my-4">

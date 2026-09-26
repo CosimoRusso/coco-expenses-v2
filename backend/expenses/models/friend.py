@@ -17,3 +17,9 @@ class Friend(models.Model):
         blank=False,
         related_name="friends_2",
     )
+
+
+def friends_of(user: User) -> models.QuerySet[User]:
+    """Users linked to `user` by a Friend row, on either side."""
+    is_friend = models.Q(friends_1__user_2=user) | models.Q(friends_2__user_1=user)
+    return User.objects.filter(is_friend).distinct()

@@ -56,3 +56,11 @@ class Expense(models.Model):
         if is_shared:
             out += ", shared"
         return out
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["shared_expense_participant"],
+                name="unique_expense_per_shared_expense_participant",
+            )
+        ]

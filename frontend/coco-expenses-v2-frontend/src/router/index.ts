@@ -61,6 +61,11 @@ const router = createRouter({
       component: () => import('@/views/ProfileView.vue'),
     },
     {
+      path: '/notifications',
+      name: 'notifications',
+      component: () => import('@/views/NotificationsView.vue'),
+    },
+    {
       path: '/import-expenses-from-csv',
       name: 'import-expenses-from-csv',
       component: () => import('@/views/ImportExpensesFromCsv.vue'),

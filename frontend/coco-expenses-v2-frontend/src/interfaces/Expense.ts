@@ -9,4 +9,5 @@ export interface Expense {
   trip: number | null
   is_expense: boolean
   currency: number | null
+  shared_expense_participant?: number | null
 }

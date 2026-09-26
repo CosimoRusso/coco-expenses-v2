@@ -2,14 +2,19 @@
 import ExpensesList from '@/components/ExpensesList.vue'
 import ExpenseForm from '@/components/ExpenseForm.vue'
 import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import apiFetch from '@/utils/apiFetch'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
 import type { Friend } from '@/interfaces/Friend'
+import type { SharedExpenseRequest } from '@/interfaces/Notification'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 import type { Expense } from '@/interfaces/Expense'
 import type { PaginatedResponse } from '@/interfaces/PaginatedResponse'
+
+const route = useRoute()
+const router = useRouter()
 
 const initialPageLoading = ref(true)
 const expenses = ref<Expense[]>([])
@@ -17,6 +22,7 @@ const categories = ref<ExpenseCategory[]>([])
 const trips = ref<Trip[]>([])
 const currencies = ref<Currency[]>([])
 const friends = ref<Friend[]>([])
+const sharedExpenseRequest = ref<SharedExpenseRequest | null>(null)
 const userSettings = ref<UserSettings | null>(null)
 const tableErrors = ref<string[]>([])
 
@@ -53,6 +59,7 @@ async function fetchMetadata() {
     fetchCurrencies(),
     fetchUserSettings(),
     fetchFriends(),
+    fetchSharedExpenseRequest(),
   ])
 }
 
@@ -170,7 +177,32 @@ async function fetchFriends() {
   }
 }
 
+// The notifications page opens this view with the notification of a share to complete
+async function fetchSharedExpenseRequest() {
+  const notificationId = route.query.notification
+  if (!notificationId) {
+    return
+  }
+  try {
+    const response = await apiFetch(`/expenses/notifications/${notificationId}/`)
+    if (!response.ok) {
+      throw new Error('Failed to load the shared expense.')
+    }
+    const sharedExpense = (await response.json()).shared_expense
+    sharedExpenseRequest.value = sharedExpense?.is_completed ? null : sharedExpense
+  } catch (error) {
+    console.error('Error fetching shared expense:', error)
+    tableErrors.value.push('Failed to load the shared expense.')
+  }
+}
+
+function clearSharedExpenseRequest() {
+  sharedExpenseRequest.value = null
+  router.replace({ query: {} })
+}
+
 function onExpenseAdded(expense: Expense) {
+  clearSharedExpenseRequest()
   // Simply add them as first element of the current page, when the user refreshes the page everything will work just fine
   expenses.value.unshift(expense)
 }
@@ -215,10 +247,12 @@ watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDa
       :trips="trips"
       :currencies="currencies"
       :friends="friends"
+      :sharedExpenseRequest="sharedExpenseRequest"
       :userSettings="userSettings"
       :editingExpense="editingExpense"
       @expense-added="onExpenseAdded"
       @expense-updated="onExpenseUpdated"
+      @shared-expense-request-cancelled="clearSharedExpenseRequest"
     />
     <ExpensesList
       :initialPageLoading="initialPageLoading"
