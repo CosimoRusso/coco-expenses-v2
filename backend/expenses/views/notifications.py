@@ -17,6 +17,11 @@ class NotificationViewSet(
     def get_queryset(self):
         return (
             Notification.objects.filter(user=self.request.user)
+            .select_related(
+                "shared_expense_modified__shared_expense",
+                "shared_expense_modified__modified_by",
+                "shared_expense_deleted__deleted_by",
+            )
             .prefetch_related(
                 f"{SHARED_EXPENSE_PARTICIPANT}__shared_expense__created_by",
                 f"{SHARED_EXPENSE_PARTICIPANT}__expense_set",

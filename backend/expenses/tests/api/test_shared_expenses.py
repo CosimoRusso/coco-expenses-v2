@@ -172,17 +172,6 @@ class TestShareExpense(SharedExpenseTestCase):
         self.assertIsNone(Expense.objects.get().shared_expense_participant)
         self.assertFalse(SharedExpense.objects.exists())
 
-    def test_existing_expense_cannot_be_shared(self):
-        expense = self.share_dinner()
-        self.login(self.me.email)
-        body = self.expense_body(shared_with=[self.anna.id])
-
-        res = self.client.put(
-            reverse("expenses:expenses-detail", args=[expense.id]), body, format="json"
-        )
-
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-
     def test_encrypted_creator_expense_holds_own_quota(self):
         self.login(self.me.email)
         self.activate_encryption("password")
@@ -258,3 +247,92 @@ class TestCompleteSharedExpense(SharedExpenseTestCase):
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Expense.objects.filter(user=self.anna).exists())
+
+
+class TestShareExistingExpense(SharedExpenseTestCase):
+    def setUp(self):
+        self.login(self.me.email)
+
+    def create_expense(self, amount="20.00") -> Expense:
+        res = self.client.post(
+            self.list_url, self.expense_body(amount=amount), format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        return Expense.objects.get(id=res.data["id"])
+
+    def update(self, expense: Expense, **overrides):
+        return self.client.put(
+            reverse("expenses:expenses-detail", args=[expense.id]),
+            self.expense_body(**overrides),
+            format="json",
+        )
+
+    def test_unshared_expense_amount_becomes_own_quota(self):
+        expense = self.create_expense()
+
+        res = self.update(expense, amount="20.00", shared_with=[self.anna.id])
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        expense.refresh_from_db()
+        self.assertEqual(expense.amount, Decimal("10.00"))
+        self.assertEqual(
+            expense.shared_expense_participant, self.participant_of(self.me)
+        )
+
+    def test_sharing_on_update_stores_the_shared_expense(self):
+        expense = self.create_expense()
+
+        self.update(expense, amount="20.00", shared_with=[self.anna.id, self.bruno.id])
+
+        shared_expense = SharedExpense.objects.get()
+        self.assertEqual(shared_expense.amount, Decimal("20.00"))
+        self.assertEqual(shared_expense.created_by, self.me)
+        quotas = {p.user_id: p.quota for p in SharedExpenseParticipant.objects.all()}
+        self.assertEqual(
+            quotas,
+            {
+                self.me.id: Decimal("6.68"),
+                self.anna.id: Decimal("6.66"),
+                self.bruno.id: Decimal("6.66"),
+            },
+        )
+
+    def test_sharing_on_update_notifies_friends(self):
+        expense = self.create_expense()
+
+        self.update(expense, shared_with=[self.anna.id])
+
+        notification = Notification.objects.get()
+        self.assertEqual(notification.user, self.anna)
+        self.assertEqual(notification.kind, NotificationKind.SHARED_EXPENSE_REQUESTED)
+
+    def test_update_without_friends_leaves_expense_unshared(self):
+        expense = self.create_expense()
+
+        res = self.update(expense, amount="30.00")
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        expense.refresh_from_db()
+        self.assertEqual(expense.amount, Decimal("30.00"))
+        self.assertIsNone(expense.shared_expense_participant)
+        self.assertFalse(SharedExpense.objects.exists())
+
+    def test_failed_share_on_update_leaves_expense_unchanged(self):
+        expense = self.create_expense(amount="20.00")
+
+        res = self.update(expense, amount="50.00", shared_with=[self.stranger.id])
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        expense.refresh_from_db()
+        self.assertEqual(expense.amount, Decimal("20.00"))
+        self.assertFalse(SharedExpense.objects.exists())
+
+    def test_encrypted_expense_is_shared_on_update(self):
+        self.activate_encryption("password")
+        expense = self.create_expense(amount="20.00")
+
+        res = self.update(expense, amount="20.00", shared_with=[self.anna.id])
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["amount"], "10.00")
+        self.assertEqual(SharedExpense.objects.get().amount, Decimal("20.00"))

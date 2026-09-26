@@ -4,6 +4,7 @@ import { computed } from 'vue'
 export interface MultiSelectOption {
   value: number
   label: string
+  disabled?: boolean
 }
 
 const props = defineProps<{
@@ -48,6 +49,7 @@ const summary = computed(() => {
             type="checkbox"
             class="checkbox checkbox-sm"
             :value="option.value"
+            :disabled="option.disabled"
             v-model="selected"
           />
           {{ option.label }}

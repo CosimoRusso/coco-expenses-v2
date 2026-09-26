@@ -5,7 +5,13 @@ from expenses.models import Expense, SharedExpenseParticipant
 from expenses.models.friend import friends_of
 from expenses.models.user import User
 from expenses.models.user_settings import UserSettings
-from expenses.sharing import ExpenseShare, create_shared_expense
+from expenses.serializers.shared_expenses import SharedExpenseSummarySerializer
+from expenses.sharing import (
+    ExpenseShare,
+    SharedExpenseChange,
+    apply_shared_expense_change,
+    create_shared_expense,
+)
 from expenses.utils.encryption.encryption import (
     decrypt_text_with_key,
     encrypt_text_with_key,
@@ -20,6 +26,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     shared_with = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, write_only=True, required=False
     )
+    shared_expense = serializers.SerializerMethodField()
 
     def validate_amortization_start_date(self, value):
         if value < dt.date(2000, 1, 1):
@@ -35,20 +42,14 @@ class ExpenseSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate_shared_with(self, friends: list[User]) -> list[User]:
-        """Only a new expense can be shared, once per friend, and only with friends."""
-        if friends and self.instance is not None:
-            raise serializers.ValidationError("An existing expense cannot be shared")
-        friend_ids = [friend.id for friend in friends]
-        user_friend_ids = set(
-            friends_of(self.context["request"].user).values_list("id", flat=True)
-        )
-        has_duplicates = len(set(friend_ids)) != len(friend_ids)
-        if has_duplicates or not set(friend_ids) <= user_friend_ids:
+    def validate_shared_with(self, others: list[User]) -> list[User]:
+        """Each person can appear only once."""
+        other_ids = [other.id for other in others]
+        if len(set(other_ids)) != len(other_ids):
             raise serializers.ValidationError(
-                "An expense can be shared only once with each of your friends"
+                "An expense can be shared only once with each person"
             )
-        return friends
+        return others
 
     def validate_shared_expense_participant(self, participant):
         """A user completes only their own share, and only once."""
@@ -59,7 +60,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if participant.user_id != self.context["request"].user.id:
             raise serializers.ValidationError("Invalid shared expense")
         if Expense.objects.filter(shared_expense_participant=participant).exists():
-            raise serializers.ValidationError("This shared expense is already completed")
+            raise serializers.ValidationError(
+                "This shared expense is already completed"
+            )
         return participant
 
     def validate(self, attrs):
@@ -76,17 +79,34 @@ class ExpenseSerializer(serializers.ModelSerializer):
                 "Category is incoherent with expense type"
             )
 
-        friends = attrs.pop("shared_with", [])
-        if friends:
-            attrs["share"] = self._share_with(friends, attrs)
-            attrs["amount"] = attrs["share"].quotas()[0]
-        if attrs.get("shared_expense_participant") and self.instance is None:
-            self._check_matches_quota(attrs)
+        self._apply_sharing(attrs)
 
         user_settings = UserSettings.objects.get_or_create(user=user)[0]
         if user_settings.is_encrypted:
             self._encrypt(attrs)
         return attrs
+
+    def _apply_sharing(self, attrs) -> None:
+        """Validate the sharing requested and set the amount to the user's own quota.
+
+        For a shared expense, the amount received is the total shared.
+        """
+        others = attrs.pop("shared_with", None)
+        if self._is_shared():
+            attrs["share_change"] = self._change_shared_expense(others, attrs)
+            attrs["amount"] = attrs["share_change"].quotas()[attrs["user"].id]
+        elif others:
+            attrs["share"] = self._share_with(others, attrs)
+            attrs["amount"] = attrs["share"].quotas()[0]
+        elif attrs.get("shared_expense_participant") and self.instance is None:
+            self._check_matches_quota(attrs)
+
+    def _is_shared(self) -> bool:
+        """Whether this is an update of an expense already part of a shared expense."""
+        return (
+            self.instance is not None
+            and self.instance.shared_expense_participant_id is not None
+        )
 
     def _share_with(self, friends: list[User], attrs) -> ExpenseShare:
         """The share of this expense between the current user and `friends`."""
@@ -94,9 +114,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "An expense completing a shared expense cannot be shared again"
             )
-        if attrs.get("amount") is None or attrs.get("currency") is None:
+        self._check_amount_and_currency(attrs)
+        if not {friend.id for friend in friends} <= self._friend_ids(attrs["user"]):
             raise serializers.ValidationError(
-                "Amount and currency are required to share an expense"
+                "An expense can be shared only with your friends"
             )
         return ExpenseShare(
             creator=attrs["user"],
@@ -105,6 +126,60 @@ class ExpenseSerializer(serializers.ModelSerializer):
             total=attrs["amount"],
             currency=attrs["currency"],
         )
+
+    def _change_shared_expense(
+        self, others: list[User] | None, attrs
+    ) -> SharedExpenseChange:
+        """The edit of the shared expense, keeping its participants when none are sent."""
+        self._check_amount_and_currency(attrs)
+        shared_expense = self.instance.shared_expense_participant.shared_expense
+        editor = attrs["user"]
+        current_others = [
+            participant.user
+            for participant in shared_expense.sharedexpenseparticipant_set.all()
+            if participant.user_id != editor.id
+        ]
+        if others is None:
+            others = current_others
+        self._check_participants(shared_expense, editor, others, current_others)
+        return SharedExpenseChange(
+            shared_expense=shared_expense,
+            editor=editor,
+            others=others,
+            total=attrs["amount"],
+            currency=attrs["currency"],
+        )
+
+    def _check_participants(self, shared_expense, editor, others, current_others):
+        """The creator and the editor stay, and only the editor's friends can be added."""
+        other_ids = {other.id for other in others}
+        if not other_ids:
+            raise serializers.ValidationError(
+                "A shared expense needs at least one other participant"
+            )
+        if editor.id in other_ids:
+            raise serializers.ValidationError(
+                "You cannot share an expense with yourself"
+            )
+        creator_id = shared_expense.created_by_id
+        if creator_id != editor.id and creator_id not in other_ids:
+            raise serializers.ValidationError(
+                "The creator of a shared expense cannot be removed"
+            )
+        added_ids = other_ids - {other.id for other in current_others}
+        if not added_ids <= self._friend_ids(editor):
+            raise serializers.ValidationError(
+                "Only your friends can be added to a shared expense"
+            )
+
+    def _check_amount_and_currency(self, attrs) -> None:
+        if attrs.get("amount") is None or attrs.get("currency") is None:
+            raise serializers.ValidationError(
+                "Amount and currency are required to share an expense"
+            )
+
+    def _friend_ids(self, user: User) -> set[int]:
+        return set(friends_of(user).values_list("id", flat=True))
 
     def _check_matches_quota(self, attrs) -> None:
         """An expense completing a share must match the quota and currency assigned."""
@@ -135,17 +210,34 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
-        share = validated_data.pop("share", None)
         with transaction.atomic():
-            if share is not None:
-                validated_data["shared_expense_participant"] = create_shared_expense(
-                    share
-                )
+            self._store_share(validated_data)
             return super().create(validated_data)
 
     def update(self, instance, validated_data):
         validated_data["user"] = self.context["request"].user
-        return super().update(instance, validated_data)
+        with transaction.atomic():
+            self._store_share(validated_data)
+            return super().update(instance, validated_data)
+
+    def _store_share(self, validated_data) -> None:
+        """Create or change the shared expense validated for this expense, if any."""
+        share = validated_data.pop("share", None)
+        share_change = validated_data.pop("share_change", None)
+        if share is not None:
+            validated_data["shared_expense_participant"] = create_shared_expense(share)
+        if share_change is not None:
+            # A fresh participant, so the response does not show the participants
+            # prefetched before the change
+            validated_data["shared_expense_participant"] = apply_shared_expense_change(
+                share_change
+            )
+
+    def get_shared_expense(self, expense: Expense) -> dict | None:
+        participant = expense.shared_expense_participant
+        if participant is None:
+            return None
+        return SharedExpenseSummarySerializer(participant.shared_expense).data
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -181,5 +273,6 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "currency",
             "shared_with",
             "shared_expense_participant",
+            "shared_expense",
         ]
         read_only_fields = ["id"]

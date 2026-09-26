@@ -6,6 +6,12 @@ from expenses.admin.friend import FriendAdmin
 from expenses.admin.notification import NotificationAdmin
 from expenses.admin.settings import SettingsAdmin
 from expenses.admin.shared_expense import SharedExpenseAdmin
+from expenses.admin.shared_expense_deleted_notification import (
+    SharedExpenseDeletedNotificationAdmin,
+)
+from expenses.admin.shared_expense_modified_notification import (
+    SharedExpenseModifiedNotificationAdmin,
+)
 from expenses.admin.shared_expense_notification import SharedExpenseNotificationAdmin
 from expenses.admin.shared_expense_participant import SharedExpenseParticipantAdmin
 from expenses.admin.trip import TripAdmin
@@ -17,6 +23,8 @@ from expenses.models import (
     Notification,
     Settings,
     SharedExpense,
+    SharedExpenseDeletedNotification,
+    SharedExpenseModifiedNotification,
     SharedExpenseNotification,
     SharedExpenseParticipant,
     Trip,
@@ -35,5 +43,11 @@ try:
     admin.site.register(SharedExpense, SharedExpenseAdmin)
     admin.site.register(SharedExpenseParticipant, SharedExpenseParticipantAdmin)
     admin.site.register(SharedExpenseNotification, SharedExpenseNotificationAdmin)
+    admin.site.register(
+        SharedExpenseModifiedNotification, SharedExpenseModifiedNotificationAdmin
+    )
+    admin.site.register(
+        SharedExpenseDeletedNotification, SharedExpenseDeletedNotificationAdmin
+    )
 except AlreadyRegistered:
     pass

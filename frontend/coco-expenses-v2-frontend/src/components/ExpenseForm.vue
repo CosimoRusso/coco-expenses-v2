@@ -8,7 +8,7 @@ import type { Friend } from '@/interfaces/Friend'
 import type { SharedExpenseRequest } from '@/interfaces/Notification'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
-import MultiSelect from '@/components/MultiSelect.vue'
+import MultiSelect, { type MultiSelectOption } from '@/components/MultiSelect.vue'
 
 // Constants
 const todayStr = new Date().toISOString().substring(0, 10)
@@ -54,6 +54,18 @@ const isSubmitting = ref(false)
 
 const isEditing = computed(() => !!props.editingExpense?.id)
 const isCompletingShare = computed(() => !isEditing.value && !!props.sharedExpenseRequest)
+const canShare = computed(() => !isCompletingShare.value)
+// Other people to share the expense with
+const selectedFriendIds = ref<number[]>([])
+// The shared expense being edited, whose total, currency and people are shared by everyone
+const editingShared = computed(
+  () => (isEditing.value && props.editingExpense?.shared_expense) || null,
+)
+const myParticipant = computed(() =>
+  editingShared.value?.participants.find(
+    (participant) => participant.id === props.editingExpense?.shared_expense_participant,
+  ),
+)
 
 const heading = computed(() => {
   if (isEditing.value) return 'Edit Expense'
@@ -64,24 +76,39 @@ const heading = computed(() => {
 // Filter active categories and trips
 const activeCategories = computed(() => props.categories.filter((cat) => cat.is_active))
 const activeTrips = computed(() => props.trips.filter((trip) => trip.is_active))
-const friendOptions = computed(() =>
-  props.friends.map((friend) => ({
-    value: friend.id,
-    label: `${friend.first_name} ${friend.last_name}`,
-  })),
-)
-
-// Friends to share the expense with
-const selectedFriendIds = ref<number[]>([])
+// Friends, plus the other participants of the shared expense being edited even when they
+// are not friends; its creator cannot be removed by anyone else
+const friendOptions = computed(() => {
+  const people = [
+    ...props.friends.map((friend) => ({ ...friend, user_id: friend.id })),
+    ...(editingShared.value?.participants ?? []),
+  ]
+  const creatorId = editingShared.value?.created_by
+  const options = new Map<number, MultiSelectOption>()
+  for (const person of people) {
+    if (person.user_id === myParticipant.value?.user_id || options.has(person.user_id)) continue
+    options.set(person.user_id, {
+      value: person.user_id,
+      label: `${person.first_name} ${person.last_name}`,
+      disabled: person.user_id === creatorId,
+    })
+  }
+  return [...options.values()]
+})
+const isSharing = computed(() => !!editingShared.value || selectedFriendIds.value.length > 0)
 
 function requestBody() {
   if (isCompletingShare.value) {
     return { ...newExpense.value, shared_expense_participant: props.sharedExpenseRequest!.id }
   }
-  if (isEditing.value) {
-    return newExpense.value
-  }
   return { ...newExpense.value, shared_with: selectedFriendIds.value }
+}
+
+// The first validation message of a rejected request, or `fallback`
+async function errorMessage(response: Response, fallback: string): Promise<string> {
+  const data = await response.json().catch(() => null)
+  const [first] = data ? Object.values(data).flat() : []
+  return typeof first === 'string' ? first : fallback
 }
 
 // Add or update expense
@@ -146,7 +173,10 @@ const addOrUpdateExpense = async () => {
         resetForm()
       }
     } else {
-      throw new Error(isEditing.value ? 'Failed to update expense.' : 'Failed to add expense.')
+      formError.value = await errorMessage(
+        response,
+        isEditing.value ? 'Failed to update expense.' : 'Failed to add expense.',
+      )
     }
   } catch (error: any) {
     console.error('Error saving expense:', error)
@@ -185,6 +215,7 @@ watch(
   () => props.editingExpense,
   (expense) => {
     if (expense && expense.id) {
+      selectedFriendIds.value = []
       newExpense.value = {
         expense_date: expense.expense_date,
         description: expense.description,
@@ -195,6 +226,14 @@ watch(
         trip: expense.trip,
         is_expense: expense.is_expense,
         currency: expense.currency,
+      }
+      if (expense.shared_expense) {
+        // The amount of a shared expense is edited as the total shared
+        newExpense.value.amount = Number(expense.shared_expense.total_amount)
+        newExpense.value.currency = expense.shared_expense.currency
+        selectedFriendIds.value = expense.shared_expense.participants
+          .filter((participant) => participant.id !== expense.shared_expense_participant)
+          .map((participant) => participant.user_id)
       }
     } else {
       // Reset form when not editing
@@ -227,6 +266,10 @@ watch(
     you, for a total of {{ sharedExpenseRequest!.total_amount }}. Your quota is
     {{ sharedExpenseRequest!.quota }}.
   </p>
+  <p v-if="editingShared" class="mb-3">
+    This expense is shared: changing the total amount, the currency or the people updates everyone's
+    share, and they are notified. Your quota is {{ myParticipant?.quota }}.
+  </p>
   <form
     class="form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
     @submit.prevent="addOrUpdateExpense"
@@ -254,7 +297,7 @@ watch(
     </div>
 
     <div>
-      <label for="amount">Amount</label>
+      <label for="amount">{{ isSharing ? 'Total amount' : 'Amount' }}</label>
       <input
         type="number"
         id="amount"
@@ -328,7 +371,7 @@ watch(
         </option>
       </select>
     </div>
-    <div v-if="!isEditing && !isCompletingShare">
+    <div v-if="canShare">
       <label for="friends">Share with</label>
       <MultiSelect
         id="friends"

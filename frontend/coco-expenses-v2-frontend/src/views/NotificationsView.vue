@@ -47,7 +47,53 @@ function title(notification: Notification): string {
   if (notification.kind === 'SHARED_EXPENSE_REQUESTED' && sharedExpense) {
     return `${sharedExpense.created_by} shared "${sharedExpense.description}" with you`
   }
+  const modification = notification.modification
+  if (notification.kind === 'SHARED_EXPENSE_MODIFIED' && modification) {
+    return `${modification.modified_by} modified "${modification.description}"`
+  }
+  const deletion = notification.deletion
+  if (notification.kind === 'SHARED_EXPENSE_DELETED' && deletion) {
+    return `${deletion.deleted_by} deleted "${deletion.description}"`
+  }
   return 'Notification'
+}
+
+function changes(notification: Notification): string[] {
+  const deletion = notification.deletion
+  if (deletion) {
+    return [
+      `Total: ${currencySymbol(deletion.currency)} ${deletion.amount}. It was deleted for you too.`,
+    ]
+  }
+  const modification = notification.modification
+  if (!modification) {
+    return []
+  }
+  const lines: string[] = []
+  const totalBefore = `${currencySymbol(modification.currency_before)} ${modification.amount_before}`
+  const totalAfter = `${currencySymbol(modification.currency_after)} ${modification.amount_after}`
+  if (totalBefore !== totalAfter) {
+    lines.push(`Total: ${totalBefore} → ${totalAfter}`)
+  }
+  const { number_participants_before: before, number_participants_after: after } = modification
+  if (before !== after) {
+    lines.push(`People sharing it: ${before} → ${after}`)
+  }
+  if (modification.you_were_added) lines.push('You were added')
+  if (modification.you_were_removed) lines.push('You were removed')
+  return lines
+}
+
+// A completed share of a modified expense is updated by saving the expense again
+function canUpdateExpense(notification: Notification): boolean {
+  return (
+    notification.kind === 'SHARED_EXPENSE_MODIFIED' && !!notification.shared_expense?.expense_id
+  )
+}
+
+async function updateExpense(notification: Notification) {
+  await markRead(notification)
+  router.push({ name: 'expenses', query: { edit: notification.shared_expense!.expense_id } })
 }
 
 async function markRead(notification: Notification) {
@@ -92,12 +138,23 @@ async function completeSharedExpense(notification: Notification) {
             {{ currencySymbol(notification.shared_expense.currency) }}
             {{ notification.shared_expense.total_amount }}
           </p>
+          <p v-for="change in changes(notification)" :key="change" class="text-sm">
+            {{ change }}
+          </p>
           <p class="text-xs text-base-content/60">
             {{ new Date(notification.created_at).toLocaleString() }}
           </p>
         </div>
         <template v-if="notification.shared_expense">
-          <span v-if="notification.shared_expense.is_completed" class="badge badge-success">
+          <button
+            v-if="canUpdateExpense(notification)"
+            type="button"
+            class="btn btn-primary btn-sm"
+            @click.stop="updateExpense(notification)"
+          >
+            Update my expense
+          </button>
+          <span v-else-if="notification.shared_expense.is_completed" class="badge badge-success">
             Completed
           </span>
           <button

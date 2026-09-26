@@ -1,3 +1,5 @@
+import type { SharedExpenseSummary } from '@/interfaces/SharedExpense'
+
 export interface Expense {
   id?: number
   expense_date: string
@@ -10,4 +12,5 @@ export interface Expense {
   is_expense: boolean
   currency: number | null
   shared_expense_participant?: number | null
+  shared_expense?: SharedExpenseSummary | null
 }

@@ -7,6 +7,12 @@ from expenses.models.notification import Notification
 from expenses.models.recurring_expense import RecurringExpense
 from expenses.models.settings import Settings
 from expenses.models.shared_expense import SharedExpense
+from expenses.models.shared_expense_deleted_notification import (
+    SharedExpenseDeletedNotification,
+)
+from expenses.models.shared_expense_modified_notification import (
+    SharedExpenseModifiedNotification,
+)
 from expenses.models.shared_expense_notification import SharedExpenseNotification
 from expenses.models.shared_expense_participant import SharedExpenseParticipant
 from expenses.models.trip import Trip
@@ -28,4 +34,6 @@ __all__ = [
     "SharedExpense",
     "SharedExpenseParticipant",
     "SharedExpenseNotification",
+    "SharedExpenseModifiedNotification",
+    "SharedExpenseDeletedNotification",
 ]

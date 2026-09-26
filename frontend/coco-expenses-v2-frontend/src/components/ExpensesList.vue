@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
 import EditIcon from '../../icons/EditIcon.vue'
 import apiFetch from '@/utils/apiFetch'
+import SharedAvatars from '@/components/SharedAvatars.vue'
 
 import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
@@ -58,7 +59,10 @@ const deleteExpense = async (expenseId: number) => {
 }
 
 function confirmDelete(expense: Expense) {
-  if (confirm('Sei sicuro di voler eliminare questa spesa?')) {
+  const message = expense.shared_expense
+    ? 'Questa spesa è condivisa: verrà eliminata per tutti i partecipanti. Sei sicuro?'
+    : 'Sei sicuro di voler eliminare questa spesa?'
+  if (confirm(message)) {
     deleteExpense(expense.id!)
   }
 }
@@ -175,6 +179,7 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
       <table class="table">
         <thead>
           <tr>
+            <th><span class="sr-only">Shared with</span></th>
             <th>Creation Date</th>
             <th>Description</th>
             <th>Amount</th>
@@ -189,9 +194,10 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
         </thead>
         <tbody>
           <tr v-if="props.expenses.length === 0">
-            <td colspan="9" class="no-data">No expenses found</td>
+            <td colspan="11" class="no-data">No expenses found</td>
           </tr>
           <tr v-for="expense in props.expenses" :key="expense.id">
+            <td><SharedAvatars :expense="expense" /></td>
             <td>{{ expense.expense_date }}</td>
             <td>{{ expense.description }}</td>
             <td>{{ expense.amount }}</td>

@@ -3,8 +3,11 @@ from decimal import ROUND_DOWN, Decimal
 
 from expenses.models import (
     Currency,
+    Expense,
     Notification,
     SharedExpense,
+    SharedExpenseDeletedNotification,
+    SharedExpenseModifiedNotification,
     SharedExpenseNotification,
     SharedExpenseParticipant,
     User,
@@ -70,3 +73,166 @@ def _notify_share_requested(participant: SharedExpenseParticipant) -> None:
     SharedExpenseNotification.objects.create(
         notification=notification, shared_expense_participant=participant
     )
+
+
+@dataclass(frozen=True)
+class SharedExpenseChange:
+    """A participant's edit of what everyone shares: the total, currency and participants."""
+
+    shared_expense: SharedExpense
+    editor: User
+    # Every participant after the change, except the editor
+    others: list[User]
+    total: Decimal
+    currency: Currency
+
+    def participants(self) -> list[User]:
+        """Everyone sharing the expense after the change, its creator first."""
+        creator = self.shared_expense.created_by
+        everyone_else = [
+            user for user in [self.editor, *self.others] if user.id != creator.id
+        ]
+        return [creator, *everyone_else]
+
+    def quotas(self) -> dict[int, Decimal]:
+        """Each participant's quota by user id; the creator takes the leftover cents."""
+        participants = self.participants()
+        quotas = split_equally(self.total, len(participants))
+        return {user.id: quota for user, quota in zip(participants, quotas)}
+
+
+@dataclass(frozen=True)
+class _SharedState:
+    total: Decimal
+    currency: Currency
+    user_ids: frozenset[int]
+
+
+def apply_shared_expense_change(
+    change: SharedExpenseChange,
+) -> SharedExpenseParticipant:
+    """Apply the change, re-split the total and notify everyone else involved.
+
+    Expenses of the other participants keep their amount until they save them again.
+    Returns the editor's participant.
+    """
+    shared_expense = change.shared_expense
+    before = _shared_state(shared_expense)
+    after = _SharedState(change.total, change.currency, frozenset(change.quotas()))
+    if before != after:
+        shared_expense.amount = change.total
+        shared_expense.currency = change.currency
+        shared_expense.save(update_fields=["amount", "currency", "updated_at"])
+        _remove_participants(shared_expense, before.user_ids - after.user_ids)
+        _store_quotas(change)
+        _notify_modified(change, before, after)
+    return SharedExpenseParticipant.objects.get(
+        shared_expense=shared_expense, user=change.editor
+    )
+
+
+def _shared_state(shared_expense: SharedExpense) -> _SharedState:
+    user_ids = shared_expense.sharedexpenseparticipant_set.values_list(
+        "user_id", flat=True
+    )
+    return _SharedState(
+        shared_expense.amount, shared_expense.currency, frozenset(user_ids)
+    )
+
+
+def _remove_participants(
+    shared_expense: SharedExpense, user_ids: frozenset[int]
+) -> None:
+    """Remove the participants with their expense and their pending share request."""
+    participants = SharedExpenseParticipant.objects.filter(
+        shared_expense=shared_expense, user_id__in=user_ids
+    )
+    Expense.objects.filter(shared_expense_participant__in=participants).delete()
+    requests = SharedExpenseNotification.objects.filter(
+        shared_expense_participant__in=participants
+    )
+    request_notification_ids = list(requests.values_list("notification_id", flat=True))
+    requests.delete()
+    Notification.objects.filter(id__in=request_notification_ids).delete()
+    participants.delete()
+
+
+def _store_quotas(change: SharedExpenseChange) -> None:
+    """Set each participant's new quota, adding the participants who were not there."""
+    for user_id, quota in change.quotas().items():
+        SharedExpenseParticipant.objects.update_or_create(
+            shared_expense=change.shared_expense,
+            user_id=user_id,
+            defaults={"quota": quota},
+        )
+
+
+def _notify_modified(
+    change: SharedExpenseChange, before: _SharedState, after: _SharedState
+) -> None:
+    """Tell everyone involved before or after the change, except the editor, what changed."""
+    recipients = (before.user_ids | after.user_ids) - {change.editor.id}
+    for user_id in recipients:
+        notification = Notification.objects.create(
+            user_id=user_id, kind=NotificationKind.SHARED_EXPENSE_MODIFIED
+        )
+        SharedExpenseModifiedNotification.objects.create(
+            notification=notification,
+            shared_expense=change.shared_expense,
+            modified_by=change.editor,
+            amount_before=before.total,
+            currency_before=before.currency,
+            amount_after=after.total,
+            currency_after=after.currency,
+            number_participants_before=len(before.user_ids),
+            number_participants_after=len(after.user_ids),
+            you_were_added=user_id not in before.user_ids,
+            you_were_removed=user_id not in after.user_ids,
+        )
+
+
+def delete_shared_expense(shared_expense: SharedExpense, deleted_by: User) -> None:
+    """Delete the shared expense with every participant's expense, and notify the others.
+
+    Notifications about the shared expense go too, as they would point to nothing.
+    """
+    participants = shared_expense.sharedexpenseparticipant_set.all()
+    for participant in participants:
+        if participant.user_id != deleted_by.id:
+            _notify_deleted(shared_expense, deleted_by, participant.user_id)
+    Expense.objects.filter(shared_expense_participant__in=participants).delete()
+    _delete_notifications_about(shared_expense)
+    participants.delete()
+    shared_expense.delete()
+
+
+def _notify_deleted(
+    shared_expense: SharedExpense, deleted_by: User, user_id: int
+) -> None:
+    notification = Notification.objects.create(
+        user_id=user_id, kind=NotificationKind.SHARED_EXPENSE_DELETED
+    )
+    SharedExpenseDeletedNotification.objects.create(
+        notification=notification,
+        deleted_by=deleted_by,
+        description=shared_expense.description,
+        amount=shared_expense.amount,
+        currency=shared_expense.currency,
+    )
+
+
+def _delete_notifications_about(shared_expense: SharedExpense) -> None:
+    """Delete the share requests and modification notifications of the shared expense."""
+    requests = SharedExpenseNotification.objects.filter(
+        shared_expense_participant__shared_expense=shared_expense
+    )
+    modifications = SharedExpenseModifiedNotification.objects.filter(
+        shared_expense=shared_expense
+    )
+    notification_ids = [
+        *requests.values_list("notification_id", flat=True),
+        *modifications.values_list("notification_id", flat=True),
+    ]
+    requests.delete()
+    modifications.delete()
+    Notification.objects.filter(id__in=notification_ids).delete()

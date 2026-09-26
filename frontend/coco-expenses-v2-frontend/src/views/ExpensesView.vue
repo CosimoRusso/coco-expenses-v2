@@ -60,6 +60,7 @@ async function fetchMetadata() {
     fetchUserSettings(),
     fetchFriends(),
     fetchSharedExpenseRequest(),
+    fetchExpenseToEdit(),
   ])
 }
 
@@ -196,6 +197,24 @@ async function fetchSharedExpenseRequest() {
   }
 }
 
+// The notifications page opens this view with a shared expense to update
+async function fetchExpenseToEdit() {
+  const expenseId = route.query.edit
+  if (!expenseId) {
+    return
+  }
+  try {
+    const response = await apiFetch(`/expenses/expenses/${expenseId}/`)
+    if (!response.ok) {
+      throw new Error('Failed to load the expense to update.')
+    }
+    editingExpense.value = await response.json()
+  } catch (error) {
+    console.error('Error fetching expense to update:', error)
+    tableErrors.value.push('Failed to load the expense to update.')
+  }
+}
+
 function clearSharedExpenseRequest() {
   sharedExpenseRequest.value = null
   router.replace({ query: {} })
@@ -214,6 +233,9 @@ function onExpenseUpdated(expense: Expense) {
     expenses.value[index] = expense
   }
   editingExpense.value = null
+  if (route.query.edit) {
+    router.replace({ query: {} })
+  }
 }
 
 function onExpenseDeleted(expenseId: number) {

@@ -12,6 +12,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from expenses.date_utils import from_italian_date, is_italian_date
 from expenses.models import Currency, Expense, ExpenseCategory, Trip
 from expenses.serializers.expenses import ExpenseSerializer
+from expenses.sharing import delete_shared_expense
 from expenses.utils.encryption.encryption import (
     decrypt_text_with_key,
     encrypt_text_with_key,
@@ -97,10 +98,25 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return (
-            Expense.objects.select_related("category", "trip")
+            Expense.objects.select_related(
+                "category", "trip", "shared_expense_participant__shared_expense"
+            )
+            .prefetch_related(
+                "shared_expense_participant__shared_expense__sharedexpenseparticipant_set__user"
+            )
             .filter(user=user)
             .order_by("-expense_date")
         )
+
+    def perform_destroy(self, instance: Expense):
+        """Deleting a shared expense deletes it for every participant."""
+        participant = instance.shared_expense_participant
+        if participant is None:
+            return super().perform_destroy(instance)
+        with transaction.atomic():
+            delete_shared_expense(
+                participant.shared_expense, deleted_by=self.request.user
+            )
 
     @action(detail=False, methods=["post"])
     def load_from_csv(self, request):

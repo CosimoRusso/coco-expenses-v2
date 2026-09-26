@@ -78,6 +78,7 @@ class TestNotifications(ApiTestCase):
                 "currency": self.euro.id,
                 "created_by": "Carla Neri",
                 "is_completed": False,
+                "expense_id": None,
             },
         )
 
