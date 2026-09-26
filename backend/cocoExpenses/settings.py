@@ -154,6 +154,10 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 50,
 }
 
+# PAGE_SIZE applies only to views that set pagination_class; a DEFAULT_PAGINATION_CLASS
+# would paginate every list endpoint and change its response shape.
+SILENCED_SYSTEM_CHECKS = ["rest_framework.W001"]
+
 
 if "test" in sys.argv:
     REST_FRAMEWORK["PAGE_SIZE"] = 5

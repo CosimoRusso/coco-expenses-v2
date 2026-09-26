@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
+
+if TYPE_CHECKING:
+    from expenses.models.shared_expense_participant import SharedExpenseParticipant
 
 
 class Expense(models.Model):
@@ -38,9 +43,16 @@ class Expense(models.Model):
     recurring_expense = models.ForeignKey(
         "RecurringExpense", on_delete=models.PROTECT, related_name="expenses", null=True
     )
+    shared_expense_participant: "SharedExpenseParticipant" = models.ForeignKey(
+        "SharedExpenseParticipant", on_delete=models.PROTECT, null=True, blank=True
+    )
 
     def __str__(self):
-        return (
+        is_shared = self.shared_expense_participant is not None
+        out = (
             f"{self.description} - {self.amount} "
             f"({self.amortization_start_date.isoformat()} -> {self.amortization_end_date.isoformat()})"
         )
+        if is_shared:
+            out += ", shared"
+        return out
