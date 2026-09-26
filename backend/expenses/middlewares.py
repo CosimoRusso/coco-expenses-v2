@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from expenses import date_utils
 from expenses.constants import TOKEN_DURATION
 from expenses.models.token import Token
+from expenses.models.user import User
 
 
 class SessionRefreshMiddleware:
@@ -13,7 +14,8 @@ class SessionRefreshMiddleware:
         # Ran after authentication middleware, so request.user is set
         response = self.get_response(request)
 
-        if not (request.user and request.user.is_authenticated):
+        # Admin requests carry a django.contrib.auth User, which has no session Token
+        if not isinstance(request.user, User):
             return response
 
         # User is authenticated, from here we can assume we have a cookie and that it is valid.

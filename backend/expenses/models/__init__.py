@@ -2,6 +2,7 @@ from expenses.models.currency import Currency
 from expenses.models.dollar_exchange_rate import DollarExchangeRate
 from expenses.models.expense import Expense
 from expenses.models.expense_category import ExpenseCategory
+from expenses.models.friend import Friend
 from expenses.models.recurring_expense import RecurringExpense
 from expenses.models.settings import Settings
 from expenses.models.trip import Trip
@@ -18,4 +19,5 @@ __all__ = [
     "DollarExchangeRate",
     "RecurringExpense",
     "Settings",
+    "Friend",
 ]
