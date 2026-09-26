@@ -93,7 +93,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         "amortization_start_date",
         "amortization_end_date",
     ]
-    ordering = ["-expense_date"]
+    ordering = ["-expense_date", "-id"]
 
     def get_queryset(self):
         user = self.request.user
