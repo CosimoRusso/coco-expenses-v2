@@ -65,7 +65,9 @@ class TestFriends(ApiTestCase):
         )
 
     def test_list_exposes_only_public_fields(self):
-        friend = UserFactory(first_name="Anna", last_name="Rossi", email="anna@test.com")
+        friend = UserFactory(
+            first_name="Anna", last_name="Rossi", email="anna@test.com"
+        )
         FriendFactory(user_1=self.user, user_2=friend)
 
         res = self.client.get(self.list_url)

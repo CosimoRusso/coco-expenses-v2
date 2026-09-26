@@ -174,6 +174,89 @@ class TestEditTotalAndCurrency(EditSharedExpenseTestCase):
         self.assertEqual(SharedExpense.objects.get().amount, Decimal("30.00"))
 
 
+class TestEditSplit(EditSharedExpenseTestCase):
+    def split(self, *quotas: tuple) -> list[dict]:
+        return [{"user": user.id, "quota": quota} for user, quota in quotas]
+
+    def test_editor_sets_the_quota_of_everyone(self):
+        split = self.split(
+            (self.me, "20.00"), (self.anna, "6.00"), (self.bruno, "4.00")
+        )
+
+        res = self.edit(self.anna, self.anna_expense, split=split)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            self.quotas(),
+            {
+                self.me.id: Decimal("20.00"),
+                self.anna.id: Decimal("6.00"),
+                self.bruno.id: Decimal("4.00"),
+            },
+        )
+
+    def test_editor_expense_gets_own_quota_of_the_split(self):
+        split = self.split(
+            (self.me, "20.00"), (self.anna, "6.00"), (self.bruno, "4.00")
+        )
+
+        self.edit(self.anna, self.anna_expense, split=split)
+
+        self.anna_expense.refresh_from_db()
+        self.assertEqual(self.anna_expense.amount, Decimal("6.00"))
+
+    def test_changing_only_the_split_notifies_the_others(self):
+        split = self.split(
+            (self.me, "20.00"), (self.anna, "6.00"), (self.bruno, "4.00")
+        )
+
+        self.edit(self.anna, self.anna_expense, split=split)
+
+        self.assertEqual(set(self.modifications()), {self.me.id, self.bruno.id})
+
+    def test_negative_quota_is_rejected_and_quotas_are_unchanged(self):
+        split = self.split(
+            (self.me, "-5.00"), (self.anna, "25.00"), (self.bruno, "10.00")
+        )
+
+        res = self.edit(self.anna, self.anna_expense, split=split)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.quotas()[self.me.id], Decimal("10.00"))
+
+    def test_added_friend_needs_a_quota_in_the_split(self):
+        split = self.split(
+            (self.me, "20.00"), (self.anna, "6.00"), (self.bruno, "4.00")
+        )
+
+        res = self.edit(
+            self.me,
+            self.my_expense,
+            shared_with=[self.anna.id, self.bruno.id, self.dave.id],
+            split=split,
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertNotIn(self.dave.id, self.quotas())
+
+    def test_edit_without_split_splits_the_total_equally_again(self):
+        split = self.split(
+            (self.me, "20.00"), (self.anna, "6.00"), (self.bruno, "4.00")
+        )
+        self.edit(self.anna, self.anna_expense, split=split)
+
+        self.edit(self.me, self.my_expense, amount="30.00")
+
+        self.assertEqual(
+            self.quotas(),
+            {
+                self.me.id: Decimal("10.00"),
+                self.anna.id: Decimal("10.00"),
+                self.bruno.id: Decimal("10.00"),
+            },
+        )
+
+
 class TestEditParticipants(EditSharedExpenseTestCase):
     def test_added_friend_becomes_a_participant(self):
         res = self.edit(

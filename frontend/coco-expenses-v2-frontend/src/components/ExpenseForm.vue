@@ -9,6 +9,16 @@ import type { SharedExpenseRequest } from '@/interfaces/Notification'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 import MultiSelect, { type MultiSelectOption } from '@/components/MultiSelect.vue'
+import SplitPanel, { type SplitParticipant } from '@/components/SplitPanel.vue'
+import { useUserStore } from '@/stores/user'
+import {
+  fromCents,
+  splitEqually,
+  splitError,
+  toCents,
+  type Quotas,
+  type SplitMode,
+} from '@/utils/split'
 
 // Constants
 const todayStr = new Date().toISOString().substring(0, 10)
@@ -44,6 +54,8 @@ function emptyExpense(): Expense {
     currency: null,
   }
 }
+
+const userStore = useUserStore()
 
 // New expense form
 const newExpense = ref<Expense>(emptyExpense())
@@ -97,11 +109,60 @@ const friendOptions = computed(() => {
 })
 const isSharing = computed(() => !!editingShared.value || selectedFriendIds.value.length > 0)
 
+const splitMode = ref<SplitMode>('equally')
+const customQuotas = ref<Quotas>({})
+const myUserId = computed(() => myParticipant.value?.user_id ?? userStore.id)
+const creatorId = computed(() => editingShared.value?.created_by ?? myUserId.value)
+const splitParticipants = computed<SplitParticipant[]>(() => {
+  const labels = new Map(friendOptions.value.map((option) => [option.value, option.label]))
+  const others = selectedFriendIds.value.map((userId) => ({
+    userId,
+    label: labels.get(userId) ?? '',
+  }))
+  return [{ userId: myUserId.value!, label: 'You' }, ...others]
+})
+// Everyone sharing the expense, the creator first
+const splitUserIds = computed(() => {
+  const ids = splitParticipants.value.map((participant) => participant.userId)
+  return [creatorId.value!, ...ids.filter((id) => id !== creatorId.value)]
+})
+const customSplitError = computed(() =>
+  isSharing.value && splitMode.value === 'amount'
+    ? splitError(Number(newExpense.value.amount), customQuotas.value, splitUserIds.value)
+    : '',
+)
+const currencySymbol = computed(
+  () =>
+    props.currencies.find((currency) => currency.id === newExpense.value.currency)?.symbol ?? '',
+)
+
+// Without a split the backend splits the total equally
+function splitBody() {
+  if (splitMode.value === 'equally') return {}
+  const split = splitUserIds.value.map((user) => ({
+    user,
+    quota: fromCents(toCents(customQuotas.value[user])),
+  }))
+  return { split }
+}
+
+// A split the editor keeps as it is: equal when it matches the equal split
+function loadSplit(participants: { user_id: number; quota: string }[], total: number) {
+  const quotas = Object.fromEntries(participants.map((p) => [p.user_id, p.quota]))
+  const userIds = participants.map((participant) => participant.user_id)
+  const creator = editingShared.value!.created_by
+  const equal = splitEqually(total, [creator, ...userIds.filter((id) => id !== creator)])
+  const isEqual = userIds.every((userId) => equal[userId] === quotas[userId])
+  splitMode.value = isEqual ? 'equally' : 'amount'
+  customQuotas.value = quotas
+}
+
 function requestBody() {
   if (isCompletingShare.value) {
     return { ...newExpense.value, shared_expense_participant: props.sharedExpenseRequest!.id }
   }
-  return { ...newExpense.value, shared_with: selectedFriendIds.value }
+  const split = isSharing.value ? splitBody() : {}
+  return { ...newExpense.value, shared_with: selectedFriendIds.value, ...split }
 }
 
 // The first validation message of a rejected request, or `fallback`
@@ -146,6 +207,11 @@ const addOrUpdateExpense = async () => {
       return
     }
     newExpense.value.is_expense = _selectedCategory.for_expense
+    if (customSplitError.value) {
+      formError.value = customSplitError.value
+      isSubmitting.value = false
+      return
+    }
 
     // Submit form
     let response: Response
@@ -189,6 +255,8 @@ const addOrUpdateExpense = async () => {
 function resetForm() {
   newExpense.value = emptyExpense()
   selectedFriendIds.value = []
+  splitMode.value = 'equally'
+  customQuotas.value = {}
   assignDefaultCurrencyAndTrip()
 }
 
@@ -216,6 +284,8 @@ watch(
   (expense) => {
     if (expense && expense.id) {
       selectedFriendIds.value = []
+      splitMode.value = 'equally'
+      customQuotas.value = {}
       newExpense.value = {
         expense_date: expense.expense_date,
         description: expense.description,
@@ -234,6 +304,7 @@ watch(
         selectedFriendIds.value = expense.shared_expense.participants
           .filter((participant) => participant.id !== expense.shared_expense_participant)
           .map((participant) => participant.user_id)
+        loadSplit(expense.shared_expense.participants, newExpense.value.amount)
       }
     } else {
       // Reset form when not editing
@@ -267,8 +338,8 @@ watch(
     {{ sharedExpenseRequest!.quota }}.
   </p>
   <p v-if="editingShared" class="mb-3">
-    This expense is shared: changing the total amount, the currency or the people updates everyone's
-    share, and they are notified. Your quota is {{ myParticipant?.quota }}.
+    This expense is shared: changing the total amount, the currency, the people or the split updates
+    everyone's share, and they are notified. Your quota is {{ myParticipant?.quota }}.
   </p>
   <form
     class="form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -382,7 +453,22 @@ watch(
       />
     </div>
     <div class="col-span-full"></div>
-    <button type="submit" :disabled="isSubmitting" class="btn btn-primary col-span-full">
+    <SplitPanel
+      v-if="canShare && isSharing && myUserId !== null"
+      class="col-span-full"
+      v-model:mode="splitMode"
+      v-model:quotas="customQuotas"
+      :total="Number(newExpense.amount)"
+      :currencySymbol="currencySymbol"
+      :participants="splitParticipants"
+      :creatorId="creatorId!"
+      :error="customSplitError"
+    />
+    <button
+      type="submit"
+      :disabled="isSubmitting || !!customSplitError"
+      class="btn btn-primary col-span-full"
+    >
       {{
         isSubmitting
           ? isEditing

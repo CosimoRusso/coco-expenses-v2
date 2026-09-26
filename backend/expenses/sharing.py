@@ -28,19 +28,57 @@ def split_equally(total: Decimal, parts: int) -> list[Decimal]:
     return [base_quota + leftover] + [base_quota] * (parts - 1)
 
 
+# Quotas by user id
+Split = dict[int, Decimal]
+
+
+class InvalidSplit(ValueError):
+    """A split that does not divide the total between the participants."""
+
+
+def quotas_of(total: Decimal, user_ids: list[int], split: Split | None) -> Split:
+    """The quotas of `split`, or `total` split equally when it is None.
+
+    In an equal split the first user, the creator, takes the leftover cents.
+    """
+    if split is not None:
+        return dict(split)
+    return dict(zip(user_ids, split_equally(total, len(user_ids))))
+
+
+def check_quotas(quotas: Split, user_ids: list[int], total: Decimal) -> None:
+    """Each participant has a quota and they add up to `total`.
+
+    Anyone's quota can be zero, the creator's too: they may have paid for the others.
+    """
+    if set(quotas) != set(user_ids):
+        raise InvalidSplit("The split must give a quota to each participant")
+    if sum(quotas.values()) != total:
+        raise InvalidSplit(f"The quotas must add up to the total of {total}")
+    if any(quota < 0 for quota in quotas.values()):
+        raise InvalidSplit("A quota cannot be negative")
+
+
 @dataclass(frozen=True)
 class ExpenseShare:
-    """An expense its creator splits equally with some friends."""
+    """An expense its creator splits with some friends, equally unless `split` is given."""
 
     creator: User
     friends: list[User]
     description: str
     total: Decimal
     currency: Currency
+    split: Split | None = None
 
-    def quotas(self) -> list[Decimal]:
-        """The creator's quota first, then one per friend in order."""
-        return split_equally(self.total, len(self.friends) + 1)
+    def user_ids(self) -> list[int]:
+        """The creator first, then each friend in order."""
+        return [self.creator.id, *(friend.id for friend in self.friends)]
+
+    def quotas(self) -> Split:
+        return quotas_of(self.total, self.user_ids(), self.split)
+
+    def check(self) -> None:
+        check_quotas(self.quotas(), self.user_ids(), self.total)
 
 
 def create_shared_expense(share: ExpenseShare) -> SharedExpenseParticipant:
@@ -54,14 +92,16 @@ def create_shared_expense(share: ExpenseShare) -> SharedExpenseParticipant:
         currency=share.currency,
         created_by=share.creator,
     )
-    creator_quota, *friend_quotas = share.quotas()
-    for friend, quota in zip(share.friends, friend_quotas):
+    quotas = share.quotas()
+    for friend in share.friends:
         participant = SharedExpenseParticipant.objects.create(
-            user=friend, shared_expense=shared_expense, quota=quota
+            user=friend, shared_expense=shared_expense, quota=quotas[friend.id]
         )
         _notify_share_requested(participant)
     return SharedExpenseParticipant.objects.create(
-        user=share.creator, shared_expense=shared_expense, quota=creator_quota
+        user=share.creator,
+        shared_expense=shared_expense,
+        quota=quotas[share.creator.id],
     )
 
 
@@ -77,7 +117,8 @@ def _notify_share_requested(participant: SharedExpenseParticipant) -> None:
 
 @dataclass(frozen=True)
 class SharedExpenseChange:
-    """A participant's edit of what everyone shares: the total, currency and participants."""
+    """A participant's edit of what everyone shares: the total, currency, participants and
+    split, which is equal unless `split` is given."""
 
     shared_expense: SharedExpense
     editor: User
@@ -85,6 +126,7 @@ class SharedExpenseChange:
     others: list[User]
     total: Decimal
     currency: Currency
+    split: Split | None = None
 
     def participants(self) -> list[User]:
         """Everyone sharing the expense after the change, its creator first."""
@@ -94,31 +136,38 @@ class SharedExpenseChange:
         ]
         return [creator, *everyone_else]
 
-    def quotas(self) -> dict[int, Decimal]:
-        """Each participant's quota by user id; the creator takes the leftover cents."""
-        participants = self.participants()
-        quotas = split_equally(self.total, len(participants))
-        return {user.id: quota for user, quota in zip(participants, quotas)}
+    def user_ids(self) -> list[int]:
+        return [user.id for user in self.participants()]
+
+    def quotas(self) -> Split:
+        return quotas_of(self.total, self.user_ids(), self.split)
+
+    def check(self) -> None:
+        check_quotas(self.quotas(), self.user_ids(), self.total)
 
 
 @dataclass(frozen=True)
 class _SharedState:
     total: Decimal
     currency: Currency
-    user_ids: frozenset[int]
+    quotas: Split
+
+    @property
+    def user_ids(self) -> frozenset[int]:
+        return frozenset(self.quotas)
 
 
 def apply_shared_expense_change(
     change: SharedExpenseChange,
 ) -> SharedExpenseParticipant:
-    """Apply the change, re-split the total and notify everyone else involved.
+    """Apply the change, store the new quotas and notify everyone else involved.
 
     Expenses of the other participants keep their amount until they save them again.
     Returns the editor's participant.
     """
     shared_expense = change.shared_expense
     before = _shared_state(shared_expense)
-    after = _SharedState(change.total, change.currency, frozenset(change.quotas()))
+    after = _SharedState(change.total, change.currency, change.quotas())
     if before != after:
         shared_expense.amount = change.total
         shared_expense.currency = change.currency
@@ -132,12 +181,8 @@ def apply_shared_expense_change(
 
 
 def _shared_state(shared_expense: SharedExpense) -> _SharedState:
-    user_ids = shared_expense.sharedexpenseparticipant_set.values_list(
-        "user_id", flat=True
-    )
-    return _SharedState(
-        shared_expense.amount, shared_expense.currency, frozenset(user_ids)
-    )
+    quotas = shared_expense.sharedexpenseparticipant_set.values_list("user_id", "quota")
+    return _SharedState(shared_expense.amount, shared_expense.currency, dict(quotas))
 
 
 def _remove_participants(

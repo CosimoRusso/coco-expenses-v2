@@ -4,11 +4,13 @@ import apiFetch from '@/utils/apiFetch.ts'
 
 export const useUserStore = defineStore('user', () => {
   const isLoggedIn = ref(false)
+  const id = ref<number | null>(null)
   const email = ref('')
   const firstName = ref('')
   const lastName = ref('')
 
-  function initUser(userData: { email: string; firstName: string; lastName: string }) {
+  function initUser(userData: { id: number; email: string; firstName: string; lastName: string }) {
+    id.value = userData.id
     email.value = userData.email
     firstName.value = userData.firstName
     lastName.value = userData.lastName
@@ -19,7 +21,12 @@ export const useUserStore = defineStore('user', () => {
     const response = await apiFetch('expenses/users/self/')
     if (response.ok) {
       const userData = await response.json()
-      initUser(userData)
+      initUser({
+        id: userData.id,
+        email: userData.email,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+      })
       isLoggedIn.value = true
     } else {
       isLoggedIn.value = false
@@ -31,6 +38,7 @@ export const useUserStore = defineStore('user', () => {
       method: 'POST',
     })
     localStorage.removeItem('token')
+    id.value = null
     email.value = ''
     firstName.value = ''
     lastName.value = ''
@@ -44,6 +52,7 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     isLoggedIn,
+    id,
     logout,
     checkAuthStatus,
     initUser,

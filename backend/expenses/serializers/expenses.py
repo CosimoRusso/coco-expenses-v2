@@ -8,7 +8,9 @@ from expenses.models.user_settings import UserSettings
 from expenses.serializers.shared_expenses import SharedExpenseSummarySerializer
 from expenses.sharing import (
     ExpenseShare,
+    InvalidSplit,
     SharedExpenseChange,
+    Split,
     apply_shared_expense_change,
     create_shared_expense,
 )
@@ -19,12 +21,21 @@ from expenses.utils.encryption.encryption import (
 from rest_framework import serializers
 
 
+class QuotaSerializer(serializers.Serializer):
+    user = serializers.IntegerField()
+    quota = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
 class ExpenseSerializer(serializers.ModelSerializer):
     amortization_start_date = serializers.DateField(required=True, allow_null=False)
     amortization_end_date = serializers.DateField(required=True, allow_null=False)
     description = serializers.CharField(required=True, allow_null=False)
     shared_with = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), many=True, write_only=True, required=False
+    )
+    # The quota of every participant; without it the total is split equally
+    split = serializers.ListField(
+        child=QuotaSerializer(), write_only=True, required=False, allow_empty=False
     )
     shared_expense = serializers.SerializerMethodField()
 
@@ -50,6 +61,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
                 "An expense can be shared only once with each person"
             )
         return others
+
+    def validate_split(self, quotas: list[dict]) -> Split:
+        """Each person can have only one quota."""
+        split = {quota["user"]: quota["quota"] for quota in quotas}
+        if len(split) != len(quotas):
+            raise serializers.ValidationError("Each person can have only one quota")
+        return split
 
     def validate_shared_expense_participant(self, participant):
         """A user completes only their own share, and only once."""
@@ -97,7 +115,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
             attrs["amount"] = attrs["share_change"].quotas()[attrs["user"].id]
         elif others:
             attrs["share"] = self._share_with(others, attrs)
-            attrs["amount"] = attrs["share"].quotas()[0]
+            attrs["amount"] = attrs["share"].quotas()[attrs["user"].id]
+        elif "split" in attrs:
+            raise serializers.ValidationError("Only a shared expense can be split")
         elif attrs.get("shared_expense_participant") and self.instance is None:
             self._check_matches_quota(attrs)
 
@@ -119,13 +139,16 @@ class ExpenseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "An expense can be shared only with your friends"
             )
-        return ExpenseShare(
+        share = ExpenseShare(
             creator=attrs["user"],
             friends=friends,
             description=attrs["description"],
             total=attrs["amount"],
             currency=attrs["currency"],
+            split=attrs.pop("split", None),
         )
+        self._check_split(share)
+        return share
 
     def _change_shared_expense(
         self, others: list[User] | None, attrs
@@ -142,13 +165,22 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if others is None:
             others = current_others
         self._check_participants(shared_expense, editor, others, current_others)
-        return SharedExpenseChange(
+        change = SharedExpenseChange(
             shared_expense=shared_expense,
             editor=editor,
             others=others,
             total=attrs["amount"],
             currency=attrs["currency"],
+            split=attrs.pop("split", None),
         )
+        self._check_split(change)
+        return change
+
+    def _check_split(self, share: ExpenseShare | SharedExpenseChange) -> None:
+        try:
+            share.check()
+        except InvalidSplit as error:
+            raise serializers.ValidationError(str(error)) from error
 
     def _check_participants(self, shared_expense, editor, others, current_others):
         """The creator and the editor stay, and only the editor's friends can be added."""
@@ -272,6 +304,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "is_expense",
             "currency",
             "shared_with",
+            "split",
             "shared_expense_participant",
             "shared_expense",
         ]

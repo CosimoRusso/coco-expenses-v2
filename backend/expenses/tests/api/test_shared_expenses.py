@@ -184,6 +184,76 @@ class TestShareExpense(SharedExpenseTestCase):
         self.assertIsNone(Expense.objects.get().amount)
 
 
+class TestSplitSharedExpense(SharedExpenseTestCase):
+    def setUp(self):
+        self.login(self.me.email)
+
+    def share(self, split: list[tuple], **overrides):
+        """As `me`, share 10.00 with Anna and Bruno with the (user, quota) pairs of `split`."""
+        defaults = {"amount": "10.00", "shared_with": [self.anna.id, self.bruno.id]}
+        quotas = [{"user": user.id, "quota": quota} for user, quota in split]
+        body = self.expense_body(**{**defaults, **overrides}, split=quotas)
+        return self.client.post(self.list_url, body, format="json")
+
+    def test_each_participant_gets_the_quota_of_the_split(self):
+        res = self.share([(self.me, "5.00"), (self.anna, "3.00"), (self.bruno, "2.00")])
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        quotas = {p.user_id: p.quota for p in SharedExpenseParticipant.objects.all()}
+        self.assertEqual(
+            quotas,
+            {
+                self.me.id: Decimal("5.00"),
+                self.anna.id: Decimal("3.00"),
+                self.bruno.id: Decimal("2.00"),
+            },
+        )
+
+    def test_creator_expense_amount_is_own_quota_of_the_split(self):
+        res = self.share([(self.me, "5.00"), (self.anna, "3.00"), (self.bruno, "2.00")])
+
+        self.assertEqual(res.data["amount"], "5.00")
+        self.assertEqual(Expense.objects.get().amount, Decimal("5.00"))
+
+    def test_split_not_adding_up_to_the_total_is_rejected_and_nothing_is_saved(self):
+        res = self.share([(self.me, "5.00"), (self.anna, "3.00"), (self.bruno, "1.00")])
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Expense.objects.exists())
+        self.assertFalse(SharedExpense.objects.exists())
+        self.assertFalse(Notification.objects.exists())
+
+    def test_creator_paying_for_the_others_has_a_zero_expense(self):
+        res = self.share([(self.me, "0.00"), (self.anna, "5.00"), (self.bruno, "5.00")])
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Expense.objects.get().amount, Decimal("0.00"))
+        self.assertEqual(self.participant_of(self.anna).quota, Decimal("5.00"))
+
+    def test_split_missing_a_friend_is_rejected(self):
+        res = self.share([(self.me, "5.00"), (self.anna, "5.00")])
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_two_quotas_for_the_same_person_are_rejected(self):
+        res = self.share(
+            [
+                (self.me, "4.00"),
+                (self.anna, "3.00"),
+                (self.anna, "1.00"),
+                (self.bruno, "2.00"),
+            ]
+        )
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_split_of_an_expense_not_shared_is_rejected(self):
+        res = self.share([(self.me, "10.00")], shared_with=[])
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Expense.objects.exists())
+
+
 class TestCompleteSharedExpense(SharedExpenseTestCase):
     def setUp(self):
         self.share_dinner(amount="10.00")

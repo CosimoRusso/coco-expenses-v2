@@ -30,6 +30,7 @@ async function handleLogin() {
     const data = await response.json()
     // Store the token and update login state
     userStore.initUser({
+      id: data.id,
       email: email.value,
       firstName: data.first_name,
       lastName: data.last_name,
