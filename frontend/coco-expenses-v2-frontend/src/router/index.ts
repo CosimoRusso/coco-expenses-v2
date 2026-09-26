@@ -61,6 +61,11 @@ const router = createRouter({
       component: () => import('@/views/ProfileView.vue'),
     },
     {
+      path: '/sharing',
+      name: 'sharing',
+      component: () => import('@/views/SharingView.vue'),
+    },
+    {
       path: '/notifications',
       name: 'notifications',
       component: () => import('@/views/NotificationsView.vue'),

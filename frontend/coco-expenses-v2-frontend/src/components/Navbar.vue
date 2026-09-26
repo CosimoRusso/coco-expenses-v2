@@ -26,6 +26,7 @@ const navElements = computed<NavElement[]>(() => {
     { text: 'Categories', link: '/categories' },
     { text: 'Trips', link: '/trips' },
     { text: 'Statistics', link: '/statistics' },
+    { text: 'Sharing', link: '/sharing' },
     ...(userStore.isLoggedIn
       ? [
           { text: 'Profile', link: '/profile' },
