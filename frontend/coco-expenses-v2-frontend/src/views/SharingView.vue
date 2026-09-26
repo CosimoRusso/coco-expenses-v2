@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import apiFetch from '@/utils/apiFetch'
-import type { Balance, Balances, Movement } from '@/interfaces/Balance'
+import type { Balance, Balances } from '@/interfaces/Balance'
+import { formatMovement, movementClass } from '@/utils/movements'
 
 const isLoading = ref(true)
 const balances = ref<Balances | null>(null)
@@ -25,15 +26,6 @@ onMounted(async () => {
 function formatAmount(amount: string): string {
   const absolute = Math.abs(Number(amount)).toFixed(2)
   return `${balances.value!.currency.symbol} ${absolute}`
-}
-
-function formatMovementAmount(movement: Movement): string {
-  const absolute = Math.abs(Number(movement.amount)).toFixed(2)
-  return `${movement.currency.symbol} ${absolute}`
-}
-
-function movementClass(movement: Movement): string {
-  return Number(movement.amount) < 0 ? 'text-error' : 'text-success'
 }
 
 function status(balance: Balance): { text: string; class: string } {
@@ -64,7 +56,14 @@ function status(balance: Balance): { text: string; class: string } {
         <tbody>
           <template v-for="balance in balances.balances" :key="balance.user_id">
             <tr class="border-b-0">
-              <td>{{ balance.first_name }} {{ balance.last_name }}</td>
+              <td>
+                <RouterLink
+                  :to="{ name: 'sharing-person', params: { personId: balance.user_id } }"
+                  class="link link-hover font-medium"
+                >
+                  {{ balance.first_name }} {{ balance.last_name }}
+                </RouterLink>
+              </td>
               <td :class="status(balance).class">{{ status(balance).text }}</td>
               <td class="text-right font-semibold" :class="status(balance).class">
                 {{ formatAmount(balance.amount) }}
@@ -81,8 +80,7 @@ function status(balance: Balance): { text: string; class: string } {
                     <span class="text-base-content/50 whitespace-nowrap">{{ movement.date }}</span>
                     <span class="grow">{{ movement.description }}</span>
                     <span class="whitespace-nowrap" :class="movementClass(movement)">
-                      {{ Number(movement.amount) < 0 ? '−' : '+' }}
-                      {{ formatMovementAmount(movement) }}
+                      {{ formatMovement(movement) }}
                     </span>
                   </li>
                 </ul>

@@ -66,6 +66,11 @@ const router = createRouter({
       component: () => import('@/views/SharingView.vue'),
     },
     {
+      path: '/sharing/:personId(\\d+)',
+      name: 'sharing-person',
+      component: () => import('@/views/SharingPersonView.vue'),
+    },
+    {
       path: '/notifications',
       name: 'notifications',
       component: () => import('@/views/NotificationsView.vue'),

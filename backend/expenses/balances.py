@@ -3,6 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 
+from django.db.models import F, Q, QuerySet
 from django.utils import timezone
 from expenses.managers import exchange_rate_manager
 from expenses.models import Currency, SharedExpense, SharedExpenseParticipant, User
@@ -58,6 +59,27 @@ def balances_of(user: User, currency: Currency) -> list[Balance]:
     return sorted(balances, key=_by_name)
 
 
+def shared_expenses_with(
+    user: User, other_id: int
+) -> QuerySet[SharedExpenseParticipant]:
+    """The quotas owed between the user and another person, newest first."""
+    owed_to_user = Q(shared_expense__created_by=user, user_id=other_id)
+    owed_by_user = Q(shared_expense__created_by_id=other_id, user=user)
+    return (
+        SharedExpenseParticipant.objects.filter(owed_to_user | owed_by_user)
+        .exclude(user=F("shared_expense__created_by"))
+        .select_related("shared_expense__currency")
+        .order_by("-shared_expense__created_at", "-shared_expense__id")
+    )
+
+
+def movement_of(participant: SharedExpenseParticipant, user: User) -> Movement:
+    """The participant's quota as seen by the user, who is on either side of it."""
+    shared_expense = participant.shared_expense
+    sign = 1 if shared_expense.created_by_id == user.id else -1
+    return _movement(shared_expense, _quota(participant, sign))
+
+
 def _converted_totals(debts: list[_Debt], currency: Currency) -> dict[User, Decimal]:
     """The sum of the debts with each person, converted to `currency`."""
     converted = exchange_rate_manager.bulk_convert_to_currency(
@@ -74,16 +96,18 @@ def _latest_movements(debts: list[_Debt]) -> dict[User, list[Movement]]:
     movements: dict[User, list[Movement]] = defaultdict(list)
     for debt in sorted(debts, key=_by_recency, reverse=True):
         if len(movements[debt.other]) < MOVEMENTS_PER_PERSON:
-            movements[debt.other].append(_movement(debt))
+            movements[debt.other].append(_movement(debt.shared_expense, debt.money))
     return movements
 
 
-def _movement(debt: _Debt) -> Movement:
+def _movement(
+    shared_expense: SharedExpense, money: exchange_rate_manager.Money
+) -> Movement:
     return Movement(
-        description=debt.shared_expense.description,
-        date=debt.money.day,
-        amount=debt.money.amount,
-        currency=debt.money.currency,
+        description=shared_expense.description,
+        date=money.day,
+        amount=money.amount,
+        currency=money.currency,
     )
 
 

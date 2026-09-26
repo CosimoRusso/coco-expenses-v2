@@ -44,6 +44,11 @@ class TestBalances(ApiTestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         return {b["user_id"]: b["amount"] for b in res.data["balances"]}
 
+    def share_with_anna(self, descriptions):
+        """One shared expense with Anna for each description, oldest first."""
+        for description in descriptions:
+            self.share(self.me, [self.anna], "10.00", description=description)
+
     def movements(self) -> dict[int, list[dict]]:
         res = self.client.get(self.url)
         return {b["user_id"]: b["movements"] for b in res.data["balances"]}
@@ -170,27 +175,14 @@ class TestBalances(ApiTestCase):
         self.assertEqual(self.descriptions()[self.anna.id], ["Taxi", "Cinema"])
 
     def test_only_the_latest_ten_movements_are_listed(self):
-        for number in range(1, 12):
-            self.share(self.me, [self.anna], "10.00", description=f"Dinner {number}")
+        self.share_with_anna(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"])
 
         self.assertEqual(
             self.descriptions()[self.anna.id],
-            [
-                "Dinner 11",
-                "Dinner 10",
-                "Dinner 9",
-                "Dinner 8",
-                "Dinner 7",
-                "Dinner 6",
-                "Dinner 5",
-                "Dinner 4",
-                "Dinner 3",
-                "Dinner 2",
-            ],
+            ["11", "10", "9", "8", "7", "6", "5", "4", "3", "2"],
         )
 
     def test_balance_counts_movements_beyond_the_latest_ten(self):
-        for _ in range(11):
-            self.share(self.me, [self.anna], "10.00")
+        self.share_with_anna(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"])
 
         self.assertEqual(self.balances(), {self.anna.id: "55.00"})

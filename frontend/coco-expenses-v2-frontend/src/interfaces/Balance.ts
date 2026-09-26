@@ -22,3 +22,10 @@ export interface Balances {
   currency: Currency
   balances: Balance[]
 }
+
+export interface MovementsPage {
+  count: number
+  next: string | null
+  previous: string | null
+  results: Movement[]
+}
