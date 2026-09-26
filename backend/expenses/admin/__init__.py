@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.admin.exceptions import AlreadyRegistered
 from expenses.admin.currency import CurrencyAdmin
 from expenses.admin.dollar_exchange_rate import DollarExchangeRateAdmin
+from expenses.admin.expense_category import ExpenseCategoryAdmin
 from expenses.admin.friend import FriendAdmin
 from expenses.admin.notification import NotificationAdmin
 from expenses.admin.settings import SettingsAdmin
@@ -19,6 +20,7 @@ from expenses.admin.user import UserAdmin
 from expenses.models import (
     Currency,
     DollarExchangeRate,
+    ExpenseCategory,
     Friend,
     Notification,
     Settings,
@@ -37,6 +39,7 @@ try:
     admin.site.register(Trip, TripAdmin)
     admin.site.register(Currency, CurrencyAdmin)
     admin.site.register(DollarExchangeRate, DollarExchangeRateAdmin)
+    admin.site.register(ExpenseCategory, ExpenseCategoryAdmin)
     admin.site.register(Settings, SettingsAdmin)
     admin.site.register(Friend, FriendAdmin)
     admin.site.register(Notification, NotificationAdmin)
