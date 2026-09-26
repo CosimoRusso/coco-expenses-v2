@@ -5,6 +5,7 @@ import { ref, onMounted, watch } from 'vue'
 import apiFetch from '@/utils/apiFetch'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
+import type { Friend } from '@/interfaces/Friend'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 import type { Expense } from '@/interfaces/Expense'
@@ -15,6 +16,7 @@ const expenses = ref<Expense[]>([])
 const categories = ref<ExpenseCategory[]>([])
 const trips = ref<Trip[]>([])
 const currencies = ref<Currency[]>([])
+const friends = ref<Friend[]>([])
 const userSettings = ref<UserSettings | null>(null)
 const tableErrors = ref<string[]>([])
 
@@ -50,6 +52,7 @@ async function fetchMetadata() {
     fetchExpenses(),
     fetchCurrencies(),
     fetchUserSettings(),
+    fetchFriends(),
   ])
 }
 
@@ -153,6 +156,20 @@ async function fetchTrips() {
   }
 }
 
+async function fetchFriends() {
+  try {
+    const response = await apiFetch('/expenses/friends/')
+    if (response.ok) {
+      friends.value = await response.json()
+    } else {
+      throw new Error('Failed to load friends.')
+    }
+  } catch (error) {
+    console.error('Error fetching friends:', error)
+    tableErrors.value.push('Failed to load friends.')
+  }
+}
+
 function onExpenseAdded(expense: Expense) {
   // Simply add them as first element of the current page, when the user refreshes the page everything will work just fine
   expenses.value.unshift(expense)
@@ -197,6 +214,7 @@ watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDa
       :categories="categories"
       :trips="trips"
       :currencies="currencies"
+      :friends="friends"
       :userSettings="userSettings"
       :editingExpense="editingExpense"
       @expense-added="onExpenseAdded"

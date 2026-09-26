@@ -4,8 +4,10 @@ import apiFetch from '@/utils/apiFetch'
 import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
+import type { Friend } from '@/interfaces/Friend'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
+import MultiSelect from '@/components/MultiSelect.vue'
 
 // Constants
 const todayStr = new Date().toISOString().substring(0, 10)
@@ -15,6 +17,7 @@ const props = defineProps<{
   categories: ExpenseCategory[]
   trips: Trip[]
   currencies: Currency[]
+  friends: Friend[]
   userSettings: UserSettings | null
   editingExpense?: Expense | null
 }>()
@@ -44,6 +47,15 @@ const isSubmitting = ref(false)
 // Filter active categories and trips
 const activeCategories = computed(() => props.categories.filter((cat) => cat.is_active))
 const activeTrips = computed(() => props.trips.filter((trip) => trip.is_active))
+const friendOptions = computed(() =>
+  props.friends.map((friend) => ({
+    value: friend.id,
+    label: `${friend.first_name} ${friend.last_name}`,
+  })),
+)
+
+// Friends to share the expense with
+const selectedFriendIds = ref<number[]>([])
 
 // Add or update expense
 const addOrUpdateExpense = async () => {
@@ -118,6 +130,7 @@ const addOrUpdateExpense = async () => {
           is_expense: true,
           currency: null,
         }
+        selectedFriendIds.value = []
         assignDefaultCurrencyAndTrip()
       }
     } else {
@@ -178,6 +191,7 @@ watch(
         is_expense: true,
         currency: null,
       }
+      selectedFriendIds.value = []
       assignDefaultCurrencyAndTrip()
     }
   },
@@ -282,6 +296,16 @@ watch(
           {{ trip.name }}
         </option>
       </select>
+    </div>
+    <div>
+      <label for="friends">Share with</label>
+      <MultiSelect
+        id="friends"
+        v-model="selectedFriendIds"
+        :options="friendOptions"
+        placeholder="Select friends"
+        emptyText="No friends yet"
+      />
     </div>
     <div class="col-span-full"></div>
     <button type="submit" :disabled="isSubmitting" class="btn btn-primary col-span-full">

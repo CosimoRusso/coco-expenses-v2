@@ -1,6 +1,7 @@
 from expenses.views.currencies import CurrencyViewSet
 from expenses.views.expense_categories import ExpenseCategoryViewSet
 from expenses.views.expenses import ExpenseViewSet
+from expenses.views.friends import FriendViewSet
 from expenses.views.recurring_expenses import RecurringExpenseViewSet
 from expenses.views.statistics import StatisticViewSet
 from expenses.views.trips import TripViewSet
@@ -23,5 +24,6 @@ router.register("users", UserViewSet, basename="users")
 router.register("user-settings", UserSettingsViewSet, basename="user-settings")
 router.register("statistics", StatisticViewSet, basename="statistics")
 router.register("currencies", CurrencyViewSet, basename="currencies")
+router.register("friends", FriendViewSet, basename="friends")
 
 urlpatterns = router.urls
