@@ -69,6 +69,14 @@ class ExpenseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Each person can have only one quota")
         return split
 
+    def validate_payment_method(self, payment_method):
+        """A user can only use their own payment methods."""
+        if payment_method is None:
+            return None
+        if payment_method.user_id != self.context["request"].user.id:
+            raise serializers.ValidationError("Invalid payment method")
+        return payment_method
+
     def validate_shared_expense_participant(self, participant):
         """A user completes only their own share, and only once."""
         if self.instance is not None:
@@ -301,6 +309,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "amortization_end_date",
             "category",
             "trip",
+            "payment_method",
             "is_expense",
             "currency",
             "shared_with",

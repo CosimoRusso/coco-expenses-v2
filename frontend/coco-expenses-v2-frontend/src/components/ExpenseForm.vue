@@ -6,6 +6,7 @@ import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
 import type { Friend } from '@/interfaces/Friend'
 import type { SharedExpenseRequest } from '@/interfaces/Notification'
+import type { PaymentMethod } from '@/interfaces/PaymentMethod'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 import MultiSelect, { type MultiSelectOption } from '@/components/MultiSelect.vue'
@@ -27,6 +28,7 @@ const props = defineProps<{
   initialPageLoading: boolean
   categories: ExpenseCategory[]
   trips: Trip[]
+  paymentMethods: PaymentMethod[]
   currencies: Currency[]
   friends: Friend[]
   userSettings: UserSettings | null
@@ -50,6 +52,7 @@ function emptyExpense(): Expense {
     amortization_end_date: todayStr,
     category: null,
     trip: null,
+    payment_method: null,
     is_expense: true,
     currency: null,
   }
@@ -88,6 +91,9 @@ const heading = computed(() => {
 // Filter active categories and trips
 const activeCategories = computed(() => props.categories.filter((cat) => cat.is_active))
 const activeTrips = computed(() => props.trips.filter((trip) => trip.is_active))
+const activePaymentMethods = computed(() =>
+  props.paymentMethods.filter((paymentMethod) => paymentMethod.is_active),
+)
 // Friends, plus the other participants of the shared expense being edited even when they
 // are not friends; its creator cannot be removed by anyone else
 const friendOptions = computed(() => {
@@ -294,6 +300,7 @@ watch(
         amortization_end_date: expense.amortization_end_date,
         category: expense.category,
         trip: expense.trip,
+        payment_method: expense.payment_method,
         is_expense: expense.is_expense,
         currency: expense.currency,
       }
@@ -439,6 +446,24 @@ watch(
         <option :value="null">Select a trip</option>
         <option v-for="trip in activeTrips" :key="trip.id" :value="trip.id">
           {{ trip.name }}
+        </option>
+      </select>
+    </div>
+
+    <div>
+      <label for="payment-method">Payment Method</label>
+      <select
+        class="select input input-border w-full"
+        id="payment-method"
+        v-model="newExpense.payment_method"
+      >
+        <option :value="null">Select a payment method</option>
+        <option
+          v-for="paymentMethod in activePaymentMethods"
+          :key="paymentMethod.id"
+          :value="paymentMethod.id"
+        >
+          {{ paymentMethod.name }}
         </option>
       </select>
     </div>

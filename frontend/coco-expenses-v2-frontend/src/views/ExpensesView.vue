@@ -8,6 +8,7 @@ import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
 import type { Friend } from '@/interfaces/Friend'
 import type { SharedExpenseRequest } from '@/interfaces/Notification'
+import type { PaymentMethod } from '@/interfaces/PaymentMethod'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 import type { Expense } from '@/interfaces/Expense'
@@ -20,6 +21,7 @@ const initialPageLoading = ref(true)
 const expenses = ref<Expense[]>([])
 const categories = ref<ExpenseCategory[]>([])
 const trips = ref<Trip[]>([])
+const paymentMethods = ref<PaymentMethod[]>([])
 const currencies = ref<Currency[]>([])
 const friends = ref<Friend[]>([])
 const sharedExpenseRequest = ref<SharedExpenseRequest | null>(null)
@@ -35,6 +37,7 @@ const hasPreviousPage = ref(false)
 // Filter state
 const filterCategory = ref<number | null>(null)
 const filterTrip = ref<number | null>(null)
+const filterPaymentMethod = ref<number | null>(null)
 const filterIsExpense = ref<boolean | null>(null)
 const filterStartDate = ref<string | null>(null)
 const filterEndDate = ref<string | null>(null)
@@ -55,6 +58,7 @@ async function fetchMetadata() {
   await Promise.all([
     fetchCategories(),
     fetchTrips(),
+    fetchPaymentMethods(),
     fetchExpenses(),
     fetchCurrencies(),
     fetchUserSettings(),
@@ -78,6 +82,9 @@ async function fetchExpenses() {
     }
     if (filterTrip.value !== null) {
       params.push(`trip=${filterTrip.value}`)
+    }
+    if (filterPaymentMethod.value !== null) {
+      params.push(`payment_method=${filterPaymentMethod.value}`)
     }
     if (filterStartDate.value !== null && filterStartDate.value !== '') {
       params.push(`start_date=${filterStartDate.value}`)
@@ -161,6 +168,20 @@ async function fetchTrips() {
   } catch (error) {
     console.error('Error fetching trips:', error)
     tableErrors.value.push('Errore durante il caricamento dei viaggi.')
+  }
+}
+
+async function fetchPaymentMethods() {
+  try {
+    const response = await apiFetch('/expenses/payment-methods/')
+    if (response.ok) {
+      paymentMethods.value = await response.json()
+    } else {
+      throw new Error('Failed to load payment methods.')
+    }
+  } catch (error) {
+    console.error('Error fetching payment methods:', error)
+    tableErrors.value.push('Failed to load payment methods.')
   }
 }
 
@@ -252,13 +273,23 @@ function onPageChanged(page: number) {
 }
 
 // Reset to page 1 when filters change and reload
-watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDate], () => {
-  if (currentPage.value !== 1) {
-    currentPage.value = 1
-  }
-  // Fetch expenses with updated filters and page 1
-  fetchExpenses()
-})
+watch(
+  [
+    filterCategory,
+    filterTrip,
+    filterPaymentMethod,
+    filterIsExpense,
+    filterStartDate,
+    filterEndDate,
+  ],
+  () => {
+    if (currentPage.value !== 1) {
+      currentPage.value = 1
+    }
+    // Fetch expenses with updated filters and page 1
+    fetchExpenses()
+  },
+)
 </script>
 
 <template>
@@ -267,6 +298,7 @@ watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDa
       :initialPageLoading="initialPageLoading"
       :categories="categories"
       :trips="trips"
+      :paymentMethods="paymentMethods"
       :currencies="currencies"
       :friends="friends"
       :sharedExpenseRequest="sharedExpenseRequest"
@@ -280,6 +312,7 @@ watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDa
       :initialPageLoading="initialPageLoading"
       :categories="categories"
       :trips="trips"
+      :paymentMethods="paymentMethods"
       :currencies="currencies"
       :userSettings="userSettings"
       :expenses="expenses"
@@ -293,6 +326,7 @@ watch([filterCategory, filterTrip, filterIsExpense, filterStartDate, filterEndDa
       @edit-expense="onEditExpense"
       v-model:filter-category="filterCategory"
       v-model:filter-trip="filterTrip"
+      v-model:filter-payment-method="filterPaymentMethod"
       v-model:filter-is-expense="filterIsExpense"
       v-model:filter-start-date="filterStartDate"
       v-model:filter-end-date="filterEndDate"

@@ -10,7 +10,7 @@ from django.db.models import Q
 from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from expenses.date_utils import from_italian_date, is_italian_date
-from expenses.models import Currency, Expense, ExpenseCategory, Trip
+from expenses.models import Currency, Expense, ExpenseCategory, PaymentMethod, Trip
 from expenses.serializers.expenses import ExpenseSerializer
 from expenses.sharing import delete_shared_expense
 from expenses.utils.encryption.encryption import (
@@ -29,6 +29,7 @@ class ExpenseFilterSet(django_filters.FilterSet):
     is_expense = django_filters.BooleanFilter()
     category = django_filters.NumberFilter()
     trip = django_filters.NumberFilter()
+    payment_method = django_filters.NumberFilter()
 
     def filter_queryset(self, queryset):
         start_date = self.request.query_params.get("start_date")
@@ -79,7 +80,7 @@ class ExpenseFilterSet(django_filters.FilterSet):
 
     class Meta:
         model = Expense
-        fields = ["is_expense", "category", "trip"]
+        fields = ["is_expense", "category", "trip", "payment_method"]
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
@@ -99,7 +100,10 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return (
             Expense.objects.select_related(
-                "category", "trip", "shared_expense_participant__shared_expense"
+                "category",
+                "trip",
+                "payment_method",
+                "shared_expense_participant__shared_expense",
             )
             .prefetch_related(
                 "shared_expense_participant__shared_expense__sharedexpenseparticipant_set__user"
@@ -157,6 +161,10 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                             user=user, code=trip_code, defaults={"name": trip_code}
                         )
 
+                    payment_method = payment_method_from_code(
+                        user, row.get("payment_method")
+                    )
+
                     # Process date fields
                     for date_field in [
                         "expense_date",
@@ -203,6 +211,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                         amortization_end_date=row["amortization_end_date"],
                         category=category,
                         trip=trip,
+                        payment_method=payment_method,
                         currency=currency,
                         is_expense=is_expense,
                     )
@@ -217,9 +226,13 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def download_csv(self, request):
         user = request.user
-        queryset = Expense.objects.select_related(
-            "trip", "category", "currency"
-        ).order_by("expense_date", "id")
+        queryset = (
+            Expense.objects.select_related(
+                "trip", "category", "currency", "payment_method"
+            )
+            .filter(user=user)
+            .order_by("expense_date", "id")
+        )
 
         buffer = io.StringIO()
         fieldnames = list(ExpenseCSV.__annotations__.keys())
@@ -245,6 +258,8 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                         description=description,
                         category=expense.category.code,
                         trip=expense.trip and expense.trip.code,
+                        payment_method=expense.payment_method
+                        and expense.payment_method.code,
                         currency=expense.currency.code,
                         expense_date=expense.expense_date,
                         amortization_start_date=expense.amortization_start_date,
@@ -268,12 +283,27 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         return response
 
 
+def payment_method_from_code(user, code: str | None) -> PaymentMethod | None:
+    """The user's payment method with this code, created when missing.
+
+    The column is optional, so files exported before it existed still import.
+    """
+    code = (code or "").strip()
+    if not code:
+        return None
+    payment_method, _ = PaymentMethod.objects.get_or_create(
+        user=user, code=code, defaults={"name": code}
+    )
+    return payment_method
+
+
 @dataclass
 class ExpenseCSV:
     amount: str
     description: str
     category: str
     trip: str
+    payment_method: str
     currency: str
     expense_date: str
     amortization_start_date: str

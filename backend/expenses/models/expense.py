@@ -35,6 +35,13 @@ class Expense(models.Model):
     trip = models.ForeignKey(
         "Trip", on_delete=models.PROTECT, related_name="expenses", null=True
     )
+    payment_method = models.ForeignKey(
+        "PaymentMethod",
+        on_delete=models.PROTECT,
+        related_name="expenses",
+        null=True,
+        blank=True,
+    )
     # True for expenses, false for income
     is_expense = models.BooleanField(default=True)
     currency = models.ForeignKey(

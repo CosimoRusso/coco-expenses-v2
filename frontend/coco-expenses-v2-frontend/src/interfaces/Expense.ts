@@ -9,6 +9,7 @@ export interface Expense {
   amortization_end_date: string
   category: number | null
   trip: number | null
+  payment_method?: number | null
   is_expense: boolean
   currency: number | null
   shared_expense_participant?: number | null

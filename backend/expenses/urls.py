@@ -4,6 +4,7 @@ from expenses.views.expense_categories import ExpenseCategoryViewSet
 from expenses.views.expenses import ExpenseViewSet
 from expenses.views.friends import FriendViewSet
 from expenses.views.notifications import NotificationViewSet
+from expenses.views.payment_methods import PaymentMethodViewSet
 from expenses.views.recurring_expenses import RecurringExpenseViewSet
 from expenses.views.statistics import StatisticViewSet
 from expenses.views.trips import TripViewSet
@@ -22,6 +23,7 @@ router.register(
     "recurring-expenses", RecurringExpenseViewSet, basename="recurring-expenses"
 )
 router.register("trips", TripViewSet, basename="trips")
+router.register("payment-methods", PaymentMethodViewSet, basename="payment-methods")
 router.register("users", UserViewSet, basename="users")
 router.register("user-settings", UserSettingsViewSet, basename="user-settings")
 router.register("statistics", StatisticViewSet, basename="statistics")

@@ -10,6 +10,7 @@ from expenses.tests.factories.category_factories import (
     IncomeCategoryFactory,
 )
 from expenses.tests.factories.expense_factories import ExpenseFactory
+from expenses.tests.factories.payment_method_factories import PaymentMethodFactory
 from expenses.tests.factories.trip_factories import TripFactory
 from expenses.tests.factories.user_factories import UserFactory
 from expenses.utils.encryption.encryption import encrypt_user_data
@@ -159,6 +160,55 @@ class TestExpense(ApiTestCase):
         results = self._get_results(res_data)
         returned_ids = {r["id"] for r in results}
         self.assertEqual(returned_ids, {e.id for e in all_expenses})
+
+    def test_filter_expenses_by_payment_method(self):
+        card = PaymentMethodFactory(user=self.user, name="Card")
+        cash = PaymentMethodFactory(user=self.user, name="Cash")
+        paid_by_card = ExpenseFactory(user=self.user, payment_method=card)
+        ExpenseFactory(user=self.user, payment_method=cash)
+        ExpenseFactory(user=self.user, payment_method=None)
+
+        res = self.client.get(self.list_url, {"payment_method": card.id})
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        returned_ids = [r["id"] for r in self._get_results(res.json())]
+        self.assertEqual(returned_ids, [paid_by_card.id])
+
+    def test_create_expense_with_payment_method(self):
+        payment_method = PaymentMethodFactory(user=self.user)
+        body = {
+            "description": "coffee",
+            "amount": Decimal("2.50"),
+            "amortization_start_date": self.today,
+            "amortization_end_date": self.today,
+            "category": self.category.id,
+            "payment_method": payment_method.id,
+            "is_expense": True,
+        }
+
+        res = self.client.post(self.list_url, body, format="json")
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["payment_method"], payment_method.id)
+        self.assertEqual(Expense.objects.get().payment_method, payment_method)
+
+    def test_create_expense_with_payment_method_of_another_user_is_rejected(self):
+        other_payment_method = PaymentMethodFactory(user=UserFactory())
+        body = {
+            "description": "coffee",
+            "amount": Decimal("2.50"),
+            "amortization_start_date": self.today,
+            "amortization_end_date": self.today,
+            "category": self.category.id,
+            "payment_method": other_payment_method.id,
+            "is_expense": True,
+        }
+
+        res = self.client.post(self.list_url, body, format="json")
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("payment_method", res.data)
+        self.assertFalse(Expense.objects.exists())
 
     def test_filter_expenses_respects_user_isolation(self):
         expense_category = ExpenseCategoryFactory(user=self.user)

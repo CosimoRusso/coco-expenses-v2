@@ -24,6 +24,7 @@ const navElements = computed<NavElement[]>(() => {
     { text: 'Expenses', link: '/expenses' },
     { text: 'Recurring Expenses', link: '/recurring-expenses' },
     { text: 'Categories', link: '/categories' },
+    { text: 'Payment Methods', link: '/payment-methods' },
     { text: 'Trips', link: '/trips' },
     { text: 'Statistics', link: '/statistics' },
     { text: 'Sharing', link: '/sharing' },

@@ -5,6 +5,7 @@ from expenses.admin.dollar_exchange_rate import DollarExchangeRateAdmin
 from expenses.admin.expense_category import ExpenseCategoryAdmin
 from expenses.admin.friend import FriendAdmin
 from expenses.admin.notification import NotificationAdmin
+from expenses.admin.payment_method import PaymentMethodAdmin
 from expenses.admin.settings import SettingsAdmin
 from expenses.admin.shared_expense import SharedExpenseAdmin
 from expenses.admin.shared_expense_deleted_notification import (
@@ -23,6 +24,7 @@ from expenses.models import (
     ExpenseCategory,
     Friend,
     Notification,
+    PaymentMethod,
     Settings,
     SharedExpense,
     SharedExpenseDeletedNotification,
@@ -43,6 +45,7 @@ try:
     admin.site.register(Settings, SettingsAdmin)
     admin.site.register(Friend, FriendAdmin)
     admin.site.register(Notification, NotificationAdmin)
+    admin.site.register(PaymentMethod, PaymentMethodAdmin)
     admin.site.register(SharedExpense, SharedExpenseAdmin)
     admin.site.register(SharedExpenseParticipant, SharedExpenseParticipantAdmin)
     admin.site.register(SharedExpenseNotification, SharedExpenseNotificationAdmin)

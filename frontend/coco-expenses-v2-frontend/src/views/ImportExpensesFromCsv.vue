@@ -4,7 +4,11 @@
     <p>Il file CSV deve contenere le seguenti colonne:</p>
     <p class="font-semibold mb-2 mt-2">
       expense_date, description, amount, amortization_start_date, amortization_end_date, category,
-      trip, currency, is_expense
+      trip, payment_method, currency, is_expense
+    </p>
+    <p class="mb-2">
+      La colonna payment_method è facoltativa: indica il codice del metodo di pagamento, che
+      viene creato se non esiste.
     </p>
 
     <div
@@ -14,11 +18,11 @@
       <ul class="list-disc list-inside space-y-1 text-gray-700">
         <li>
           2025-01-01,Spesa di
-          esempio,1034.34,100,2025-01-01,2025-01-01,Categoria_esempio,Viaggio_esempio,EUR,True
+          esempio,1034.34,100,2025-01-01,2025-01-01,Categoria_esempio,Viaggio_esempio,Carta,EUR,True
         </li>
         <li>
           2025-01-01,Entrata di
-          esempio,20.43,11.1,2025-01-01,2025-01-01,Categoria_2,Viaggio_2,USD,False
+          esempio,20.43,11.1,2025-01-01,2025-01-01,Categoria_2,Viaggio_2,Contanti,USD,False
         </li>
       </ul>
     </div>

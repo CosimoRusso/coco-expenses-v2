@@ -8,6 +8,7 @@ import SharedAvatars from '@/components/SharedAvatars.vue'
 import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
+import type { PaymentMethod } from '@/interfaces/PaymentMethod'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
 
@@ -15,6 +16,7 @@ const props = defineProps<{
   initialPageLoading: boolean
   categories: ExpenseCategory[]
   trips: Trip[]
+  paymentMethods: PaymentMethod[]
   currencies: Currency[]
   userSettings: UserSettings | null
   expenses: Expense[]
@@ -36,6 +38,9 @@ const tableErrors = ref<string[]>([])
 // Filter state
 const filterCategory = defineModel<number | null>('filterCategory', { required: false })
 const filterTrip = defineModel<number | null>('filterTrip', { required: false })
+const filterPaymentMethod = defineModel<number | null>('filterPaymentMethod', {
+  required: false,
+})
 const filterIsExpense = defineModel<boolean | null>('filterIsExpense', { required: false })
 const filterStartDate = defineModel<string | null>('filterStartDate', { required: false })
 const filterEndDate = defineModel<string | null>('filterEndDate', { required: false })
@@ -111,7 +116,7 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
 <template>
   <div class="expenses-table">
     <!-- Filter Bar -->
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <div>
         <label for="filter-category">Category</label>
         <select
@@ -132,6 +137,24 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
           <option :value="null">All Trips</option>
           <option v-for="trip in trips" :key="trip.id" :value="trip.id">
             {{ trip.name }}
+          </option>
+        </select>
+      </div>
+
+      <div>
+        <label for="filter-payment-method">Payment Method</label>
+        <select
+          class="select input input-border w-full"
+          id="filter-payment-method"
+          v-model="filterPaymentMethod"
+        >
+          <option :value="null">All Payment Methods</option>
+          <option
+            v-for="paymentMethod in paymentMethods"
+            :key="paymentMethod.id"
+            :value="paymentMethod.id"
+          >
+            {{ paymentMethod.name }}
           </option>
         </select>
       </div>

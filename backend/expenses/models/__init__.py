@@ -4,6 +4,7 @@ from expenses.models.expense import Expense
 from expenses.models.expense_category import ExpenseCategory
 from expenses.models.friend import Friend
 from expenses.models.notification import Notification
+from expenses.models.payment_method import PaymentMethod
 from expenses.models.recurring_expense import RecurringExpense
 from expenses.models.settings import Settings
 from expenses.models.shared_expense import SharedExpense
@@ -31,6 +32,7 @@ __all__ = [
     "Settings",
     "Friend",
     "Notification",
+    "PaymentMethod",
     "SharedExpense",
     "SharedExpenseParticipant",
     "SharedExpenseNotification",
