@@ -211,7 +211,7 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
             <th>Amortization End</th>
             <th>Category</th>
             <th>Trip</th>
-            <th>Is Expense</th>
+            <th>Type</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -219,17 +219,38 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
           <tr v-if="props.expenses.length === 0">
             <td colspan="11" class="no-data">No expenses found</td>
           </tr>
-          <tr v-for="expense in props.expenses" :key="expense.id">
-            <td><SharedAvatars :expense="expense" /></td>
+          <tr
+            v-for="expense in props.expenses"
+            :key="expense.id"
+            :class="expense.is_expense ? '' : 'bg-success/10'"
+          >
+            <td
+              class="border-l-4"
+              :class="expense.is_expense ? 'border-l-error' : 'border-l-success'"
+            >
+              <SharedAvatars :expense="expense" />
+            </td>
             <td>{{ expense.expense_date }}</td>
             <td>{{ expense.description }}</td>
-            <td>{{ expense.amount }}</td>
+            <td
+              class="font-semibold whitespace-nowrap"
+              :class="expense.is_expense ? 'text-error' : 'text-success'"
+            >
+              {{ expense.is_expense ? '−' : '+' }}{{ expense.amount }}
+            </td>
             <td>{{ getCurrencyName(expense.currency) }}</td>
             <td>{{ expense.amortization_start_date }}</td>
             <td>{{ expense.amortization_end_date }}</td>
             <td>{{ getCategoryName(expense.category) }}</td>
             <td>{{ getTripName(expense.trip) }}</td>
-            <td>{{ expense.is_expense ? 'Yes' : 'No' }}</td>
+            <td>
+              <span
+                class="badge badge-soft"
+                :class="expense.is_expense ? 'badge-error' : 'badge-success'"
+              >
+                {{ expense.is_expense ? 'Expense' : 'Income' }}
+              </span>
+            </td>
             <td>
               <div class="flex gap-2">
                 <button
