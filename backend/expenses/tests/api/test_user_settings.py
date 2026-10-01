@@ -1,3 +1,6 @@
+import datetime as dt
+from unittest.mock import patch
+
 from django.urls import reverse
 from expenses.models.currency import Currency
 from expenses.models.user_settings import UserSettings
@@ -148,3 +151,92 @@ class TestUserSettings(ApiTestCase):
         cookie = res.cookies["user_crypto_key"]
         self.assertIsNotNone(cookie)
         self.assertTrue(cookie.value)
+
+
+class TestDefaultStatisticsPeriod(ApiTestCase):
+    TODAY = dt.date(2026, 8, 31)
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory()
+        cls.user_settings = UserSettings.objects.create(user=cls.user)
+        cls.self_url = reverse("expenses:user-settings-self")
+        cls.details_url = reverse(
+            "expenses:user-settings-detail", args=[cls.user_settings.id]
+        )
+
+    def setUp(self):
+        self.login(self.user.email)
+        patcher = patch("expenses.date_utils.today", return_value=self.TODAY)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_period_defaults_to_the_last_six_months(self):
+        res = self.client.get(self.self_url)
+
+        self.assertEqual(res.data["statistics_start_date"], "2026-02-28")
+        self.assertEqual(res.data["statistics_end_date"], "2026-08-31")
+
+    def test_unset_defaults_stay_null(self):
+        res = self.client.get(self.self_url)
+
+        self.assertIsNone(res.data["default_statistics_start_date"])
+        self.assertIsNone(res.data["default_statistics_end_date"])
+
+    def test_period_uses_the_dates_chosen_by_the_user(self):
+        body = {
+            "default_statistics_start_date": "2026-01-01",
+            "default_statistics_end_date": "2026-03-31",
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        self.assertEqual(res.data["statistics_start_date"], "2026-01-01")
+        self.assertEqual(res.data["statistics_end_date"], "2026-03-31")
+
+    def test_only_the_missing_date_is_defaulted(self):
+        body = {"default_statistics_start_date": "2026-01-01"}
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.data["statistics_start_date"], "2026-01-01")
+        self.assertEqual(res.data["statistics_end_date"], "2026-08-31")
+
+    def test_chosen_date_can_be_cleared(self):
+        self.user_settings.default_statistics_start_date = dt.date(2026, 1, 1)
+        self.user_settings.save()
+
+        res = self.client.patch(
+            self.details_url, {"default_statistics_start_date": None}, format="json"
+        )
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        self.assertEqual(res.data["statistics_start_date"], "2026-02-28")
+
+    def test_start_after_end_is_rejected(self):
+        body = {
+            "default_statistics_start_date": "2026-04-01",
+            "default_statistics_end_date": "2026-03-31",
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_400_BAD_REQUEST)
+
+    def test_start_after_the_defaulted_end_is_rejected(self):
+        body = {"default_statistics_start_date": "2026-09-01"}
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_400_BAD_REQUEST)
+
+    def test_start_equal_to_end_is_accepted(self):
+        body = {
+            "default_statistics_start_date": "2026-03-31",
+            "default_statistics_end_date": "2026-03-31",
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)

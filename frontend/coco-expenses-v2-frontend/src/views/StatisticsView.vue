@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import apiFetch from '@/utils/apiFetch.ts'
-import { dateToISOString } from '@/utils/dateUtils.ts'
 import { Bar, Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -15,6 +14,7 @@ import {
   Legend,
 } from 'chart.js'
 import type { Currency } from '@/interfaces/Currency'
+import type { UserSettings } from '@/interfaces/UserSettings'
 
 ChartJS.register(
   CategoryScale,
@@ -62,19 +62,23 @@ const tripStatistics = ref<TripStatistics[]>([])
 const amortizationTimeline = ref<AmortizationTimelineItem[]>([])
 const currency = ref<Currency | null>(null)
 
-onMounted(() => {
-  // Initialize date inputs to today's date
-  const _startDate = new Date()
-  _startDate.setMonth(_startDate.getMonth() - 2)
-  startDateStr.value = dateToISOString(_startDate)
-  const _endDate = new Date()
-  _endDate.setMonth(_endDate.getMonth() + 1)
-  endDateStr.value = dateToISOString(_endDate)
-
+onMounted(async () => {
+  await loadDefaultPeriod()
   fetchCategoryStatistics().then(() => {})
   fetchTripStatistics().then(() => {})
   fetchAmortizationTimeline().then(() => {})
 })
+
+async function loadDefaultPeriod() {
+  const response = await apiFetch('/expenses/user-settings/self/')
+  if (!response.ok) {
+    errorMessage.value = 'Error fetching the default statistics period'
+    return
+  }
+  const userSettings: UserSettings = await response.json()
+  startDateStr.value = userSettings.statistics_start_date
+  endDateStr.value = userSettings.statistics_end_date
+}
 
 async function fetchCategoryStatistics() {
   if (!startDateStr.value || !endDateStr.value) {

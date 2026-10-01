@@ -10,6 +10,8 @@ const userStore = useUserStore()
 const userSettingsId = ref<number | null>(null)
 const preferredCurrency = ref<number | null>(null)
 const activeTrip = ref<number | null>(null)
+const defaultStatisticsStartDate = ref<string>('')
+const defaultStatisticsEndDate = ref<string>('')
 const currencies = ref<Currency[]>([])
 const trips = ref<Trip[]>([])
 const saveSettingsStatus = ref<string>('')
@@ -25,6 +27,8 @@ async function getUserSettings() {
     userSettingsId.value = data.id
     preferredCurrency.value = data.preferred_currency
     activeTrip.value = data.active_trip
+    defaultStatisticsStartDate.value = data.default_statistics_start_date ?? ''
+    defaultStatisticsEndDate.value = data.default_statistics_end_date ?? ''
     isEncrypted.value = data.is_encrypted
   }
 }
@@ -55,6 +59,8 @@ async function saveSettings() {
     body: JSON.stringify({
       preferred_currency: preferredCurrency.value,
       active_trip: activeTrip.value,
+      default_statistics_start_date: defaultStatisticsStartDate.value || null,
+      default_statistics_end_date: defaultStatisticsEndDate.value || null,
     }),
   })
   if (response.ok) {
@@ -136,6 +142,26 @@ onMounted(() => {
               {{ trip.name }}
             </option>
           </select>
+        </div>
+        <div>
+          <label for="defaultStatisticsStartDate">Statistics Start Date</label>
+          <input
+            type="date"
+            id="defaultStatisticsStartDate"
+            v-model="defaultStatisticsStartDate"
+            class="input input-border w-full"
+          />
+          <p class="text-sm text-gray-500 mt-1">Leave empty to start 6 months ago</p>
+        </div>
+        <div>
+          <label for="defaultStatisticsEndDate">Statistics End Date</label>
+          <input
+            type="date"
+            id="defaultStatisticsEndDate"
+            v-model="defaultStatisticsEndDate"
+            class="input input-border w-full"
+          />
+          <p class="text-sm text-gray-500 mt-1">Leave empty to end today</p>
         </div>
         <div class="col-span-full">
           <button type="submit" class="btn btn-primary">Save</button>
