@@ -3,6 +3,7 @@ from expenses.models import Notification
 from expenses.serializers.notifications import NotificationSerializer
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 SHARED_EXPENSE_PARTICIPANT = "sharedexpensenotification_set__shared_expense_participant"
@@ -13,6 +14,7 @@ class NotificationViewSet(
 ):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = NotificationSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         return (

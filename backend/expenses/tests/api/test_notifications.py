@@ -40,6 +40,15 @@ class TestNotifications(ApiTestCase):
     def read_url(self, notification_id: int) -> str:
         return reverse("expenses:notifications-read", args=[notification_id])
 
+    def share_six_expenses_with_me(self):
+        """Share one expense more than the test page size of five."""
+        for description in ["First", "Second", "Third", "Fourth", "Fifth", "Sixth"]:
+            self.share_with_me(description=description)
+
+    def descriptions(self, res) -> list[str]:
+        """Descriptions of the shared expenses on the returned page, in order."""
+        return [n["shared_expense"]["description"] for n in res.data["results"]]
+
     def test_list_contains_only_my_notifications_newest_first(self):
         self.share_with_me(description="Lunch")
         self.share_with_me(description="Dinner")
@@ -56,16 +65,39 @@ class TestNotifications(ApiTestCase):
         res = self.client.get(self.list_url)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.descriptions(res), ["Dinner", "Lunch"])
+
+    def test_list_first_page_holds_the_newest_page_size_notifications(self):
+        self.share_six_expenses_with_me()
+
+        res = self.client.get(self.list_url)
+
+        self.assertEqual(res.data["count"], 6)
         self.assertEqual(
-            [n["shared_expense"]["description"] for n in res.data], ["Dinner", "Lunch"]
+            self.descriptions(res), ["Sixth", "Fifth", "Fourth", "Third", "Second"]
         )
+
+    def test_list_second_page_holds_the_remaining_notifications(self):
+        self.share_six_expenses_with_me()
+
+        res = self.client.get(self.list_url, {"page": 2})
+
+        self.assertEqual(self.descriptions(res), ["First"])
+        self.assertIsNone(res.data["next"])
+
+    def test_list_page_past_the_last_one_is_not_found(self):
+        self.share_with_me()
+
+        res = self.client.get(self.list_url, {"page": 2})
+
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_list_describes_the_share_to_complete(self):
         participant = self.share_with_me(total="10.00")
 
         res = self.client.get(self.list_url)
 
-        notification = res.data[0]
+        notification = res.data["results"][0]
         self.assertEqual(notification["kind"], "SHARED_EXPENSE_REQUESTED")
         self.assertIsNone(notification["read_at"])
         self.assertEqual(
@@ -101,7 +133,7 @@ class TestNotifications(ApiTestCase):
         res = self.client.get(self.list_url)
 
         self.assertTrue(Expense.objects.filter(user=self.me).exists())
-        self.assertTrue(res.data[0]["shared_expense"]["is_completed"])
+        self.assertTrue(res.data["results"][0]["shared_expense"]["is_completed"])
 
     def test_read_marks_the_notification_as_read(self):
         self.share_with_me()

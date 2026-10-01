@@ -411,7 +411,7 @@ class TestModifiedNotificationApi(EditSharedExpenseTestCase):
     def modified_notification_of(self, user) -> dict:
         self.login(user.email)
         res = self.client.get(reverse("expenses:notifications-list"))
-        return next(n for n in res.data if n["kind"] == "SHARED_EXPENSE_MODIFIED")
+        return next(n for n in res.data["results"] if n["kind"] == "SHARED_EXPENSE_MODIFIED")
 
     def test_notification_lists_every_change(self):
         self.edit(self.me, self.my_expense, amount="40.00", currency=self.dollar.id)

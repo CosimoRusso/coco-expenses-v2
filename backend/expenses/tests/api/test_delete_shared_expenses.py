@@ -105,7 +105,7 @@ class TestDeleteSharedExpense(EditSharedExpenseTestCase):
         self.login(self.anna.email)
         res = self.client.get(reverse("expenses:notifications-list"))
 
-        notification = res.data[0]
+        notification = res.data["results"][0]
         self.assertEqual(notification["kind"], "SHARED_EXPENSE_DELETED")
         self.assertIsNone(notification["shared_expense"])
         self.assertEqual(

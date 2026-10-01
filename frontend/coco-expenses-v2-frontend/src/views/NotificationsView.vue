@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import apiFetch from '@/utils/apiFetch'
 import type { Currency } from '@/interfaces/Currency'
 import type { Notification } from '@/interfaces/Notification'
+import type { PaginatedResponse } from '@/interfaces/PaginatedResponse'
 import { useNotificationStore } from '@/stores/notification'
 
 const router = useRouter()
@@ -13,22 +14,73 @@ const isLoading = ref(true)
 const notifications = ref<Notification[]>([])
 const currencies = ref<Currency[]>([])
 const loadError = ref('')
+const nextPage = ref<number | null>(1)
+const isLoadingMore = ref(false)
+const listEnd = ref<HTMLElement | null>(null)
+
+const listEndObserver = new IntersectionObserver(onListEndVisibilityChange, {
+  rootMargin: '200px',
+})
 
 onMounted(async () => {
   try {
-    await Promise.all([fetchNotifications(), fetchCurrencies()])
+    await Promise.all([fetchNextPage(), fetchCurrencies()])
   } finally {
     isLoading.value = false
   }
+  watchListEnd()
 })
 
-async function fetchNotifications() {
-  const response = await apiFetch('/expenses/notifications/')
-  if (response.ok) {
-    notifications.value = await response.json()
-  } else {
-    loadError.value = 'Failed to load notifications.'
+onUnmounted(() => listEndObserver.disconnect())
+
+function canLoadMore(): boolean {
+  return nextPage.value !== null && !loadError.value
+}
+
+// The observer reports only changes of visibility, so observing again is what makes it
+// report a list end that is still in view after a page has been appended.
+function watchListEnd() {
+  listEndObserver.disconnect()
+  if (canLoadMore() && listEnd.value) {
+    listEndObserver.observe(listEnd.value)
   }
+}
+
+async function onListEndVisibilityChange(entries: IntersectionObserverEntry[]) {
+  const isListEndVisible = entries.some((entry) => entry.isIntersecting)
+  if (!isListEndVisible || isLoadingMore.value) {
+    return
+  }
+  isLoadingMore.value = true
+  try {
+    await fetchNextPage()
+  } finally {
+    isLoadingMore.value = false
+  }
+  watchListEnd()
+}
+
+async function fetchNextPage() {
+  const page = nextPage.value
+  if (page === null) {
+    return
+  }
+  const response = await apiFetch(`/expenses/notifications/?page=${page}`)
+  if (!response.ok) {
+    loadError.value = 'Failed to load notifications.'
+    return
+  }
+  const data: PaginatedResponse<Notification> = await response.json()
+  appendNotifications(data.results)
+  nextPage.value = data.next ? page + 1 : null
+}
+
+// A notification created between two requests shifts the pages by one, so the next page
+// starts with a notification that is already listed.
+function appendNotifications(page: Notification[]) {
+  const listedIds = new Set(notifications.value.map((notification) => notification.id))
+  const unlisted = page.filter((notification) => !listedIds.has(notification.id))
+  notifications.value.push(...unlisted)
 }
 
 async function fetchCurrencies() {
@@ -114,8 +166,7 @@ async function completeSharedExpense(notification: Notification) {
 
 <template>
   <h1 class="text-2xl font-bold mb-8">Notifications</h1>
-  <div v-if="loadError" class="text-error my-4">{{ loadError }}</div>
-  <p v-else-if="!isLoading && !notifications.length">No notifications yet.</p>
+  <p v-if="!isLoading && !loadError && !notifications.length">No notifications yet.</p>
   <ul class="flex flex-col gap-3">
     <li
       v-for="notification in notifications"
@@ -169,4 +220,8 @@ async function completeSharedExpense(notification: Notification) {
       </div>
     </li>
   </ul>
+  <div ref="listEnd" class="flex justify-center my-4">
+    <span v-if="isLoadingMore" class="loading loading-spinner" aria-label="Loading more"></span>
+  </div>
+  <div v-if="loadError" class="text-error my-4">{{ loadError }}</div>
 </template>
