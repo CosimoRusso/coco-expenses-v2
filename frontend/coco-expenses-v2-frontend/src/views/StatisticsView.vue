@@ -219,6 +219,29 @@ const amortizationChartData = computed(() => {
   }
 })
 
+const summary = computed(() => {
+  const lastPoint = amortizationTimeline.value[amortizationTimeline.value.length - 1]
+  if (!lastPoint) {
+    return null
+  }
+  return {
+    date: lastPoint.date,
+    income: parseFloat(lastPoint.non_expense_amount) || 0,
+    expenses: parseFloat(lastPoint.expense_amount) || 0,
+    difference: parseFloat(lastPoint.difference) || 0,
+  }
+})
+
+function formatAmount(amount: number): string {
+  if (!currency.value) {
+    return amount.toFixed(2)
+  }
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: currency.value.code,
+  }).format(amount)
+}
+
 const amortizationChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -281,7 +304,50 @@ const amortizationChartOptions = {
   </div>
   <p v-if="errorMessage" class="text-error font-bold mb-4">{{ errorMessage }}</p>
   <div>
-    <h2 class="text-xl font-bold mb-3">Results per Category</h2>
+    <h2 class="text-xl font-bold mb-3">Summary</h2>
+    <div
+      v-if="summary"
+      class="stats stats-vertical md:stats-horizontal w-full bg-base-100 shadow mt-3"
+    >
+      <div class="stat">
+        <div class="stat-title">Income</div>
+        <div class="stat-value text-success">{{ formatAmount(summary.income) }}</div>
+        <div class="stat-desc">up to {{ summary.date }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Expenses</div>
+        <div class="stat-value text-error">{{ formatAmount(summary.expenses) }}</div>
+        <div class="stat-desc">up to {{ summary.date }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">Difference</div>
+        <div class="stat-value" :class="summary.difference < 0 ? 'text-error' : 'text-success'">
+          {{ formatAmount(summary.difference) }}
+        </div>
+        <div class="stat-desc">
+          {{ summary.difference < 0 ? 'Spent more than earned' : 'Saved' }}
+        </div>
+      </div>
+    </div>
+    <p v-else class="text-center text-gray-500 p-8">
+      No data available for the selected date range
+    </p>
+  </div>
+  <div>
+    <h2 class="text-xl font-bold mb-3 mt-8">Amortization Timeline</h2>
+    <div class="w-full h-[400px] bg-base-100 p-4 rounded-lg shadow mt-6">
+      <Line
+        v-if="amortizationTimeline.length > 0"
+        :data="amortizationChartData"
+        :options="amortizationChartOptions"
+      />
+      <p v-else class="text-center text-gray-500 p-8">
+        No data available for the selected date range
+      </p>
+    </div>
+  </div>
+  <div>
+    <h2 class="text-xl font-bold mb-3 mt-8">Results per Category</h2>
     <div class="flex flex-wrap gap-8 mt-6">
       <div class="flex-1 min-w-[400px] h-[400px] bg-base-100 p-4 rounded-lg shadow">
         <Bar v-if="categoryStatistics.length > 0" :data="chartData" :options="chartOptions" />
@@ -342,19 +408,6 @@ const amortizationChartOptions = {
           </tr>
         </tbody>
       </table>
-    </div>
-  </div>
-  <div>
-    <h2 class="text-xl font-bold mb-3 mt-8">Amortization Timeline</h2>
-    <div class="w-full h-[400px] bg-base-100 p-4 rounded-lg shadow mt-6">
-      <Line
-        v-if="amortizationTimeline.length > 0"
-        :data="amortizationChartData"
-        :options="amortizationChartOptions"
-      />
-      <p v-else class="text-center text-gray-500 p-8">
-        No data available for the selected date range
-      </p>
     </div>
   </div>
 </template>
