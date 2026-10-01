@@ -6,9 +6,6 @@ from rest_framework import serializers
 class StatisticsInputSerializer(serializers.Serializer):
     start_date = serializers.DateField(required=True, allow_null=False)
     end_date = serializers.DateField(required=True, allow_null=False)
-    currency = serializers.PrimaryKeyRelatedField(
-        queryset=Currency.objects.all(), required=False, allow_null=True
-    )
 
     def validate(self, attrs):
         if attrs["start_date"] > attrs["end_date"]:

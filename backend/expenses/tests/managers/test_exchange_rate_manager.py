@@ -4,6 +4,7 @@ from expenses.tests.factories.dollar_exchange_rate_factories import (
 from django.test import TestCase
 from expenses.managers import exchange_rate_manager
 from expenses.managers.exchange_rate_manager import Money, RateResponse
+from expenses.models import DollarExchangeRate
 import datetime as dt
 from unittest.mock import patch
 from expenses.tests.factories.currency_factories import CurrencyFactory
@@ -37,7 +38,9 @@ class ExchangeRateManagerTestCase(TestCase):
     def test_convert_to_dollars_calling_api(self):
         with patch(
             "expenses.managers.exchange_rate_manager.get_exchange_rate_from_api",
-            return_value=[RateResponse(currency_code="EUR", rate=Decimal(2.0))],
+            return_value=[
+                RateResponse(currency_code="EUR", rate=Decimal(2.0), day=self.today)
+            ],
         ) as mock_get_exchange_rate_from_api:
             result = exchange_rate_manager.convert_to_dollars(100, self.eur, self.today)
             mock_get_exchange_rate_from_api.assert_called_once_with(self.today)
@@ -95,3 +98,20 @@ class ExchangeRateManagerTestCase(TestCase):
         result = exchange_rate_manager.bulk_convert_to_currency(input, self.eur)
 
         self.assertEqual(result, expected)
+
+    def test_saving_rates_keeps_those_already_stored_and_adds_the_missing_ones(self):
+        day = dt.date(2025, 3, 10)
+        DollarExchangeRateFactory(currency=self.eur, date=day, rate=Decimal("0.5"))
+
+        exchange_rate_manager.save_exchange_rates_to_database(
+            [
+                RateResponse(currency_code="EUR", rate=Decimal("0.9"), day=day),
+                RateResponse(currency_code="GBP", rate=Decimal("0.4"), day=day),
+            ]
+        )
+
+        rates = DollarExchangeRate.objects.filter(date=day).order_by("currency__code")
+        self.assertEqual(
+            list(rates.values_list("currency__code", "rate")),
+            [("EUR", Decimal("0.5000")), ("GBP", Decimal("0.4000"))],
+        )

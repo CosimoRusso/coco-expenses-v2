@@ -1,6 +1,7 @@
 from django.db import transaction
 from expenses import date_utils
 from expenses.constants import TOKEN_DURATION
+from expenses.favourite_currency_cache import reset_favourite_currency_amounts
 from expenses.models import UserSettings
 from expenses.serializers.user_settings import (
     UserActivateEncryptionSerializer,
@@ -37,7 +38,11 @@ class UserSettingsViewSet(viewsets.ModelViewSet):
         user_settings, _ = UserSettings.objects.get_or_create(user=request.user)
         serializer = self.get_serializer(user_settings, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        previous_currency_id = user_settings.preferred_currency_id
+        with transaction.atomic():
+            serializer.save()
+            if user_settings.preferred_currency_id != previous_currency_id:
+                reset_favourite_currency_amounts(request.user)
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):

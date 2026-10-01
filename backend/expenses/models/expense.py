@@ -18,10 +18,24 @@ class Expense(models.Model):
         verbose_name="Encrypted Description", max_length=255, blank=True
     )
     amount = models.DecimalField(
-        verbose_name="Actual Amount", decimal_places=2, max_digits=10, null=True
+        verbose_name="Actual Amount",
+        decimal_places=2,
+        max_digits=10,
+        null=True,
+        blank=True,
+    )
+    amount_favourite_currency = models.DecimalField(
+        verbose_name="Amount Favourite Currency",
+        decimal_places=2,
+        max_digits=14,
+        null=True,
+        blank=True,
     )
     encrypted_amount = models.CharField(
         verbose_name="Encrypted Amount", max_length=255, blank=True
+    )
+    encrypted_amount_favourite_currency = models.CharField(
+        verbose_name="Encrypted Amount Favourite Currency", max_length=255, blank=True
     )
     amortization_start_date = models.DateField(
         verbose_name="Amortization Start Date", null=True

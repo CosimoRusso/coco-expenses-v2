@@ -258,6 +258,8 @@ class ExpenseSerializer(serializers.ModelSerializer):
         validated_data["user"] = self.context["request"].user
         with transaction.atomic():
             self._store_share(validated_data)
+            validated_data["amount_favourite_currency"] = None
+            validated_data["encrypted_amount_favourite_currency"] = ""
             return super().update(instance, validated_data)
 
     def _store_share(self, validated_data) -> None:

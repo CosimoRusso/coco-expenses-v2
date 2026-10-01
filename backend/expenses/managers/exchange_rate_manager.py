@@ -315,7 +315,8 @@ def save_exchange_rates_to_database(rates: list[RateResponse]):
             rates_to_save.append(
                 DollarExchangeRate(currency=currency, date=rate.day, rate=rate.rate)
             )
-    DollarExchangeRate.objects.bulk_create(rates_to_save)
+    # A day is fetched for every currency, even when only one of them lacks its rate
+    DollarExchangeRate.objects.bulk_create(rates_to_save, ignore_conflicts=True)
 
 
 def get_exchange_rates_from_api_and_save_to_database(day: dt.date):

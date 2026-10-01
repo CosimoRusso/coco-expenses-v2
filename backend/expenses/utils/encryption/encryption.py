@@ -7,6 +7,15 @@ from django.conf import settings
 from expenses.models.expense import Expense
 from expenses.models.user import User
 
+ENCRYPTION_FIELDS = [
+    "description",
+    "amount",
+    "amount_favourite_currency",
+    "encrypted_description",
+    "encrypted_amount",
+    "encrypted_amount_favourite_currency",
+]
+
 
 def derive_key_from_password(password: str, user_id: int) -> str:
     """Derives a unique 32-byte base64 key using the password and user ID as a salt."""
@@ -41,14 +50,8 @@ def encrypt_user_data(user: User, password: str) -> None:
         expense.encrypted_amount = fernet.encrypt(str(expense.amount).encode()).decode()
         expense.description = ""
         expense.amount = None
-        expense.save(
-            update_fields=[
-                "description",
-                "amount",
-                "encrypted_description",
-                "encrypted_amount",
-            ]
-        )
+        _forget_favourite_currency_amount(expense)
+        expense.save(update_fields=ENCRYPTION_FIELDS)
 
 
 def decrypt_user_data(user: User, password: str) -> None:
@@ -66,14 +69,14 @@ def decrypt_user_data(user: User, password: str) -> None:
         )
         expense.encrypted_description = ""
         expense.encrypted_amount = ""
-        expense.save(
-            update_fields=[
-                "description",
-                "amount",
-                "encrypted_description",
-                "encrypted_amount",
-            ]
-        )
+        _forget_favourite_currency_amount(expense)
+        expense.save(update_fields=ENCRYPTION_FIELDS)
+
+
+def _forget_favourite_currency_amount(expense: Expense) -> None:
+    """Drop the converted amount, stored in the form the user is leaving."""
+    expense.amount_favourite_currency = None
+    expense.encrypted_amount_favourite_currency = ""
 
 
 def encrypt_text_with_password(user: User, password: str, text: str) -> str:
