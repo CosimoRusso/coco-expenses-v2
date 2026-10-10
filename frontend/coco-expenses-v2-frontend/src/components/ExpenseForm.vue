@@ -334,6 +334,9 @@ watch(
     newExpense.value.description = request.description
     newExpense.value.amount = Number(request.quota)
     newExpense.value.currency = request.currency
+    if (request.suggested_category !== null) {
+      newExpense.value.category = request.suggested_category
+    }
   },
   { immediate: true },
 )
@@ -345,6 +348,9 @@ watch(
     {{ sharedExpenseRequest!.created_by }} shared "{{ sharedExpenseRequest!.description }}" with
     you, for a total of {{ sharedExpenseRequest!.total_amount }}. Your quota is
     {{ sharedExpenseRequest!.quota }}.
+    <span v-if="sharedExpenseRequest!.suggested_category !== null">
+      The category is the one you usually pick for expenses like this from them.
+    </span>
   </p>
   <p v-if="isStoppingSharing" class="mb-3">
     With nobody left to share it with, this expense becomes a personal one for the whole amount. The

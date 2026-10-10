@@ -111,6 +111,7 @@ class TestNotifications(ApiTestCase):
                 "created_by": "Carla Neri",
                 "is_completed": False,
                 "expense_id": None,
+                "suggested_category": None,
             },
         )
 

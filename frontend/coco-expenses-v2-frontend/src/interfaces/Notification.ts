@@ -8,6 +8,8 @@ export interface SharedExpenseRequest {
   created_by: string
   is_completed: boolean
   expense_id: number | null
+  // The category the user usually gives to this friend's expenses of the same kind
+  suggested_category: number | null
 }
 
 export interface SharedExpenseModification {
