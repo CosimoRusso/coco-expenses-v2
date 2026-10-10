@@ -236,7 +236,7 @@ const totalPages = computed(() => Math.ceil(props.totalCount / pageSize))
               class="font-semibold whitespace-nowrap"
               :class="expense.is_expense ? 'text-error' : 'text-success'"
             >
-              {{ expense.is_expense ? '−' : '+' }}{{ expense.amount }}
+              {{ expense.is_expense ? '' : '+' }}{{ expense.amount }}
             </td>
             <td>{{ getCurrencyName(expense.currency) }}</td>
             <td>{{ expense.amortization_start_date }}</td>
