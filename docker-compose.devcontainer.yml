@@ -17,6 +17,14 @@ services:
     container_name: ce-devcontainer
     volumes:
       - ./:/coco-expenses
+    # The host virtualenvs link to macOS interpreters that do not exist in the
+    # container. Left visible, the Python extension selects .venv over
+    # python.defaultInterpreterPath and resolves no installed package.
+    # tmpfs, not anonymous volumes: Docker seeds a new volume from the image,
+    # which holds a copy of both virtualenvs.
+    tmpfs:
+      - /coco-expenses/.venv
+      - /coco-expenses/venv
     depends_on:
       - db
     networks:

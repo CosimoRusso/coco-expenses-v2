@@ -126,9 +126,7 @@
     "source=/Users/cosimorusso/.ssh,target=/root/.ssh,type=bind,consistency=cached"
   ],
   "containerEnv": {
-    "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"
-  },
-  "containerEnv": {
+    "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock",
     "MANAGE_PY_PATH": "/coco-expenses/backend/manage.py",
     "ROOT_URLCONF": "cocoExpenses.urls",
     "DJANGO_SETTINGS_MODULE": "cocoExpenses.settings",
