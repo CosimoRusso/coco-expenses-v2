@@ -113,7 +113,9 @@ const friendOptions = computed(() => {
   }
   return [...options.values()]
 })
-const isSharing = computed(() => !!editingShared.value || selectedFriendIds.value.length > 0)
+const isSharing = computed(() => selectedFriendIds.value.length > 0)
+// Only the creator can deselect everyone, as the creator's option is disabled for the others
+const isStoppingSharing = computed(() => !!editingShared.value && !isSharing.value)
 
 const splitMode = ref<SplitMode>('equally')
 const customQuotas = ref<Quotas>({})
@@ -344,7 +346,11 @@ watch(
     you, for a total of {{ sharedExpenseRequest!.total_amount }}. Your quota is
     {{ sharedExpenseRequest!.quota }}.
   </p>
-  <p v-if="editingShared" class="mb-3">
+  <p v-if="isStoppingSharing" class="mb-3">
+    With nobody left to share it with, this expense becomes a personal one for the whole amount. The
+    others lose their share and are notified.
+  </p>
+  <p v-else-if="editingShared" class="mb-3">
     This expense is shared: changing the total amount, the currency, the people or the split updates
     everyone's share, and they are notified. Your quota is {{ myParticipant?.quota }}.
   </p>
@@ -513,7 +519,7 @@ watch(
       Cancel
     </button>
   </form>
-  <div v-if="formError" class="text-red-50 my-4">
+  <div v-if="formError" class="text-error my-4">
     {{ formError }}
   </div>
   <div class="my-4 text-center">

@@ -13,6 +13,7 @@ from expenses.sharing import (
     Split,
     apply_shared_expense_change,
     create_shared_expense,
+    stop_sharing,
 )
 from expenses.utils.encryption.encryption import (
     decrypt_text_with_key,
@@ -119,8 +120,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
         """
         others = attrs.pop("shared_with", None)
         if self._is_shared():
-            attrs["share_change"] = self._change_shared_expense(others, attrs)
-            attrs["amount"] = attrs["share_change"].quotas()[attrs["user"].id]
+            self._apply_shared_edit(others, attrs)
         elif others:
             attrs["share"] = self._share_with(others, attrs)
             attrs["amount"] = attrs["share"].quotas()[attrs["user"].id]
@@ -128,6 +128,19 @@ class ExpenseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Only a shared expense can be split")
         elif attrs.get("shared_expense_participant") and self.instance is None:
             self._check_matches_quota(attrs)
+
+    def _apply_shared_edit(self, others: list[User] | None, attrs) -> None:
+        """Validate the edit of a shared expense and set the amount to the editor's quota.
+
+        Left with no other participant, the expense stops being shared and keeps the
+        total as its amount.
+        """
+        change = self._change_shared_expense(others, attrs)
+        if change.others:
+            attrs["share_change"] = change
+            attrs["amount"] = change.quotas()[attrs["user"].id]
+        else:
+            attrs["shared_expense_to_stop"] = change.shared_expense
 
     def _is_shared(self) -> bool:
         """Whether this is an update of an expense already part of a shared expense."""
@@ -191,12 +204,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(str(error)) from error
 
     def _check_participants(self, shared_expense, editor, others, current_others):
-        """The creator and the editor stay, and only the editor's friends can be added."""
+        """The creator and the editor stay, and only the editor's friends can be added.
+
+        Only the creator can therefore be left alone, which stops the sharing.
+        """
         other_ids = {other.id for other in others}
-        if not other_ids:
-            raise serializers.ValidationError(
-                "A shared expense needs at least one other participant"
-            )
         if editor.id in other_ids:
             raise serializers.ValidationError(
                 "You cannot share an expense with yourself"
@@ -263,9 +275,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
             return super().update(instance, validated_data)
 
     def _store_share(self, validated_data) -> None:
-        """Create or change the shared expense validated for this expense, if any."""
+        """Create, change or stop the sharing validated for this expense, if any."""
         share = validated_data.pop("share", None)
         share_change = validated_data.pop("share_change", None)
+        shared_expense_to_stop = validated_data.pop("shared_expense_to_stop", None)
         if share is not None:
             validated_data["shared_expense_participant"] = create_shared_expense(share)
         if share_change is not None:
@@ -274,6 +287,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
             validated_data["shared_expense_participant"] = apply_shared_expense_change(
                 share_change
             )
+        if shared_expense_to_stop is not None:
+            stop_sharing(shared_expense_to_stop)
+            validated_data["shared_expense_participant"] = None
 
     def get_shared_expense(self, expense: Expense) -> dict | None:
         participant = expense.shared_expense_participant

@@ -190,9 +190,9 @@ onMounted(() => {
       <button v-if="editingId" type="button" @click="cancelEdit" class="btn btn-secondary">Cancel</button>
     </div>
   </form>
-  <div v-if="createCategoryError" class="text-red-50 my-4">{{ createCategoryError }}</div>
+  <div v-if="createCategoryError" class="text-error my-4">{{ createCategoryError }}</div>
   <h2 class="text-xl font-bold mb-3 my-8">Categories List</h2>
-  <div v-if="deleteCategoryError" class="text-red-50 my-4">{{ deleteCategoryError }}</div>
+  <div v-if="deleteCategoryError" class="text-error my-4">{{ deleteCategoryError }}</div>
   <div class="overflow-x-auto">
     <table class="table">
       <thead>
@@ -235,5 +235,5 @@ onMounted(() => {
       </tbody>
     </table>
   </div>
-  <div v-if="fetchCategoriesError" class="text-red-50 my-4">{{ fetchCategoriesError }}</div>
+  <div v-if="fetchCategoriesError" class="text-error my-4">{{ fetchCategoriesError }}</div>
 </template>

@@ -5,6 +5,7 @@ from expenses.models import (
     Expense,
     Notification,
     SharedExpense,
+    SharedExpenseDeletedNotification,
     SharedExpenseModifiedNotification,
     SharedExpenseParticipant,
 )
@@ -340,8 +341,8 @@ class TestEditParticipants(EditSharedExpenseTestCase):
         self.assertIn(self.me.id, self.quotas())
         self.assertFalse(SharedExpenseModifiedNotification.objects.exists())
 
-    def test_removing_everyone_else_is_rejected(self):
-        res = self.edit(self.me, self.my_expense, shared_with=[])
+    def test_non_creator_cannot_remove_everyone_else(self):
+        res = self.edit(self.anna, self.anna_expense, shared_with=[])
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(len(self.quotas()), 3)
@@ -411,7 +412,9 @@ class TestModifiedNotificationApi(EditSharedExpenseTestCase):
     def modified_notification_of(self, user) -> dict:
         self.login(user.email)
         res = self.client.get(reverse("expenses:notifications-list"))
-        return next(n for n in res.data["results"] if n["kind"] == "SHARED_EXPENSE_MODIFIED")
+        return next(
+            n for n in res.data["results"] if n["kind"] == "SHARED_EXPENSE_MODIFIED"
+        )
 
     def test_notification_lists_every_change(self):
         self.edit(self.me, self.my_expense, amount="40.00", currency=self.dollar.id)
@@ -484,3 +487,86 @@ class TestUpdateResponse(EditSharedExpenseTestCase):
 
         self.assertEqual(res.data["shared_expense"]["total_amount"], "60.00")
         self.assertEqual(res.data["amount"], "20.00")
+
+
+class TestStopSharing(EditSharedExpenseTestCase):
+    """The creator removes everyone else, which makes the expense personal again."""
+
+    def test_creator_expense_becomes_personal_for_the_whole_total(self):
+        res = self.edit(self.me, self.my_expense, shared_with=[])
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.my_expense.refresh_from_db()
+        self.assertIsNone(self.my_expense.shared_expense_participant)
+        self.assertEqual(self.my_expense.amount, Decimal("30.00"))
+
+    def test_response_shows_an_unshared_expense(self):
+        res = self.edit(self.me, self.my_expense, shared_with=[])
+
+        self.assertIsNone(res.data["shared_expense"])
+        self.assertIsNone(res.data["shared_expense_participant"])
+        self.assertEqual(res.data["amount"], "30.00")
+
+    def test_amount_sent_becomes_the_amount_of_the_personal_expense(self):
+        self.edit(self.me, self.my_expense, shared_with=[], amount="45.00")
+
+        self.my_expense.refresh_from_db()
+        self.assertEqual(self.my_expense.amount, Decimal("45.00"))
+
+    def test_shared_expense_and_participants_are_deleted(self):
+        self.edit(self.me, self.my_expense, shared_with=[])
+
+        self.assertFalse(SharedExpense.objects.exists())
+        self.assertFalse(SharedExpenseParticipant.objects.exists())
+
+    def test_only_the_expenses_of_the_others_are_deleted(self):
+        self.edit(self.me, self.my_expense, shared_with=[])
+
+        self.assertEqual(
+            list(Expense.objects.values_list("id", flat=True)), [self.my_expense.id]
+        )
+
+    def test_the_others_are_told_the_shared_expense_was_deleted(self):
+        self.edit(self.me, self.my_expense, shared_with=[])
+
+        deletions = {
+            deletion.notification.user_id: deletion
+            for deletion in SharedExpenseDeletedNotification.objects.all()
+        }
+        self.assertEqual(set(deletions), {self.anna.id, self.bruno.id})
+        self.assertEqual(deletions[self.anna.id].deleted_by, self.me)
+        self.assertEqual(deletions[self.anna.id].description, "Dinner")
+        self.assertEqual(deletions[self.anna.id].amount, Decimal("30.00"))
+
+    def test_pending_share_requests_are_removed(self):
+        self.edit(self.me, self.my_expense, shared_with=[])
+
+        self.assertEqual(
+            set(Notification.objects.values_list("kind", flat=True)),
+            {NotificationKind.SHARED_EXPENSE_DELETED},
+        )
+
+    def test_balances_no_longer_count_the_expense(self):
+        self.edit(self.me, self.my_expense, shared_with=[])
+
+        res = self.client.get(reverse("expenses:balances-list"))
+        self.assertEqual(res.data["balances"], [])
+
+    def test_split_leaving_part_of_the_total_to_nobody_is_rejected(self):
+        split = [{"user": self.me.id, "quota": "10.00"}]
+
+        res = self.edit(self.me, self.my_expense, shared_with=[], split=split)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(len(self.quotas()), 3)
+
+    def test_personal_expense_can_be_shared_again(self):
+        self.edit(self.me, self.my_expense, shared_with=[])
+
+        res = self.edit(self.me, self.my_expense, shared_with=[self.anna.id])
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            self.quotas(),
+            {self.me.id: Decimal("15.00"), self.anna.id: Decimal("15.00")},
+        )

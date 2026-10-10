@@ -237,15 +237,36 @@ def _notify_modified(
 
 
 def delete_shared_expense(shared_expense: SharedExpense, deleted_by: User) -> None:
-    """Delete the shared expense with every participant's expense, and notify the others.
+    """Delete the shared expense with every participant's expense, and notify the others."""
+    participants = shared_expense.sharedexpenseparticipant_set.all()
+    Expense.objects.filter(shared_expense_participant__in=participants).delete()
+    _dissolve(shared_expense, dissolved_by=deleted_by)
+
+
+def stop_sharing(shared_expense: SharedExpense) -> None:
+    """Dissolve the shared expense, leaving its creator's expense as a personal one.
+
+    The others lose their expense and are told the shared expense was deleted, which
+    is what it is to them.
+    """
+    creator = shared_expense.created_by
+    participants = shared_expense.sharedexpenseparticipant_set.all()
+    expenses = Expense.objects.filter(shared_expense_participant__in=participants)
+    expenses.exclude(user=creator).delete()
+    expenses.update(shared_expense_participant=None)
+    _dissolve(shared_expense, dissolved_by=creator)
+
+
+def _dissolve(shared_expense: SharedExpense, dissolved_by: User) -> None:
+    """Delete the shared expense and its participants, and notify the others.
 
     Notifications about the shared expense go too, as they would point to nothing.
+    No expense can still point to a participant.
     """
     participants = shared_expense.sharedexpenseparticipant_set.all()
     for participant in participants:
-        if participant.user_id != deleted_by.id:
-            _notify_deleted(shared_expense, deleted_by, participant.user_id)
-    Expense.objects.filter(shared_expense_participant__in=participants).delete()
+        if participant.user_id != dissolved_by.id:
+            _notify_deleted(shared_expense, dissolved_by, participant.user_id)
     _delete_notifications_about(shared_expense)
     participants.delete()
     shared_expense.delete()

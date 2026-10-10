@@ -141,9 +141,9 @@ onMounted(() => {
       </button>
     </div>
   </form>
-  <div v-if="saveError" class="text-red-50 my-4">{{ saveError }}</div>
+  <div v-if="saveError" class="text-error my-4">{{ saveError }}</div>
   <h2 class="text-xl font-bold mb-3 my-8">Payment Methods List</h2>
-  <div v-if="deleteError" class="text-red-50 my-4">{{ deleteError }}</div>
+  <div v-if="deleteError" class="text-error my-4">{{ deleteError }}</div>
   <div class="overflow-x-auto">
     <table class="table">
       <thead>
@@ -184,5 +184,5 @@ onMounted(() => {
       </tbody>
     </table>
   </div>
-  <div v-if="fetchError" class="text-red-50 my-4">{{ fetchError }}</div>
+  <div v-if="fetchError" class="text-error my-4">{{ fetchError }}</div>
 </template>

@@ -169,9 +169,9 @@ onMounted(() => {
       </button>
     </div>
   </form>
-  <div v-if="createTripError" class="text-red-50 my-4">{{ createTripError }}</div>
+  <div v-if="createTripError" class="text-error my-4">{{ createTripError }}</div>
   <h2 class="text-xl font-bold mb-3 my-8">Trips List</h2>
-  <div v-if="deleteTripError" class="text-red-50 my-4">{{ deleteTripError }}</div>
+  <div v-if="deleteTripError" class="text-error my-4">{{ deleteTripError }}</div>
   <div class="overflow-x-auto">
     <table class="table">
       <thead>
@@ -212,5 +212,5 @@ onMounted(() => {
       </tbody>
     </table>
   </div>
-  <div v-if="fetchTripsError" class="text-red-50 my-4">{{ fetchTripsError }}</div>
+  <div v-if="fetchTripsError" class="text-error my-4">{{ fetchTripsError }}</div>
 </template>
