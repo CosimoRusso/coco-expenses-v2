@@ -4,14 +4,18 @@ import { ref, onMounted } from 'vue'
 import apiFetch from '@/utils/apiFetch'
 import type { Currency } from '@/interfaces/Currency'
 import type { Trip } from '@/interfaces/Trip'
+import type { DefaultStatisticsMethod, UserSettings } from '@/interfaces/UserSettings'
 
 const userStore = useUserStore()
 
 const userSettingsId = ref<number | null>(null)
 const preferredCurrency = ref<number | null>(null)
 const activeTrip = ref<number | null>(null)
+const defaultStatisticsMethod = ref<DefaultStatisticsMethod>('HARDCODED_DATES')
 const defaultStatisticsStartDate = ref<string>('')
 const defaultStatisticsEndDate = ref<string>('')
+const defaultStatisticsNDaysAgoFrom = ref<number | ''>('')
+const defaultStatisticsNDaysAgoTo = ref<number | ''>('')
 const currencies = ref<Currency[]>([])
 const trips = ref<Trip[]>([])
 const saveSettingsStatus = ref<string>('')
@@ -23,12 +27,15 @@ const isActivatingEncryption = ref<boolean>(false)
 async function getUserSettings() {
   const response = await apiFetch('/expenses/user-settings/self/')
   if (response.ok) {
-    const data = await response.json()
+    const data: UserSettings = await response.json()
     userSettingsId.value = data.id
     preferredCurrency.value = data.preferred_currency
     activeTrip.value = data.active_trip
+    defaultStatisticsMethod.value = data.default_statistics_method
     defaultStatisticsStartDate.value = data.default_statistics_start_date ?? ''
     defaultStatisticsEndDate.value = data.default_statistics_end_date ?? ''
+    defaultStatisticsNDaysAgoFrom.value = data.default_statistics_n_days_ago_from ?? ''
+    defaultStatisticsNDaysAgoTo.value = data.default_statistics_n_days_ago_to ?? ''
     isEncrypted.value = data.is_encrypted
   }
 }
@@ -53,21 +60,28 @@ async function fetchData() {
   await Promise.all([getUserSettings(), getCurrencies(), getTrips()])
 }
 
+function numberOrNull(value: number | ''): number | null {
+  return value === '' ? null : value
+}
+
 async function saveSettings() {
   const response = await apiFetch(`/expenses/user-settings/${userSettingsId.value}/`, {
     method: 'PATCH',
     body: JSON.stringify({
       preferred_currency: preferredCurrency.value,
       active_trip: activeTrip.value,
+      default_statistics_method: defaultStatisticsMethod.value,
       default_statistics_start_date: defaultStatisticsStartDate.value || null,
       default_statistics_end_date: defaultStatisticsEndDate.value || null,
+      default_statistics_n_days_ago_from: numberOrNull(defaultStatisticsNDaysAgoFrom.value),
+      default_statistics_n_days_ago_to: numberOrNull(defaultStatisticsNDaysAgoTo.value),
     }),
   })
   if (response.ok) {
     saveSettingsStatus.value = 'Settings saved successfully'
   } else {
-    saveSettingsStatus.value = 'Failed to save settings'
     const errorData = await response.json()
+    saveSettingsStatus.value = errorData.non_field_errors?.[0] ?? 'Failed to save settings'
     console.log(errorData)
   }
 }
@@ -143,26 +157,80 @@ onMounted(() => {
             </option>
           </select>
         </div>
-        <div>
-          <label for="defaultStatisticsStartDate">Statistics Start Date</label>
-          <input
-            type="date"
-            id="defaultStatisticsStartDate"
-            v-model="defaultStatisticsStartDate"
-            class="input input-border w-full"
-          />
-          <p class="text-sm text-gray-500 mt-1">Leave empty to start 6 months ago</p>
-        </div>
-        <div>
-          <label for="defaultStatisticsEndDate">Statistics End Date</label>
-          <input
-            type="date"
-            id="defaultStatisticsEndDate"
-            v-model="defaultStatisticsEndDate"
-            class="input input-border w-full"
-          />
-          <p class="text-sm text-gray-500 mt-1">Leave empty to end today</p>
-        </div>
+        <fieldset class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
+          <legend class="mb-2">Default period of the statistics page</legend>
+          <div class="col-span-full flex flex-wrap gap-x-6 gap-y-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                class="radio radio-primary"
+                value="HARDCODED_DATES"
+                v-model="defaultStatisticsMethod"
+              />
+              Fixed dates
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                class="radio radio-primary"
+                value="DAYS_AGO"
+                v-model="defaultStatisticsMethod"
+              />
+              Relative to today
+            </label>
+          </div>
+          <template v-if="defaultStatisticsMethod === 'HARDCODED_DATES'">
+            <div>
+              <label for="defaultStatisticsStartDate">Statistics Start Date</label>
+              <input
+                type="date"
+                id="defaultStatisticsStartDate"
+                v-model="defaultStatisticsStartDate"
+                class="input input-border w-full"
+              />
+              <p class="text-sm text-gray-500 mt-1">Leave empty to start 6 months ago</p>
+            </div>
+            <div>
+              <label for="defaultStatisticsEndDate">Statistics End Date</label>
+              <input
+                type="date"
+                id="defaultStatisticsEndDate"
+                v-model="defaultStatisticsEndDate"
+                class="input input-border w-full"
+              />
+              <p class="text-sm text-gray-500 mt-1">Leave empty to end today</p>
+            </div>
+          </template>
+          <template v-else>
+            <div>
+              <label for="defaultStatisticsNDaysAgoFrom">From (days ago)</label>
+              <input
+                type="number"
+                step="1"
+                id="defaultStatisticsNDaysAgoFrom"
+                v-model="defaultStatisticsNDaysAgoFrom"
+                placeholder="180"
+                class="input input-border w-full"
+              />
+              <p class="text-sm text-gray-500 mt-1">Leave empty to start 180 days ago</p>
+            </div>
+            <div>
+              <label for="defaultStatisticsNDaysAgoTo">To (days ago)</label>
+              <input
+                type="number"
+                step="1"
+                id="defaultStatisticsNDaysAgoTo"
+                v-model="defaultStatisticsNDaysAgoTo"
+                placeholder="0"
+                class="input input-border w-full"
+              />
+              <p class="text-sm text-gray-500 mt-1">
+                Leave empty to end today. A negative number ends in the future: -30 is 30 days from
+                now
+              </p>
+            </div>
+          </template>
+        </fieldset>
         <div class="col-span-full">
           <button type="submit" class="btn btn-primary">Save</button>
         </div>

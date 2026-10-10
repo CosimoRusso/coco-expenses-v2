@@ -240,3 +240,131 @@ class TestDefaultStatisticsPeriod(ApiTestCase):
         res = self.client.patch(self.details_url, body, format="json")
 
         self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+
+
+class TestRelativeDefaultStatisticsPeriod(ApiTestCase):
+    TODAY = dt.date(2026, 8, 31)
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory()
+        cls.user_settings = UserSettings.objects.create(user=cls.user)
+        cls.self_url = reverse("expenses:user-settings-self")
+        cls.details_url = reverse(
+            "expenses:user-settings-detail", args=[cls.user_settings.id]
+        )
+
+    def setUp(self):
+        self.login(self.user.email)
+        patcher = patch("expenses.date_utils.today", return_value=self.TODAY)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_method_defaults_to_hardcoded_dates(self):
+        res = self.client.get(self.self_url)
+
+        self.assertEqual(res.data["default_statistics_method"], "HARDCODED_DATES")
+
+    def test_unspecified_days_cover_the_last_180_days(self):
+        body = {"default_statistics_method": "DAYS_AGO"}
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        self.assertEqual(res.data["statistics_start_date"], "2026-03-04")
+        self.assertEqual(res.data["statistics_end_date"], "2026-08-31")
+
+    def test_period_counts_the_chosen_days_back_from_today(self):
+        body = {
+            "default_statistics_method": "DAYS_AGO",
+            "default_statistics_n_days_ago_from": 30,
+            "default_statistics_n_days_ago_to": 10,
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        self.assertEqual(res.data["statistics_start_date"], "2026-08-01")
+        self.assertEqual(res.data["statistics_end_date"], "2026-08-21")
+
+    def test_negative_days_ago_reach_into_the_future(self):
+        body = {
+            "default_statistics_method": "DAYS_AGO",
+            "default_statistics_n_days_ago_to": -7,
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        self.assertEqual(res.data["statistics_end_date"], "2026-09-07")
+
+    def test_zero_days_ago_is_today_and_not_the_default(self):
+        body = {
+            "default_statistics_method": "DAYS_AGO",
+            "default_statistics_n_days_ago_from": 0,
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        self.assertEqual(res.data["statistics_start_date"], "2026-08-31")
+
+    def test_days_ago_method_ignores_the_hardcoded_dates(self):
+        self.user_settings.default_statistics_start_date = dt.date(2026, 1, 1)
+        self.user_settings.default_statistics_end_date = dt.date(2026, 3, 31)
+        self.user_settings.save()
+        body = {"default_statistics_method": "DAYS_AGO"}
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.data["statistics_start_date"], "2026-03-04")
+        self.assertEqual(res.data["statistics_end_date"], "2026-08-31")
+
+    def test_hardcoded_dates_method_ignores_the_days_ago(self):
+        body = {
+            "default_statistics_n_days_ago_from": 30,
+            "default_statistics_n_days_ago_to": 10,
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_200_OK)
+        self.assertEqual(res.data["statistics_start_date"], "2026-02-28")
+        self.assertEqual(res.data["statistics_end_date"], "2026-08-31")
+
+    def test_from_more_recent_than_to_is_rejected(self):
+        body = {
+            "default_statistics_method": "DAYS_AGO",
+            "default_statistics_n_days_ago_from": 5,
+            "default_statistics_n_days_ago_to": 10,
+        }
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_400_BAD_REQUEST)
+
+    def test_switching_method_is_rejected_when_the_stored_days_are_inverted(self):
+        self.user_settings.default_statistics_n_days_ago_from = 5
+        self.user_settings.default_statistics_n_days_ago_to = 10
+        self.user_settings.save()
+        body = {"default_statistics_method": "DAYS_AGO"}
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_400_BAD_REQUEST)
+
+    def test_unknown_method_is_rejected(self):
+        body = {"default_statistics_method": "LAST_MONTH"}
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_400_BAD_REQUEST)
+        self.assertIn("default_statistics_method", res.data)
+
+    def test_days_ago_beyond_a_century_are_rejected(self):
+        body = {"default_statistics_n_days_ago_from": 36501}
+
+        res = self.client.patch(self.details_url, body, format="json")
+
+        self.assertEqual(res.status_code, http_status.HTTP_400_BAD_REQUEST)
+        self.assertIn("default_statistics_n_days_ago_from", res.data)
