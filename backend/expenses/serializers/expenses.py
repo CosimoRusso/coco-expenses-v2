@@ -13,6 +13,7 @@ from expenses.sharing import (
     Split,
     apply_shared_expense_change,
     create_shared_expense,
+    register_share,
     stop_sharing,
 )
 from expenses.utils.encryption.encryption import (
@@ -128,6 +129,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Only a shared expense can be split")
         elif attrs.get("shared_expense_participant") and self.instance is None:
             self._check_matches_quota(attrs)
+            attrs["share_to_register"] = attrs["shared_expense_participant"]
 
     def _apply_shared_edit(self, others: list[User] | None, attrs) -> None:
         """Validate the edit of a shared expense and set the amount to the editor's quota.
@@ -192,6 +194,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             others=others,
             total=attrs["amount"],
             currency=attrs["currency"],
+            description=attrs["description"],
             split=attrs.pop("split", None),
         )
         self._check_split(change)
@@ -275,10 +278,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
             return super().update(instance, validated_data)
 
     def _store_share(self, validated_data) -> None:
-        """Create, change or stop the sharing validated for this expense, if any."""
+        """Create, change, stop or register the sharing validated for this expense, if any."""
         share = validated_data.pop("share", None)
         share_change = validated_data.pop("share_change", None)
         shared_expense_to_stop = validated_data.pop("shared_expense_to_stop", None)
+        share_to_register = validated_data.pop("share_to_register", None)
         if share is not None:
             validated_data["shared_expense_participant"] = create_shared_expense(share)
         if share_change is not None:
@@ -290,6 +294,8 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if shared_expense_to_stop is not None:
             stop_sharing(shared_expense_to_stop)
             validated_data["shared_expense_participant"] = None
+        if share_to_register is not None:
+            register_share(share_to_register)
 
     def get_shared_expense(self, expense: Expense) -> dict | None:
         participant = expense.shared_expense_participant

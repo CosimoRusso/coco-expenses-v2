@@ -18,7 +18,7 @@ class ShareSuggestionSerializer(serializers.Serializer):
 class SharedExpenseRequestSerializer(serializers.ModelSerializer):
     """The share of a shared expense a user is asked to complete."""
 
-    description = serializers.CharField(source="shared_expense.description")
+    description = serializers.SerializerMethodField()
     total_amount = serializers.DecimalField(
         source="shared_expense.amount", max_digits=10, decimal_places=2
     )
@@ -29,6 +29,13 @@ class SharedExpenseRequestSerializer(serializers.ModelSerializer):
     is_completed = serializers.SerializerMethodField()
     expense_id = serializers.SerializerMethodField()
     suggestion = serializers.SerializerMethodField()
+
+    def get_description(self, participant: SharedExpenseParticipant) -> str:
+        """The creator's current description, until the user registers their expense."""
+        return (
+            participant.description_when_registered
+            or participant.shared_expense.description
+        )
 
     def get_created_by(self, participant: SharedExpenseParticipant) -> str:
         creator = participant.shared_expense.created_by

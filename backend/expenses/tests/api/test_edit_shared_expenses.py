@@ -11,6 +11,7 @@ from expenses.models import (
 )
 from expenses.models.notification import NotificationKind
 from expenses.tests.api.test_shared_expenses import SharedExpenseTestCase
+from expenses.tests.factories.category_factories import ExpenseCategoryFactory
 from expenses.tests.factories.friend_factories import FriendFactory
 from expenses.tests.factories.trip_factories import TripFactory
 from expenses.tests.factories.user_factories import UserFactory
@@ -570,3 +571,44 @@ class TestStopSharing(EditSharedExpenseTestCase):
             self.quotas(),
             {self.me.id: Decimal("15.00"), self.anna.id: Decimal("15.00")},
         )
+
+
+class TestRenameSharedExpense(EditSharedExpenseTestCase):
+    def description_notified_to(self, user) -> str:
+        """The description of the shared dinner in the notifications of `user`."""
+        self.login(user.email)
+        res = self.client.get(reverse("expenses:notifications-list"))
+        return res.data["results"][0]["shared_expense"]["description"]
+
+    def test_creator_renaming_reaches_who_has_not_registered_yet(self):
+        self.edit(self.me, self.my_expense, description="Pizza")
+
+        self.assertEqual(self.description_notified_to(self.bruno), "Pizza")
+
+    def test_creator_renaming_does_not_reach_who_already_registered(self):
+        self.edit(self.me, self.my_expense, description="Pizza")
+
+        self.assertEqual(self.description_notified_to(self.anna), "Dinner")
+
+    def test_registering_after_a_renaming_keeps_the_new_description(self):
+        self.edit(self.me, self.my_expense, description="Pizza")
+        self.login(self.bruno.email)
+        body = self.expense_body(
+            category=ExpenseCategoryFactory(user=self.bruno).id,
+            shared_expense_participant=self.participant_of(self.bruno).id,
+        )
+        self.client.post(self.list_url, body, format="json")
+
+        self.edit(self.me, self.my_expense, description="Sushi")
+
+        self.assertEqual(self.description_notified_to(self.bruno), "Pizza")
+
+    def test_renaming_alone_notifies_nobody(self):
+        self.edit(self.me, self.my_expense, description="Pizza")
+
+        self.assertFalse(SharedExpenseModifiedNotification.objects.exists())
+
+    def test_participant_renaming_their_expense_keeps_the_shared_description(self):
+        self.edit(self.anna, self.anna_expense, description="Night out")
+
+        self.assertEqual(self.description_notified_to(self.bruno), "Dinner")

@@ -126,6 +126,8 @@ class SharedExpenseChange:
     others: list[User]
     total: Decimal
     currency: Currency
+    # What the editor calls their own expense
+    description: str
     split: Split | None = None
 
     def participants(self) -> list[User]:
@@ -166,6 +168,7 @@ def apply_shared_expense_change(
     Returns the editor's participant.
     """
     shared_expense = change.shared_expense
+    _store_description(change)
     before = _shared_state(shared_expense)
     after = _SharedState(change.total, change.currency, change.quotas())
     if before != after:
@@ -178,6 +181,27 @@ def apply_shared_expense_change(
     return SharedExpenseParticipant.objects.get(
         shared_expense=shared_expense, user=change.editor
     )
+
+
+def _store_description(change: SharedExpenseChange) -> None:
+    """Name the shared expense after its creator's expense.
+
+    The other participants describe only their own expense.
+    """
+    shared_expense = change.shared_expense
+    if change.editor.id != shared_expense.created_by_id:
+        return
+    shared_expense.description = change.description
+    shared_expense.save(update_fields=["description", "updated_at"])
+
+
+def register_share(participant: SharedExpenseParticipant) -> None:
+    """Keep the description the participant registers their expense under.
+
+    The creator renaming the shared expense afterwards does not reach them.
+    """
+    participant.description_when_registered = participant.shared_expense.description
+    participant.save(update_fields=["description_when_registered", "updated_at"])
 
 
 def _shared_state(shared_expense: SharedExpense) -> _SharedState:
