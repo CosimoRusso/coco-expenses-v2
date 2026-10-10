@@ -5,7 +5,7 @@ import type { Expense } from '@/interfaces/Expense'
 import type { ExpenseCategory } from '@/interfaces/ExpenseCategory'
 import type { Currency } from '@/interfaces/Currency'
 import type { Friend } from '@/interfaces/Friend'
-import type { SharedExpenseRequest } from '@/interfaces/Notification'
+import type { SharedExpenseRequest, ShareSuggestion } from '@/interfaces/Notification'
 import type { PaymentMethod } from '@/interfaces/PaymentMethod'
 import type { Trip } from '@/interfaces/Trip'
 import type { UserSettings } from '@/interfaces/UserSettings'
@@ -268,6 +268,17 @@ function resetForm() {
   assignDefaultCurrencyAndTrip()
 }
 
+// Each suggested value replaces the form's default, the others keep it
+function prefillSuggestion(suggestion: ShareSuggestion | null) {
+  if (!suggestion) return
+  const expense = newExpense.value
+  expense.category = suggestion.category ?? expense.category
+  expense.expense_date = suggestion.expense_date ?? expense.expense_date
+  expense.amortization_start_date =
+    suggestion.amortization_start_date ?? expense.amortization_start_date
+  expense.amortization_end_date = suggestion.amortization_end_date ?? expense.amortization_end_date
+}
+
 function assignDefaultCurrencyAndTrip() {
   if (props.userSettings?.preferred_currency) {
     newExpense.value.currency = props.userSettings.preferred_currency
@@ -334,9 +345,7 @@ watch(
     newExpense.value.description = request.description
     newExpense.value.amount = Number(request.quota)
     newExpense.value.currency = request.currency
-    if (request.suggested_category !== null) {
-      newExpense.value.category = request.suggested_category
-    }
+    prefillSuggestion(request.suggestion)
   },
   { immediate: true },
 )
@@ -348,7 +357,10 @@ watch(
     {{ sharedExpenseRequest!.created_by }} shared "{{ sharedExpenseRequest!.description }}" with
     you, for a total of {{ sharedExpenseRequest!.total_amount }}. Your quota is
     {{ sharedExpenseRequest!.quota }}.
-    <span v-if="sharedExpenseRequest!.suggested_category !== null">
+    <span v-if="sharedExpenseRequest!.suggestion?.expense_date">
+      The dates are the ones {{ sharedExpenseRequest!.created_by }} entered.
+    </span>
+    <span v-if="sharedExpenseRequest!.suggestion?.category">
       The category is the one you usually pick for expenses like this from them.
     </span>
   </p>

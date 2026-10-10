@@ -1,3 +1,13 @@
+// Values to prefill when completing a share
+export interface ShareSuggestion {
+  // The category the user usually gives to this friend's expenses of the same kind
+  category: number | null
+  // The dates of the creator's own expense
+  expense_date: string | null
+  amortization_start_date: string | null
+  amortization_end_date: string | null
+}
+
 export interface SharedExpenseRequest {
   // Id of the current user's SharedExpenseParticipant
   id: number
@@ -8,8 +18,8 @@ export interface SharedExpenseRequest {
   created_by: string
   is_completed: boolean
   expense_id: number | null
-  // The category the user usually gives to this friend's expenses of the same kind
-  suggested_category: number | null
+  // Null once the share is completed
+  suggestion: ShareSuggestion | null
 }
 
 export interface SharedExpenseModification {

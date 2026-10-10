@@ -1,7 +1,8 @@
+import datetime as dt
 from decimal import Decimal
 
 from django.urls import reverse
-from expenses.models import Notification, SharedExpenseParticipant
+from expenses.models import Expense, Notification, SharedExpenseParticipant
 from expenses.sharing import ExpenseShare, create_shared_expense
 from expenses.tests.api.api_test_case import ApiTestCase
 from expenses.tests.factories.category_factories import ExpenseCategoryFactory
@@ -10,7 +11,7 @@ from expenses.tests.factories.expense_factories import ExpenseFactory
 from expenses.tests.factories.user_factories import UserFactory
 
 
-class TestSuggestedCategory(ApiTestCase):
+class ShareSuggestionTestCase(ApiTestCase):
     """Anna shares expenses with me; I complete them under my own categories."""
 
     @classmethod
@@ -54,13 +55,19 @@ class TestSuggestedCategory(ApiTestCase):
             shared_expense_participant=self.anna_shares(anna_category),
         )
 
+    def latest_share(self) -> dict:
+        """The share of my latest notification, as the API describes it."""
+        notification = Notification.objects.filter(user=self.me).latest("id")
+        url = reverse("expenses:notifications-detail", args=[notification.id])
+        return self.client.get(url).data["shared_expense"]
+
     def suggestion_for(self, anna_category) -> int | None:
         """The category suggested for a new expense Anna shares under `anna_category`."""
         self.anna_shares(anna_category)
-        notification = Notification.objects.filter(user=self.me).latest("id")
-        url = reverse("expenses:notifications-detail", args=[notification.id])
-        return self.client.get(url).data["shared_expense"]["suggested_category"]
+        return self.latest_share()["suggestion"]["category"]
 
+
+class TestSuggestedCategory(ShareSuggestionTestCase):
     def test_category_used_for_two_of_the_last_three_is_suggested(self):
         self.complete(self.anna_restaurants, self.my_food)
         self.complete(self.anna_restaurants, self.my_fun)
@@ -149,12 +156,59 @@ class TestSuggestedCategory(ApiTestCase):
 
     def test_completed_share_has_no_suggestion(self):
         self.complete(self.anna_restaurants, self.my_food)
-        self.complete(self.anna_restaurants, self.my_food)
-        self.complete(self.anna_restaurants, self.my_food)
-        notification = Notification.objects.filter(user=self.me).latest("id")
-        url = reverse("expenses:notifications-detail", args=[notification.id])
 
-        res = self.client.get(url)
+        share = self.latest_share()
 
-        self.assertTrue(res.data["shared_expense"]["is_completed"])
-        self.assertIsNone(res.data["shared_expense"]["suggested_category"])
+        self.assertTrue(share["is_completed"])
+        self.assertIsNone(share["suggestion"])
+
+
+class TestSuggestedDates(ShareSuggestionTestCase):
+    def anna_shares_with_dates(self) -> None:
+        participant = self.anna_shares(self.anna_restaurants)
+        Expense.objects.filter(
+            shared_expense_participant__shared_expense=participant.shared_expense
+        ).update(
+            expense_date=dt.date(2026, 3, 14),
+            amortization_start_date=dt.date(2026, 4, 1),
+            amortization_end_date=dt.date(2026, 6, 30),
+        )
+
+    def test_dates_of_the_creator_expense_are_suggested(self):
+        self.anna_shares_with_dates()
+
+        suggestion = self.latest_share()["suggestion"]
+
+        self.assertEqual(suggestion["expense_date"], "2026-03-14")
+        self.assertEqual(suggestion["amortization_start_date"], "2026-04-01")
+        self.assertEqual(suggestion["amortization_end_date"], "2026-06-30")
+
+    def test_dates_are_suggested_without_any_history(self):
+        self.anna_shares_with_dates()
+
+        suggestion = self.latest_share()["suggestion"]
+
+        self.assertIsNone(suggestion["category"])
+        self.assertEqual(suggestion["expense_date"], "2026-03-14")
+
+    def test_nothing_is_suggested_while_the_creator_has_no_expense(self):
+        share = ExpenseShare(
+            creator=self.anna,
+            friends=[self.me],
+            description="Shared",
+            total=Decimal("10.00"),
+            currency=self.euro,
+        )
+        create_shared_expense(share)
+
+        suggestion = self.latest_share()["suggestion"]
+
+        self.assertEqual(
+            suggestion,
+            {
+                "category": None,
+                "expense_date": None,
+                "amortization_start_date": None,
+                "amortization_end_date": None,
+            },
+        )

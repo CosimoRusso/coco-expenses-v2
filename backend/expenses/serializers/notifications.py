@@ -1,11 +1,18 @@
-from expenses.category_suggestion import suggested_category_id
 from expenses.models import (
     Notification,
     SharedExpenseDeletedNotification,
     SharedExpenseModifiedNotification,
     SharedExpenseParticipant,
 )
+from expenses.share_suggestion import suggestion_for
 from rest_framework import serializers
+
+
+class ShareSuggestionSerializer(serializers.Serializer):
+    category = serializers.IntegerField(allow_null=True)
+    expense_date = serializers.DateField(allow_null=True)
+    amortization_start_date = serializers.DateField(allow_null=True)
+    amortization_end_date = serializers.DateField(allow_null=True)
 
 
 class SharedExpenseRequestSerializer(serializers.ModelSerializer):
@@ -21,7 +28,7 @@ class SharedExpenseRequestSerializer(serializers.ModelSerializer):
     created_by = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
     expense_id = serializers.SerializerMethodField()
-    suggested_category = serializers.SerializerMethodField()
+    suggestion = serializers.SerializerMethodField()
 
     def get_created_by(self, participant: SharedExpenseParticipant) -> str:
         creator = participant.shared_expense.created_by
@@ -34,13 +41,11 @@ class SharedExpenseRequestSerializer(serializers.ModelSerializer):
         expenses = participant.expense_set.all()
         return expenses[0].id if expenses else None
 
-    def get_suggested_category(
-        self, participant: SharedExpenseParticipant
-    ) -> int | None:
-        """The category to prefill when completing the share, None once completed."""
+    def get_suggestion(self, participant: SharedExpenseParticipant) -> dict | None:
+        """What to prefill when completing the share, None once completed."""
         if self.get_is_completed(participant):
             return None
-        return suggested_category_id(participant)
+        return ShareSuggestionSerializer(suggestion_for(participant)).data
 
     class Meta:
         model = SharedExpenseParticipant
@@ -53,7 +58,7 @@ class SharedExpenseRequestSerializer(serializers.ModelSerializer):
             "created_by",
             "is_completed",
             "expense_id",
-            "suggested_category",
+            "suggestion",
         ]
 
 
