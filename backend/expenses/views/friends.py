@@ -1,3 +1,4 @@
+from expenses.authentication import authenticated_user
 from expenses.models.friend import friends_of
 from expenses.serializers.friends import FriendSerializer
 from rest_framework import mixins, permissions, viewsets
@@ -8,4 +9,6 @@ class FriendViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = FriendSerializer
 
     def get_queryset(self):
-        return friends_of(self.request.user).order_by("first_name", "last_name", "id")
+        return friends_of(authenticated_user(self.request)).order_by(
+            "first_name", "last_name", "id"
+        )

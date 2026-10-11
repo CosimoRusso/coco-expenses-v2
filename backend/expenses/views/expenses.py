@@ -2,6 +2,7 @@ import csv
 import datetime as dt
 import io
 from dataclasses import asdict, dataclass
+from decimal import Decimal
 from io import TextIOWrapper
 
 import django_filters
@@ -9,6 +10,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import FileResponse
 from django_filters.rest_framework import DjangoFilterBackend
+from expenses.authentication import authenticated_user
 from expenses.date_utils import from_italian_date, is_italian_date
 from expenses.models import Currency, Expense, ExpenseCategory, PaymentMethod, Trip
 from expenses.serializers.expenses import ExpenseSerializer
@@ -32,8 +34,9 @@ class ExpenseFilterSet(django_filters.FilterSet):
     payment_method = django_filters.NumberFilter()
 
     def filter_queryset(self, queryset):
-        start_date = self.request.query_params.get("start_date")
-        end_date = self.request.query_params.get("end_date")
+        query_params = self.data or {}
+        start_date = query_params.get("start_date")
+        end_date = query_params.get("end_date")
         if start_date:
             try:
                 start_date = dt.date.fromisoformat(start_date)
@@ -119,7 +122,8 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             return super().perform_destroy(instance)
         with transaction.atomic():
             delete_shared_expense(
-                participant.shared_expense, deleted_by=self.request.user
+                participant.shared_expense,
+                deleted_by=authenticated_user(self.request),
             )
 
     @action(detail=False, methods=["post"])
@@ -260,7 +264,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                         trip=expense.trip and expense.trip.code,
                         payment_method=expense.payment_method
                         and expense.payment_method.code,
-                        currency=expense.currency.code,
+                        currency=expense.currency and expense.currency.code,
                         expense_date=expense.expense_date,
                         amortization_start_date=expense.amortization_start_date,
                         amortization_end_date=expense.amortization_end_date,
@@ -299,13 +303,13 @@ def payment_method_from_code(user, code: str | None) -> PaymentMethod | None:
 
 @dataclass
 class ExpenseCSV:
-    amount: str
+    amount: Decimal | str | None
     description: str
     category: str
-    trip: str
-    payment_method: str
-    currency: str
-    expense_date: str
-    amortization_start_date: str
-    amortization_end_date: str
+    trip: str | None
+    payment_method: str | None
+    currency: str | None
+    expense_date: dt.date | None
+    amortization_start_date: dt.date | None
+    amortization_end_date: dt.date | None
     is_expense: bool

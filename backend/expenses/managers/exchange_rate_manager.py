@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -297,7 +298,7 @@ def get_exchange_rate_from_api(day: dt.date) -> list[RateResponse]:
     ]
 
 
-def bulk_get_exchange_rate_from_api(days: list[dt.date]) -> list[RateResponse]:
+def bulk_get_exchange_rate_from_api(days: Iterable[dt.date]) -> list[RateResponse]:
     rates = []
     for day in days:
         rates.extend(get_exchange_rate_from_api(day))
@@ -340,6 +341,6 @@ def get_exchange_rates_from_api_and_save_to_database_if_not_exists(day: dt.date)
     save_exchange_rates_to_database(rates_to_save)
 
 
-def bulk_get_exchange_rates_from_api_and_save_to_database(days: list[dt.date]):
+def bulk_get_exchange_rates_from_api_and_save_to_database(days: Iterable[dt.date]):
     rates = bulk_get_exchange_rate_from_api(days)
     save_exchange_rates_to_database(rates)

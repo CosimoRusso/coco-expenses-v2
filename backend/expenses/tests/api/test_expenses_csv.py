@@ -48,6 +48,7 @@ class TestImportExpensesFromCsv(ApiTestCase):
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         payment_method = Expense.objects.get().payment_method
+        assert payment_method is not None
         self.assertEqual(payment_method.user, self.user)
         self.assertEqual(payment_method.code, "cash")
         self.assertEqual(payment_method.name, "cash")
@@ -58,6 +59,7 @@ class TestImportExpensesFromCsv(ApiTestCase):
         self.upload(f"{HEADER},payment_method\n{ROW},card\n")
 
         payment_method = Expense.objects.get().payment_method
+        assert payment_method is not None
         self.assertNotEqual(payment_method, other)
         self.assertEqual(payment_method.user, self.user)
 

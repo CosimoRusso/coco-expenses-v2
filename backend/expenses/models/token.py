@@ -1,14 +1,16 @@
+import datetime as dt
 import uuid
+
 from django.db import models
 
 from expenses import date_utils
 from expenses.constants import TOKEN_DURATION
-import datetime as dt
 from expenses.models.timestamp import TimestampModel
+from expenses.models.user import User
 
 
 class Token(TimestampModel):
-    user = models.ForeignKey("User", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     expiration_date = models.DateTimeField(null=True)
 

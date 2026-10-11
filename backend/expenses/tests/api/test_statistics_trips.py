@@ -112,10 +112,8 @@ class StatisticsTripsTestCase(ApiTestCase):
 
         # Verify trip_1 data
         trip_1_data = next(
-            (item for item in response.data if item["id"] == self.trip_1.id),
-            None,
+            item for item in response.data if item["id"] == self.trip_1.id
         )
-        self.assertIsNotNone(trip_1_data)
         self.assertEqual(trip_1_data["code"], self.trip_1.code)
         self.assertEqual(trip_1_data["name"], self.trip_1.name)
         # 100 / 4 days = 25 per day, we are considering 2 days so 50
@@ -124,10 +122,8 @@ class StatisticsTripsTestCase(ApiTestCase):
 
         # Verify trip_2 data
         trip_2_data = next(
-            (item for item in response.data if item["id"] == self.trip_2.id),
-            None,
+            item for item in response.data if item["id"] == self.trip_2.id
         )
-        self.assertIsNotNone(trip_2_data)
         self.assertEqual(trip_2_data["code"], self.trip_2.code)
         self.assertEqual(trip_2_data["name"], self.trip_2.name)
         # 100 / 10 days, we are considering 5 days so 50
@@ -135,10 +131,7 @@ class StatisticsTripsTestCase(ApiTestCase):
         self.assertEqual(trip_1_data["amount_in_dates"], "50.00")
 
         # Verify "No Trip" data
-        no_trip_data = next(
-            (item for item in response.data if item["id"] is None), None
-        )
-        self.assertIsNotNone(no_trip_data)
+        no_trip_data = next(item for item in response.data if item["id"] is None)
         self.assertEqual(no_trip_data["name"], "No Trip")
         # 100 / 5 days, we must consider 2 days
         self.assertEqual(no_trip_data["total_amount"], "100.00")
@@ -214,10 +207,7 @@ class StatisticsTripsTestCase(ApiTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Find the "No Trip" entry
-        no_trip_data = next(
-            (item for item in response.data if item["id"] is None), None
-        )
-        self.assertIsNotNone(no_trip_data)
+        no_trip_data = next(item for item in response.data if item["id"] is None)
         self.assertEqual(no_trip_data["name"], "No Trip")
         self.assertEqual(no_trip_data["code"], "")
         self.assertFalse(no_trip_data["is_active"])

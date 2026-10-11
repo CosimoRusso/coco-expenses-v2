@@ -1,9 +1,14 @@
+from typing import Any
+
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
 
 
 class ApiTestCase(APITestCase):
+    # Responses carry JSON, which the type stubs leave as `object`.
+    client: Any
+
     def login(self, email, password="password"):
         url = reverse("expenses:users-login")
         res = self.client.post(url, {"email": email, "password": password})

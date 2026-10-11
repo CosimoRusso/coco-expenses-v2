@@ -1,10 +1,12 @@
 from django.db import models
+
 from expenses.models.timestamp import TimestampModel
+from expenses.models.user import User
 
 
 class ExpenseCategory(TimestampModel):
     user = models.ForeignKey(
-        "User", on_delete=models.PROTECT, related_name="expense_categories"
+        User, on_delete=models.PROTECT, related_name="expense_categories"
     )
     code = models.CharField(verbose_name="Expense Category", max_length=128)
     name = models.CharField(verbose_name="Expense Category", max_length=128)

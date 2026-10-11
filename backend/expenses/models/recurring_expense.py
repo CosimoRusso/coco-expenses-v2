@@ -1,12 +1,18 @@
 import calendar
 import datetime as dt
+from typing import ClassVar
 
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Exists, OuterRef, Q, Subquery
+
 from expenses import date_utils
 from expenses.models import Expense
+from expenses.models.currency import Currency
+from expenses.models.expense_category import ExpenseCategory
 from expenses.models.timestamp import TimestampModel
+from expenses.models.trip import Trip
+from expenses.models.user import User
 
 
 class RecurringExpenseQuerySet(models.QuerySet):
@@ -31,15 +37,19 @@ class RecurringExpenseQuerySet(models.QuerySet):
         )
 
 
-class RecurringExpenseManager(models.Manager):
-    pass
+class RecurringExpenseManager(models.Manager["RecurringExpense"]):
+    def get_queryset(self) -> RecurringExpenseQuerySet:
+        return RecurringExpenseQuerySet(self.model, using=self._db)
+
+    def annotate_is_active(self) -> RecurringExpenseQuerySet:
+        return self.get_queryset().annotate_is_active()
 
 
 class RecurringExpense(TimestampModel):
-    objects = RecurringExpenseManager.from_queryset(RecurringExpenseQuerySet)()
+    objects: ClassVar[RecurringExpenseManager] = RecurringExpenseManager()
 
     user = models.ForeignKey(
-        "User",
+        User,
         on_delete=models.PROTECT,
         related_name="recurring_expenses",
     )
@@ -52,13 +62,13 @@ class RecurringExpense(TimestampModel):
         null=False,
     )
     category = models.ForeignKey(
-        "ExpenseCategory",
+        ExpenseCategory,
         on_delete=models.PROTECT,
         related_name="recurring_expenses",
         null=False,
     )
     trip = models.ForeignKey(
-        "Trip",
+        Trip,
         on_delete=models.PROTECT,
         related_name="recurring_expenses",
         null=True,
@@ -82,7 +92,7 @@ class RecurringExpense(TimestampModel):
         default=True,
     )
     currency = models.ForeignKey(
-        "Currency",
+        Currency,
         on_delete=models.PROTECT,
         related_name="reurring_expenses",
         verbose_name="Currency",

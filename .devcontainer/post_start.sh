@@ -12,4 +12,7 @@ echo "alias rb='cd /coco-expenses/backend && python manage.py runserver 0.0.0.0:
 # Launch tmp.py in shell
 echo "alias stmp=\"cd /coco-expenses/backend && python manage.py shell < /coco-expenses/backend/tmp.py\"" >> ~/.bashrc
 
+# Install the versioned git hook, which checks the code before each commit
+ln -sf ../../.githooks/pre-commit /coco-expenses/.git/hooks/pre-commit
+
 echo "READY TO CODE!"

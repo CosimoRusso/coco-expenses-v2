@@ -1,17 +1,18 @@
 from django.db import models
-from expenses.models.user import User
+
 from expenses.models.timestamp import TimestampModel
+from expenses.models.user import User
 
 
 class Friend(TimestampModel):
-    user_1: User = models.ForeignKey(
+    user_1 = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
         null=False,
         blank=False,
         related_name="friends_1",
     )
-    user_2: User = models.ForeignKey(
+    user_2 = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
         null=False,

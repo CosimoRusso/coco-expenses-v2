@@ -1,6 +1,8 @@
 from django.db import models
-from .currency import Currency
+
 from expenses.models.timestamp import TimestampModel
+
+from .currency import Currency
 
 
 class DollarExchangeRate(TimestampModel):

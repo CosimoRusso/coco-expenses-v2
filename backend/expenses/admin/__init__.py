@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.contrib.admin.exceptions import AlreadyRegistered
+from django.contrib.admin.sites import AlreadyRegistered
 from expenses.admin.currency import CurrencyAdmin
 from expenses.admin.dollar_exchange_rate import DollarExchangeRateAdmin
 from expenses.admin.expense_category import ExpenseCategoryAdmin

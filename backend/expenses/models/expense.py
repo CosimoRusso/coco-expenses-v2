@@ -1,15 +1,21 @@
-from typing import TYPE_CHECKING
-
 from django.db import models
-from expenses.models.timestamp import TimestampModel
 
-if TYPE_CHECKING:
-    from expenses.models.shared_expense_participant import SharedExpenseParticipant
+from expenses.models.currency import Currency
+from expenses.models.expense_category import ExpenseCategory
+from expenses.models.payment_method import PaymentMethod
+from expenses.models.shared_expense_participant import SharedExpenseParticipant
+from expenses.models.timestamp import TimestampModel
+from expenses.models.trip import Trip
+from expenses.models.user import User
 
 
 class Expense(TimestampModel):
+    user_id: int
+    category_id: int
+    trip_id: int | None
+
     user = models.ForeignKey(
-        "User",
+        User,
         on_delete=models.PROTECT,
         related_name="expenses",
     )
@@ -45,13 +51,13 @@ class Expense(TimestampModel):
         verbose_name="Amortization End Date", null=True
     )
     category = models.ForeignKey(
-        "ExpenseCategory", on_delete=models.PROTECT, related_name="expenses"
+        ExpenseCategory, on_delete=models.PROTECT, related_name="expenses"
     )
     trip = models.ForeignKey(
-        "Trip", on_delete=models.PROTECT, related_name="expenses", null=True
+        Trip, on_delete=models.PROTECT, related_name="expenses", null=True
     )
     payment_method = models.ForeignKey(
-        "PaymentMethod",
+        PaymentMethod,
         on_delete=models.PROTECT,
         related_name="expenses",
         null=True,
@@ -60,20 +66,20 @@ class Expense(TimestampModel):
     # True for expenses, false for income
     is_expense = models.BooleanField(default=True)
     currency = models.ForeignKey(
-        "Currency", on_delete=models.PROTECT, related_name="expenses", null=True
+        Currency, on_delete=models.PROTECT, related_name="expenses", null=True
     )
     recurring_expense = models.ForeignKey(
         "RecurringExpense", on_delete=models.PROTECT, related_name="expenses", null=True
     )
-    shared_expense_participant: "SharedExpenseParticipant" = models.ForeignKey(
-        "SharedExpenseParticipant", on_delete=models.PROTECT, null=True, blank=True
+    shared_expense_participant = models.ForeignKey(
+        SharedExpenseParticipant, on_delete=models.PROTECT, null=True, blank=True
     )
 
     def __str__(self):
         is_shared = self.shared_expense_participant is not None
         out = (
             f"{self.description} - {self.amount} "
-            f"({self.amortization_start_date.isoformat()} -> {self.amortization_end_date.isoformat()})"
+            f"({self.amortization_start_date} -> {self.amortization_end_date})"
         )
         if is_shared:
             out += ", shared"

@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 import sys
 from pathlib import Path
-from typing import Literal
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-ENV: Literal["local", "production"] = os.getenv("ENV")
+ENV = os.getenv("ENV")
 if ENV not in ["local", "production"]:
     raise ValueError("ENV must be either local or production")
 
@@ -33,7 +32,7 @@ DEBUG = ENV == "local"
 
 ALLOWED_HOSTS = ["backend", "localhost"]
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
+CSRF_TRUSTED_ORIGINS = os.environ["CSRF_TRUSTED_ORIGINS"].split(",")
 
 ALLOW_REGISTRATION = os.getenv("ALLOW_REGISTRATION") == "True"
 

@@ -1,6 +1,20 @@
+from typing import TYPE_CHECKING
+
 from django.db import models
+
 from expenses.models.timestamp import TimestampModel
 from expenses.models.user import User
+
+if TYPE_CHECKING:
+    from django.db.models.manager import RelatedManager
+
+    from expenses.models.shared_expense_deleted_notification import (
+        SharedExpenseDeletedNotification,
+    )
+    from expenses.models.shared_expense_modified_notification import (
+        SharedExpenseModifiedNotification,
+    )
+    from expenses.models.shared_expense_notification import SharedExpenseNotification
 
 
 class NotificationKind(models.TextChoices):
@@ -15,8 +29,11 @@ class NotificationKind(models.TextChoices):
 
 
 class Notification(TimestampModel):
-    user: User = models.ForeignKey(
-        User, on_delete=models.PROTECT, null=False, blank=False
-    )
+    user_id: int
+    sharedexpensenotification_set: "RelatedManager[SharedExpenseNotification]"
+    shared_expense_modified: "SharedExpenseModifiedNotification"
+    shared_expense_deleted: "SharedExpenseDeletedNotification"
+
+    user = models.ForeignKey(User, on_delete=models.PROTECT, null=False, blank=False)
     kind = models.CharField(max_length=50, choices=NotificationKind.choices)
     read_at = models.DateTimeField(null=True, blank=True)

@@ -3,8 +3,12 @@ import datetime as dt
 from dateutil.relativedelta import relativedelta
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
 from expenses import date_utils
+from expenses.models.currency import Currency
 from expenses.models.timestamp import TimestampModel
+from expenses.models.trip import Trip
+from expenses.models.user import User
 
 DEFAULT_STATISTICS_N_DAYS_AGO_FROM = 180
 DEFAULT_STATISTICS_N_DAYS_AGO_TO = 0
@@ -22,18 +26,21 @@ class DefaultStatisticsMethod(models.TextChoices):
 
 
 class UserSettings(TimestampModel):
+    preferred_currency_id: int | None
+    active_trip_id: int | None
+
     user = models.OneToOneField(
-        "User",
+        User,
         on_delete=models.PROTECT,
     )
     preferred_currency = models.ForeignKey(
-        "Currency",
+        Currency,
         on_delete=models.PROTECT,
         null=True,
         blank=True,
     )
     active_trip = models.ForeignKey(
-        "Trip",
+        Trip,
         on_delete=models.PROTECT,
         null=True,
         blank=True,

@@ -1,13 +1,18 @@
-from typing import Tuple
-
 from expenses.models import User
 from expenses.models.token import Token
 from rest_framework import authentication, exceptions
 from rest_framework.request import Request
 
 
+def authenticated_user(request: Request) -> User:
+    """The user of a request that went through CustomTokenAuthentication."""
+    user = request.user
+    assert isinstance(user, User)
+    return user
+
+
 class CustomTokenAuthentication(authentication.BaseAuthentication):
-    def authenticate(self, request: Request) -> Tuple[User, None]:
+    def authenticate(self, request: Request) -> tuple[User, None] | None:
         token = request.COOKIES.get("token")
         if not token:
             return None

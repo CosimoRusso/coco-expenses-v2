@@ -1,5 +1,6 @@
 from django.db import transaction
 from expenses import date_utils
+from expenses.authentication import authenticated_user
 from expenses.constants import TOKEN_DURATION
 from expenses.favourite_currency_cache import reset_favourite_currency_amounts
 from expenses.models import UserSettings
@@ -42,7 +43,7 @@ class UserSettingsViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             serializer.save()
             if user_settings.preferred_currency_id != previous_currency_id:
-                reset_favourite_currency_amounts(request.user)
+                reset_favourite_currency_amounts(authenticated_user(request))
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):

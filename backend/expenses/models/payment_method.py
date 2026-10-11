@@ -1,10 +1,12 @@
 from django.db import models
+
 from expenses.models.timestamp import TimestampModel
+from expenses.models.user import User
 
 
 class PaymentMethod(TimestampModel):
     user = models.ForeignKey(
-        "User", on_delete=models.PROTECT, related_name="payment_methods"
+        User, on_delete=models.PROTECT, related_name="payment_methods"
     )
     code = models.CharField(verbose_name="Payment Method", max_length=128)
     name = models.CharField(verbose_name="Payment Method", max_length=128)

@@ -37,6 +37,9 @@ class _PlainAmounts:
         )
 
     def original(self, expense: Expense) -> Decimal:
+        assert expense.amount is not None, (
+            "missing() leaves out expenses with no amount"
+        )
         return expense.amount
 
     def store(self, expense: Expense, amount: Decimal) -> None:
@@ -123,19 +126,25 @@ def _next_batch(
     return list(convertible.select_related("currency").order_by("id")[:BATCH_SIZE])
 
 
+def _money_of(
+    amounts: _PlainAmounts | _EncryptedAmounts, expense: Expense
+) -> exchange_rate_manager.Money:
+    """What `expense` is worth in its own currency, on the day to convert it at."""
+    assert expense.currency is not None, (
+        "_next_batch leaves out expenses with no currency"
+    )
+    return exchange_rate_manager.Money(
+        amount=amounts.original(expense),
+        currency=expense.currency,
+        # An expense not paid yet is converted at the latest rate
+        day=expense.expense_date or date_utils.today(),
+    )
+
+
 def _convert(
     amounts: _PlainAmounts | _EncryptedAmounts, batch: list[Expense], currency: Currency
 ) -> None:
-    today = date_utils.today()
-    money = [
-        exchange_rate_manager.Money(
-            amount=amounts.original(expense),
-            currency=expense.currency,
-            # An expense not paid yet is converted at the latest rate
-            day=expense.expense_date or today,
-        )
-        for expense in batch
-    ]
+    money = [_money_of(amounts, expense) for expense in batch]
     converted = exchange_rate_manager.bulk_convert_to_currency(money, currency)
     for expense, entry in zip(batch, converted):
         amounts.store(expense, entry.amount.quantize(CENTS, ROUND_HALF_UP))

@@ -64,7 +64,9 @@ class _InclusiveDays(Func):
 
     template = "(%(expressions)s + 1)"
     arg_joiner = " - "
-    output_field = IntegerField()
+
+    def __init__(self, last_day, first_day):
+        super().__init__(last_day, first_day, output_field=IntegerField())
 
 
 def _overlapping(period: Period) -> Q:
@@ -242,6 +244,9 @@ class DecryptedStatistics:
         return [self._decrypted(row) for row in rows]
 
     def _decrypted(self, expense: Expense) -> _DecryptedExpense:
+        assert expense.amortization_start_date and expense.amortization_end_date, (
+            "_expenses leaves out expenses with no amortization dates"
+        )
         amount = decrypt_text_with_key(
             self.user, self.crypto_key, expense.encrypted_amount_favourite_currency
         )

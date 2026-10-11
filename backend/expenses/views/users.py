@@ -21,7 +21,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-    def get_permissions(self):
+    def get_permissions(self) -> list:
         if self.action in ["login", "register"]:
             return [AllowAny()]
         elif self.action in ["logout", "self"]:
@@ -54,7 +54,7 @@ class UserViewSet(viewsets.ModelViewSet):
             }
         )
         response.set_cookie(
-            key="token", value=token.token, expires=token.expiration_date
+            key="token", value=str(token.token), expires=token.expiration_date
         )
         user_settings = UserSettings.objects.get_or_create(user=user)[0]
         if user_settings.is_encrypted:

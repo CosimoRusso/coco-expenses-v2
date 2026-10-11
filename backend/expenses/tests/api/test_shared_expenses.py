@@ -89,7 +89,7 @@ class TestShareExpense(SharedExpenseTestCase):
         self.assertEqual(
             expense.shared_expense_participant, self.participant_of(self.me)
         )
-        self.assertEqual(expense.shared_expense_participant.quota, Decimal("3.34"))
+        self.assertEqual(self.participant_of(self.me).quota, Decimal("3.34"))
 
     def test_shared_expense_stores_the_total(self):
         self.share_dinner(amount="10.00")

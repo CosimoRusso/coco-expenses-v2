@@ -1,4 +1,5 @@
 from django.db import models
+
 from expenses.models.timestamp import TimestampModel
 
 

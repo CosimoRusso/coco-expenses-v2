@@ -1,4 +1,5 @@
 import base64
+from decimal import Decimal
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -65,7 +66,7 @@ def decrypt_user_data(user: User, password: str) -> None:
         expense.description = fernet.decrypt(
             expense.encrypted_description.encode()
         ).decode()
-        expense.amount = float(
+        expense.amount = Decimal(
             fernet.decrypt(expense.encrypted_amount.encode()).decode()
         )
         expense.encrypted_description = ""

@@ -1,0 +1,10 @@
+[tool.pyright]
+include = ["backend"]
+# Imports are resolved from `backend`, where manage.py runs.
+executionEnvironments = [{ root = "backend" }]
+pythonVersion = "3.14"
+typeCheckingMode = "standard"
+# Django's `class Meta` idiom redeclares a symbol of the base class on purpose.
+reportIncompatibleVariableOverride = false
+# factory_boy does not declare what it exports, so every `factory.X` looks private.
+reportPrivateImportUsage = false
