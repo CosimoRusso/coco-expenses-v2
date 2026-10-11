@@ -56,7 +56,7 @@ watch(
 
 <template>
   <div class="navbar bg-base-100 shadow-sm">
-    <div class="navbar-start">
+    <div class="navbar-start w-auto">
       <div class="dropdown">
         <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
           <svg
@@ -88,8 +88,8 @@ watch(
       </div>
       <router-link to="/" class="btn btn-ghost text-xl">CocoExpenses</router-link>
     </div>
-    <div class="navbar-end hidden lg:flex">
-      <ul class="menu menu-horizontal px-1">
+    <div class="navbar-end hidden w-auto flex-1 lg:flex">
+      <ul class="menu menu-horizontal flex-nowrap px-1 whitespace-nowrap">
         <li v-for="navElement in navElements" :key="navElement.text">
           <router-link
             :to="navElement.link"
