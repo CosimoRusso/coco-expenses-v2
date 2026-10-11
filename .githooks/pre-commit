@@ -1,8 +1,12 @@
 #!/bin/bash
-# Refuses the commit when ruff or pyright finds an error in the backend.
+# Refuses the commit when a linter or type checker finds an error.
 # They check the files as they are on disk, not only the staged changes.
 
 cd "$(git rev-parse --show-toplevel)" || exit 1
 ruff check backend || exit 1
 ruff format --check backend || exit 1
-pyright
+pyright || exit 1
+
+cd frontend/coco-expenses-v2-frontend || exit 1
+npx eslint . || exit 1
+npx vue-tsc --build

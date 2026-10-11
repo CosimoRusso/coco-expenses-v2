@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import apiFetch from '@/utils/apiFetch'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
 import type { RecurringExpense } from '@/interfaces/RecurringExpense'
@@ -264,9 +264,11 @@ const submitForm = async () => {
       const errorData = await response.json()
       throw new Error(errorData?.detail || 'Failed to save recurring expense.')
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error saving recurring expense:', error)
-    formError.value = error.message || 'An error occurred while saving the recurring expense'
+    formError.value =
+      (error instanceof Error && error.message) ||
+      'An error occurred while saving the recurring expense'
   } finally {
     isSubmitting.value = false
   }

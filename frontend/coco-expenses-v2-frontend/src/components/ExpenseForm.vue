@@ -252,9 +252,9 @@ const addOrUpdateExpense = async () => {
         isEditing.value ? 'Failed to update expense.' : 'Failed to add expense.',
       )
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error saving expense:', error)
-    formError.value = error.response?.data?.detail || 'An error occurred while saving the expense'
+    formError.value = 'An error occurred while saving the expense'
   } finally {
     isSubmitting.value = false
   }

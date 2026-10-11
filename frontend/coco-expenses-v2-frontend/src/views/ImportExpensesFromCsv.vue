@@ -63,9 +63,14 @@
 import { ref } from 'vue'
 import apiFetch from '@/utils/apiFetch'
 
+interface ImportResult {
+  created: number
+  errors: { row: number; error: string }[]
+}
+
 const csvFile = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
-const result = ref<any>(null)
+const result = ref<ImportResult | null>(null)
 const error = ref<string | null>(null)
 
 function onFileChange() {
@@ -97,8 +102,8 @@ async function submitCsv() {
     } else {
       error.value = "Errore durante l'importazione."
     }
-  } catch (e: any) {
-    error.value = e.response?.data?.error || "Errore durante l'importazione."
+  } catch {
+    error.value = "Errore durante l'importazione."
   } finally {
     loading.value = false
   }
