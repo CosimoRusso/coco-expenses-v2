@@ -13,7 +13,6 @@ from expenses.tests.factories.expense_factories import ExpenseFactory
 from expenses.tests.factories.payment_method_factories import PaymentMethodFactory
 from expenses.tests.factories.trip_factories import TripFactory
 from expenses.tests.factories.user_factories import UserFactory
-from expenses.utils.encryption.encryption import encrypt_user_data
 from rest_framework import status
 from rest_framework.reverse import reverse
 
@@ -306,14 +305,8 @@ class TestExpense(ApiTestCase):
     def test_filter_expenses_by_trip_none(self):
         trip = TripFactory(user=self.user)
         category = ExpenseCategoryFactory(user=self.user)
-        expenses_with_trip = [
-            ExpenseFactory(user=self.user, category=category, trip=trip),
-            ExpenseFactory(user=self.user, category=category, trip=trip),
-        ]
-        expenses_no_trip = [
-            ExpenseFactory(user=self.user, category=category, trip=None),
-            ExpenseFactory(user=self.user, category=category, trip=None),
-        ]
+        ExpenseFactory.create_batch(2, user=self.user, category=category, trip=trip)
+        ExpenseFactory.create_batch(2, user=self.user, category=category, trip=None)
         # Note: Django filters typically don't support filtering for None/null values
         # directly via query parameter. This test verifies the behavior.
         # If the backend doesn't support trip=None filtering, this test may need adjustment.

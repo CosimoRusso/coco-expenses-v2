@@ -1,6 +1,6 @@
 from expenses.models import User
 from expenses.models.token import Token
-from rest_framework import authentication, exceptions
+from rest_framework import authentication
 from rest_framework.request import Request
 
 

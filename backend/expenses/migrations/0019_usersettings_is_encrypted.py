@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0018_settings_singleton'),
+        ("expenses", "0018_settings_singleton"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='usersettings',
-            name='is_encrypted',
+            model_name="usersettings",
+            name="is_encrypted",
             field=models.BooleanField(default=False),
         ),
     ]

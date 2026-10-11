@@ -16,7 +16,7 @@ class TripSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context["request"].user
         validated_data["user"] = user
-        
+
         # Check limit from settings
         settings = Settings.objects.first()
         if settings and settings.max_trips is not None:
@@ -25,7 +25,7 @@ class TripSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f"Cannot create new trip. Maximum number of trips ({settings.max_trips}) has been reached."
                 )
-        
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):

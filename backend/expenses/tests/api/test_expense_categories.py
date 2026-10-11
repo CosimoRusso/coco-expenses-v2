@@ -3,7 +3,6 @@ from expenses.models import Settings
 from expenses.tests.api.api_test_case import ApiTestCase
 from expenses.tests.factories.category_factories import ExpenseCategoryFactory
 from expenses.tests.factories.user_factories import UserFactory
-from rest_framework import status
 
 
 class TestExpenses(ApiTestCase):

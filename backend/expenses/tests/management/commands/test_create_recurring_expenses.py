@@ -247,7 +247,7 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
     def test_amortization_dates_with_default_values(self):
         """Test that default amortization (1 DAY) sets both dates to today"""
-        recurring_expense = RecurringExpenseFactory(
+        RecurringExpenseFactory(
             user=self.user,
             category=self.category,
             currency=self.currency,
@@ -266,7 +266,7 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
     def test_amortization_dates_with_day_unit(self):
         """Test amortization with DAY unit"""
-        recurring_expense = RecurringExpenseFactory(
+        RecurringExpenseFactory(
             user=self.user,
             category=self.category,
             currency=self.currency,
@@ -286,7 +286,7 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
     def test_amortization_dates_with_week_unit(self):
         """Test amortization with WEEK unit"""
-        recurring_expense = RecurringExpenseFactory(
+        RecurringExpenseFactory(
             user=self.user,
             category=self.category,
             currency=self.currency,
@@ -306,7 +306,7 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
     def test_amortization_dates_with_month_unit(self):
         """Test amortization with MONTH unit - should set end date to end of month"""
-        recurring_expense = RecurringExpenseFactory(
+        RecurringExpenseFactory(
             user=self.user,
             category=self.category,
             currency=self.currency,
@@ -330,7 +330,7 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
     def test_amortization_dates_with_multiple_months(self):
         """Test amortization with multiple MONTH units"""
-        recurring_expense = RecurringExpenseFactory(
+        RecurringExpenseFactory(
             user=self.user,
             category=self.category,
             currency=self.currency,
@@ -357,7 +357,7 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
     def test_amortization_dates_with_year_unit(self):
         """Test amortization with YEAR unit"""
-        recurring_expense = RecurringExpenseFactory(
+        RecurringExpenseFactory(
             user=self.user,
             category=self.category,
             currency=self.currency,
@@ -378,7 +378,7 @@ class TestCreateRecurringExpensesCommand(TestCase):
 
     def test_amortization_dates_with_multiple_years(self):
         """Test amortization with multiple YEAR units"""
-        recurring_expense = RecurringExpenseFactory(
+        RecurringExpenseFactory(
             user=self.user,
             category=self.category,
             currency=self.currency,

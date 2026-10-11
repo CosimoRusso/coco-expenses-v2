@@ -4,15 +4,20 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0027_expense_amount_favourite_currency_and_more'),
+        ("expenses", "0027_expense_amount_favourite_currency_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='expense',
-            name='amount_favourite_currency',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True, verbose_name='Amount Favourite Currency'),
+            model_name="expense",
+            name="amount_favourite_currency",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=2,
+                max_digits=14,
+                null=True,
+                verbose_name="Amount Favourite Currency",
+            ),
         ),
     ]

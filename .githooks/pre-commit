@@ -1,6 +1,8 @@
 #!/bin/bash
-# Refuses the commit when pyright finds a type error in the backend.
-# Checks the files as they are on disk, not only the staged changes.
+# Refuses the commit when ruff or pyright finds an error in the backend.
+# They check the files as they are on disk, not only the staged changes.
 
 cd "$(git rev-parse --show-toplevel)" || exit 1
-exec pyright
+ruff check backend || exit 1
+ruff format --check backend || exit 1
+pyright

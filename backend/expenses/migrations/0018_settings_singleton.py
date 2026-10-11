@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0017_settings_alter_expensecategory_is_active_and_more'),
+        ("expenses", "0017_settings_alter_expensecategory_is_active_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='settings',
-            name='singleton',
+            model_name="settings",
+            name="singleton",
             field=models.BooleanField(default=True, editable=False, unique=True),
         ),
     ]

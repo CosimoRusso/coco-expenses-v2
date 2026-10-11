@@ -4,14 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0022_notification_sharedexpense_sharedexpenseparticipant_and_more'),
+        (
+            "expenses",
+            "0022_notification_sharedexpense_sharedexpenseparticipant_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='expense',
-            constraint=models.UniqueConstraint(fields=('shared_expense_participant',), name='unique_expense_per_shared_expense_participant'),
+            model_name="expense",
+            constraint=models.UniqueConstraint(
+                fields=("shared_expense_participant",),
+                name="unique_expense_per_shared_expense_participant",
+            ),
         ),
     ]

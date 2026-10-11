@@ -28,5 +28,5 @@ class Command(BaseCommand):
             raise SystemExit(1)
 
         self.stdout.write(
-            self.style.SUCCESS(f'Created currency {code} ({display_name}).')
+            self.style.SUCCESS(f"Created currency {code} ({display_name}).")
         )

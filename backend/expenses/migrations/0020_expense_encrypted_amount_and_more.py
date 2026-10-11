@@ -4,20 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expenses', '0019_usersettings_is_encrypted'),
+        ("expenses", "0019_usersettings_is_encrypted"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='expense',
-            name='encrypted_amount',
-            field=models.CharField(blank=True, max_length=255, verbose_name='Encrypted Amount'),
+            model_name="expense",
+            name="encrypted_amount",
+            field=models.CharField(
+                blank=True, max_length=255, verbose_name="Encrypted Amount"
+            ),
         ),
         migrations.AddField(
-            model_name='expense',
-            name='encrypted_description',
-            field=models.CharField(blank=True, max_length=255, verbose_name='Encrypted Description'),
+            model_name="expense",
+            name="encrypted_description",
+            field=models.CharField(
+                blank=True, max_length=255, verbose_name="Encrypted Description"
+            ),
         ),
     ]

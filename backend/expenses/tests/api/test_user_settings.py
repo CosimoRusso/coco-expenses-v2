@@ -2,7 +2,6 @@ import datetime as dt
 from unittest.mock import patch
 
 from django.urls import reverse
-from expenses.models.currency import Currency
 from expenses.models.user_settings import UserSettings
 from expenses.tests.api.api_test_case import ApiTestCase
 from expenses.tests.factories.category_factories import CategoryFactory
