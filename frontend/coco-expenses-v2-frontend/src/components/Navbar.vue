@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { computed, watch, type Component } from 'vue'
 import IconBell from '@/components/icons/IconBell.vue'
 
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
-const router = useRouter()
 const route = useRoute()
 
 interface NavElement {
   text: string
-  link?: string
-  action?: () => void
+  link: string
   // Shown instead of the text in the desktop menu
   icon?: Component
   hasDot?: boolean
@@ -37,7 +35,6 @@ const navElements = computed<NavElement[]>(() => {
             icon: IconBell,
             hasDot: notificationStore.unreadCount > 0,
           },
-          { text: 'Logout', action: handleLogout },
         ]
       : [
           { text: 'Login', link: '/login' },
@@ -55,11 +52,6 @@ watch(
   },
   { immediate: true },
 )
-
-function handleLogout() {
-  userStore.logout()
-  router.push('/login')
-}
 </script>
 
 <template>
@@ -86,45 +78,32 @@ function handleLogout() {
           tabindex="0"
           class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow"
         >
-          <template v-for="navElement in navElements" :key="navElement.text">
-            <li v-if="navElement.link">
-              <router-link :to="navElement.link" active-class="active">
-                {{ navElement.text }}
-                <span v-if="navElement.hasDot" class="status status-error"></span>
-              </router-link>
-            </li>
-            <li v-else-if="navElement.action">
-              <a @click.prevent="navElement.action">{{ navElement.text }}</a>
-            </li>
-          </template>
+          <li v-for="navElement in navElements" :key="navElement.text">
+            <router-link :to="navElement.link" active-class="active">
+              {{ navElement.text }}
+              <span v-if="navElement.hasDot" class="status status-error"></span>
+            </router-link>
+          </li>
         </ul>
       </div>
       <router-link to="/" class="btn btn-ghost text-xl">CocoExpenses</router-link>
     </div>
     <div class="navbar-end hidden lg:flex">
       <ul class="menu menu-horizontal px-1">
-        <template v-for="navElement in navElements" :key="navElement.text">
-          <li v-if="navElement.link">
-            <router-link
-              :to="navElement.link"
-              active-class="active"
-              :aria-label="navElement.icon ? navElement.text : undefined"
-              :title="navElement.icon ? navElement.text : undefined"
-            >
-              <span v-if="navElement.icon" class="indicator">
-                <span
-                  v-if="navElement.hasDot"
-                  class="indicator-item status status-error"
-                ></span>
-                <component :is="navElement.icon" class="h-5 w-5" />
-              </span>
-              <template v-else>{{ navElement.text }}</template>
-            </router-link>
-          </li>
-          <li v-else-if="navElement.action">
-            <a @click.prevent="navElement.action">{{ navElement.text }}</a>
-          </li>
-        </template>
+        <li v-for="navElement in navElements" :key="navElement.text">
+          <router-link
+            :to="navElement.link"
+            active-class="active"
+            :aria-label="navElement.icon ? navElement.text : undefined"
+            :title="navElement.icon ? navElement.text : undefined"
+          >
+            <span v-if="navElement.icon" class="indicator">
+              <span v-if="navElement.hasDot" class="indicator-item status status-error"></span>
+              <component :is="navElement.icon" class="h-5 w-5" />
+            </span>
+            <template v-else>{{ navElement.text }}</template>
+          </router-link>
+        </li>
       </ul>
     </div>
   </div>

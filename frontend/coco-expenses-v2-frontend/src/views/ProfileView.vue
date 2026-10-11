@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { useUserStore } from '@/stores/user'
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import apiFetch from '@/utils/apiFetch'
 import type { Currency } from '@/interfaces/Currency'
 import type { Trip } from '@/interfaces/Trip'
 import type { DefaultStatisticsMethod, UserSettings } from '@/interfaces/UserSettings'
 
 const userStore = useUserStore()
+const router = useRouter()
 
 const userSettingsId = ref<number | null>(null)
 const preferredCurrency = ref<number | null>(null)
@@ -116,6 +118,11 @@ async function activateEncryption() {
     return
   }
   isEncrypted.value = true
+}
+
+function logout() {
+  userStore.logout()
+  router.push('/login')
 }
 
 onMounted(() => {
@@ -268,6 +275,9 @@ onMounted(() => {
         <p class="text-red-500" v-if="encryptionActivationError">{{ encryptionActivationError }}</p>
       </div>
       <p v-else>You are encrypted, disabling encryption is not implemented yet :)</p>
+      <div class="border-t border-base-300 mt-6 pt-6">
+        <button type="button" class="btn btn-outline btn-error" @click="logout">Logout</button>
+      </div>
     </div>
 
     <div v-else class="bg-base-100 p-8 rounded-lg shadow text-center">
