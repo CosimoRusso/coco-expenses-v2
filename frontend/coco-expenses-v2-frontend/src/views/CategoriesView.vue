@@ -40,7 +40,7 @@ async function fetchCategories() {
 async function addCategory() {
   createCategoryError.value = ''
   let response: Response
-  
+
   if (editingId.value) {
     // Update existing category
     response = await apiFetch(`/expenses/expense-categories/${editingId.value}/`, {
@@ -54,11 +54,11 @@ async function addCategory() {
       body: JSON.stringify(newCategory.value),
     })
   }
-  
+
   if (response.ok) {
     createCategoryError.value = ''
     const updatedCategory = await response.json()
-    
+
     if (editingId.value) {
       // Update existing category in list
       const index = categories.value.findIndex((c) => c.id === editingId.value)
@@ -70,7 +70,7 @@ async function addCategory() {
       // Refresh categories list to get the new category
       await fetchCategories()
     }
-    
+
     // Reset form
     newCategory.value = {
       id: 0,
@@ -81,7 +81,9 @@ async function addCategory() {
     }
   } else {
     const errorData = await response.json()
-    createCategoryError.value = errorData?.detail || (editingId.value ? 'Failed to update category.' : 'Failed to create category.')
+    createCategoryError.value =
+      errorData?.detail ||
+      (editingId.value ? 'Failed to update category.' : 'Failed to create category.')
   }
 }
 
@@ -113,7 +115,7 @@ async function deleteCategory(categoryId: number) {
   if (!confirm('Are you sure you want to delete this category?')) {
     return
   }
-  
+
   deleteCategoryError.value = ''
   try {
     const response = await apiFetch(`/expenses/expense-categories/${categoryId}/`, {
@@ -176,18 +178,17 @@ onMounted(() => {
     </div>
     <div>
       <label for="is_active" class="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="is_active"
-          class="checkbox"
-          v-model="newCategory.is_active"
-        />
+        <input type="checkbox" id="is_active" class="checkbox" v-model="newCategory.is_active" />
         Is Active
       </label>
     </div>
     <div class="col-span-full flex gap-2">
-      <button type="submit" class="btn btn-primary">{{ editingId ? 'Update' : 'Add Category' }}</button>
-      <button v-if="editingId" type="button" @click="cancelEdit" class="btn btn-secondary">Cancel</button>
+      <button type="submit" class="btn btn-primary">
+        {{ editingId ? 'Update' : 'Add Category' }}
+      </button>
+      <button v-if="editingId" type="button" @click="cancelEdit" class="btn btn-secondary">
+        Cancel
+      </button>
     </div>
   </form>
   <div v-if="createCategoryError" class="text-error my-4">{{ createCategoryError }}</div>

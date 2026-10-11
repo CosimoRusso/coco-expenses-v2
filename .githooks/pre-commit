@@ -1,12 +1,15 @@
 #!/bin/bash
-# Refuses the commit when a linter or type checker finds an error.
+# Refuses the commit when a linter, formatter or type checker finds an error,
+# or when a model change has no migration.
 # They check the files as they are on disk, not only the staged changes.
 
 cd "$(git rev-parse --show-toplevel)" || exit 1
 ruff check backend || exit 1
 ruff format --check backend || exit 1
 pyright || exit 1
+python backend/manage.py makemigrations --check --dry-run || exit 1
 
 cd frontend/coco-expenses-v2-frontend || exit 1
 npx eslint . || exit 1
+npx prettier --check src || exit 1
 npx vue-tsc --build

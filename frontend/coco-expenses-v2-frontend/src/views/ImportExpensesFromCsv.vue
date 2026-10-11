@@ -7,8 +7,8 @@
       trip, payment_method, currency, is_expense
     </p>
     <p class="mb-2">
-      La colonna payment_method è facoltativa: indica il codice del metodo di pagamento, che
-      viene creato se non esiste.
+      La colonna payment_method è facoltativa: indica il codice del metodo di pagamento, che viene
+      creato se non esiste.
     </p>
 
     <div
