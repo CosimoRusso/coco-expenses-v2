@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import apiFetch from '@/utils/apiFetch'
+import {
+  activeBadgeClass,
+  activeBorderClass,
+  activeLabel,
+  activeRowClass,
+} from '@/utils/activeStatus'
 import { onMounted, ref } from 'vue'
 import EditIcon from '../../icons/EditIcon.vue'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
@@ -150,7 +156,7 @@ onMounted(() => {
         <tr>
           <th>Name</th>
           <th>Code</th>
-          <th>Is Active</th>
+          <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -158,10 +164,20 @@ onMounted(() => {
         <tr v-if="paymentMethods.length === 0">
           <td colspan="4" class="no-data">No payment methods found</td>
         </tr>
-        <tr v-for="paymentMethod in paymentMethods" :key="paymentMethod.id">
-          <td>{{ paymentMethod.name }}</td>
+        <tr
+          v-for="paymentMethod in paymentMethods"
+          :key="paymentMethod.id"
+          :class="activeRowClass(paymentMethod.is_active)"
+        >
+          <td class="border-l-4" :class="activeBorderClass(paymentMethod.is_active)">
+            {{ paymentMethod.name }}
+          </td>
           <td>{{ paymentMethod.code }}</td>
-          <td>{{ paymentMethod.is_active }}</td>
+          <td>
+            <span class="badge badge-soft" :class="activeBadgeClass(paymentMethod.is_active)">
+              {{ activeLabel(paymentMethod.is_active) }}
+            </span>
+          </td>
           <td>
             <div class="flex gap-2">
               <button

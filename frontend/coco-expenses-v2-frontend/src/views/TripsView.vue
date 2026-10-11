@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import apiFetch from '@/utils/apiFetch'
+import {
+  activeBadgeClass,
+  activeBorderClass,
+  activeLabel,
+  activeRowClass,
+} from '@/utils/activeStatus'
 import { onMounted, ref } from 'vue'
 import EditIcon from '../../icons/EditIcon.vue'
 import DeleteIcon from '../../icons/DeleteIcon.vue'
@@ -178,7 +184,7 @@ onMounted(() => {
         <tr>
           <th>Name</th>
           <th>Code</th>
-          <th>Is Active</th>
+          <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -186,10 +192,14 @@ onMounted(() => {
         <tr v-if="trips.length === 0">
           <td colspan="4" class="no-data">No trips found</td>
         </tr>
-        <tr v-for="trip in trips" :key="trip.id">
-          <td>{{ trip.name }}</td>
+        <tr v-for="trip in trips" :key="trip.id" :class="activeRowClass(trip.is_active)">
+          <td class="border-l-4" :class="activeBorderClass(trip.is_active)">{{ trip.name }}</td>
           <td>{{ trip.code }}</td>
-          <td>{{ trip.is_active }}</td>
+          <td>
+            <span class="badge badge-soft" :class="activeBadgeClass(trip.is_active)">
+              {{ activeLabel(trip.is_active) }}
+            </span>
+          </td>
           <td>
             <div class="flex gap-2">
               <button
