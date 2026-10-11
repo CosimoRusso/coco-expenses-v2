@@ -31,7 +31,8 @@ class SessionRefreshMiddleware:
             "user_crypto_key", SimpleNamespace(value=None)
         ).value or request.COOKIES.get("user_crypto_key")
 
-        updated_expiration = date_utils.now() + TOKEN_DURATION
+        now = date_utils.now()
+        updated_expiration = now + TOKEN_DURATION
 
         response.set_cookie(
             key="token",
@@ -39,7 +40,7 @@ class SessionRefreshMiddleware:
             expires=updated_expiration,
         )
         Token.objects.filter(user=request.user, token=session_token).update(
-            expiration_date=updated_expiration
+            expiration_date=updated_expiration, updated_at=now
         )
 
         if user_crypto_key:

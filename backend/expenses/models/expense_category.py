@@ -1,7 +1,8 @@
 from django.db import models
+from expenses.models.timestamp import TimestampModel
 
 
-class ExpenseCategory(models.Model):
+class ExpenseCategory(TimestampModel):
     user = models.ForeignKey(
         "User", on_delete=models.PROTECT, related_name="expense_categories"
     )

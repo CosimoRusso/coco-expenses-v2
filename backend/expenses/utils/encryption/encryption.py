@@ -14,6 +14,7 @@ ENCRYPTION_FIELDS = [
     "encrypted_description",
     "encrypted_amount",
     "encrypted_amount_favourite_currency",
+    "updated_at",
 ]
 
 

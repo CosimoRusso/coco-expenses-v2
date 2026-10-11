@@ -1,7 +1,8 @@
 from django.db import models
+from expenses.models.timestamp import TimestampModel
 
 
-class Settings(models.Model):
+class Settings(TimestampModel):
     singleton = models.BooleanField(default=True, unique=True, editable=False)
     max_categories = models.PositiveIntegerField(null=True, blank=True)
     max_trips = models.PositiveIntegerField(null=True, blank=True)

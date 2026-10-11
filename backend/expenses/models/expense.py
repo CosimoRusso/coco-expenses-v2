@@ -1,12 +1,13 @@
 from typing import TYPE_CHECKING
 
 from django.db import models
+from expenses.models.timestamp import TimestampModel
 
 if TYPE_CHECKING:
     from expenses.models.shared_expense_participant import SharedExpenseParticipant
 
 
-class Expense(models.Model):
+class Expense(TimestampModel):
     user = models.ForeignKey(
         "User",
         on_delete=models.PROTECT,

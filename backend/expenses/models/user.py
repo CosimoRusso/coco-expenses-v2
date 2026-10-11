@@ -1,8 +1,9 @@
 import bcrypt
 from django.db import models
+from expenses.models.timestamp import TimestampModel
 
 
-class User(models.Model):
+class User(TimestampModel):
     email = models.EmailField(
         verbose_name="E-mail",
         unique=True,

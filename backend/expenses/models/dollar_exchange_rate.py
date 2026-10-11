@@ -1,8 +1,9 @@
 from django.db import models
 from .currency import Currency
+from expenses.models.timestamp import TimestampModel
 
 
-class DollarExchangeRate(models.Model):
+class DollarExchangeRate(TimestampModel):
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
     date = models.DateField()
     rate = models.DecimalField(max_digits=14, decimal_places=4)

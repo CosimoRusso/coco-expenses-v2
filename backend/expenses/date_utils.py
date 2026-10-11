@@ -47,3 +47,10 @@ def all_dates_in_range(start_date: dt.date, end_date: dt.date) -> list[dt.date]:
         start_date + dt.timedelta(days=i)
         for i in range((end_date - start_date).days + 1)
     ]
+
+
+def noon_of(day: dt.date) -> dt.datetime:
+    """12:00 of `day` in the server time zone."""
+    return dt.datetime.combine(
+        day, dt.time(12), tzinfo=zoneinfo.ZoneInfo(settings.TIME_ZONE)
+    )

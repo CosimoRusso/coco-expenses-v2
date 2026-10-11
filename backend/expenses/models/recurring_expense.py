@@ -6,6 +6,7 @@ from django.db import models
 from django.db.models import Exists, OuterRef, Q, Subquery
 from expenses import date_utils
 from expenses.models import Expense
+from expenses.models.timestamp import TimestampModel
 
 
 class RecurringExpenseQuerySet(models.QuerySet):
@@ -34,7 +35,7 @@ class RecurringExpenseManager(models.Manager):
     pass
 
 
-class RecurringExpense(models.Model):
+class RecurringExpense(TimestampModel):
     objects = RecurringExpenseManager.from_queryset(RecurringExpenseQuerySet)()
 
     user = models.ForeignKey(

@@ -1,7 +1,8 @@
 from django.db import models
+from expenses.models.timestamp import TimestampModel
 
 
-class Currency(models.Model):
+class Currency(TimestampModel):
     code = models.CharField(max_length=10)
     symbol = models.CharField(max_length=10)
     display_name = models.CharField(max_length=255)

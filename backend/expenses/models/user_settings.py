@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from expenses import date_utils
+from expenses.models.timestamp import TimestampModel
 
 DEFAULT_STATISTICS_N_DAYS_AGO_FROM = 180
 DEFAULT_STATISTICS_N_DAYS_AGO_TO = 0
@@ -20,7 +21,7 @@ class DefaultStatisticsMethod(models.TextChoices):
     DAYS_AGO = "DAYS_AGO", "Days ago"
 
 
-class UserSettings(models.Model):
+class UserSettings(TimestampModel):
     user = models.OneToOneField(
         "User",
         on_delete=models.PROTECT,

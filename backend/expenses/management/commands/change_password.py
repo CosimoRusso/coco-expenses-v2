@@ -15,4 +15,4 @@ class Command(BaseCommand):
 
         u = User.objects.get(email=email)
         u.password_hash = password_hash
-        u.save(update_fields=["password_hash"])
+        u.save(update_fields=["password_hash", "updated_at"])

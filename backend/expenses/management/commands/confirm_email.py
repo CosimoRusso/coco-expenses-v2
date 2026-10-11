@@ -13,4 +13,4 @@ class Command(BaseCommand):
 
         u = User.objects.get(email=email)
         u.email_confirmed_at = date_utils.now()
-        u.save(update_fields=["email_confirmed_at"])
+        u.save(update_fields=["email_confirmed_at", "updated_at"])

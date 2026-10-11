@@ -1,7 +1,8 @@
 from django.db import models
+from expenses.models.timestamp import TimestampModel
 
 
-class PaymentMethod(models.Model):
+class PaymentMethod(TimestampModel):
     user = models.ForeignKey(
         "User", on_delete=models.PROTECT, related_name="payment_methods"
     )
